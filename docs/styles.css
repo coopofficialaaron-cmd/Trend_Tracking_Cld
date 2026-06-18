@@ -12,7 +12,7 @@
   --band:rgba(12,139,149,.14);
   --scrim:rgba(27,36,48,.32);
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --ui:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  --ui:"Inter","Noto Sans SC",system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -94,6 +94,12 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .add-btn{margin-left:auto;appearance:none;border:1px solid var(--accent);background:var(--panel);
   color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:7px 16px;border-radius:999px;cursor:pointer}
 .add-btn:hover{background:var(--accent);color:#fff}
+.risk-ctl{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--muted);
+  font-size:13px;font-weight:600}
+.risk-ctl input{width:74px;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  font:inherit;font-family:var(--mono);font-size:14px;padding:6px 9px;border-radius:8px;text-align:right}
+.risk-ctl input:focus{outline:none;border-color:var(--accent)}
+.risk-ctl + .add-btn{margin-left:14px}
 
 .modal-scrim{position:fixed;inset:0;background:var(--scrim);z-index:60;backdrop-filter:blur(2px)}
 .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:70;
@@ -219,9 +225,9 @@ tbody tr.enter td:first-child{box-shadow:inset 3px 0 0 var(--enter)}
   border:1px solid var(--accent);border-radius:5px}
 .gauge-track .g-mark{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;
   border:2px solid var(--panel);transform:translate(-50%,-50%);box-shadow:0 0 0 1px var(--line)}
-.gauge-scale{position:relative;height:16px;margin:8px 4px 0;font-size:11px;color:var(--muted);
+.gauge-scale{display:flex;justify-content:space-between;margin:9px 2px 0;font-size:12.5px;color:var(--muted);
   font-family:var(--mono)}
-.gauge-scale span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.gauge-scale span{white-space:nowrap}
 .gauge-foot{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;padding-top:12px;
   border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 .gauge-foot i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
