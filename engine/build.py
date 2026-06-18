@@ -36,6 +36,12 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
 NAMES = {}  # ticker -> fetched company name
+EXCH = {}   # ticker -> fetched exchange (cleaned)
+
+# Yahoo exchange codes -> friendly names
+EXCH_MAP = {"NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ", "NAS": "NASDAQ",
+            "NYQ": "NYSE", "NYS": "NYSE", "PCX": "NYSE Arca", "ASE": "NYSE American",
+            "BATS": "BATS", "OPR": "OTC", "PNK": "OTC"}
 
 
 def yahoo_symbol(t): return t.strip().upper().replace(".", "-")
@@ -85,6 +91,9 @@ def fetch_yahoo(ticker):
             nm = (res.get("meta") or {}).get("shortName") or (res.get("meta") or {}).get("longName")
             if nm and ticker not in NAMES:
                 NAMES[ticker] = nm
+            ex = (res.get("meta") or {}).get("fullExchangeName") or (res.get("meta") or {}).get("exchangeName")
+            if ex and ticker not in EXCH:
+                EXCH[ticker] = EXCH_MAP.get(ex, ex)
             ts = res.get("timestamp") or []
             q = (res.get("indicators", {}).get("quote") or [{}])[0]
             o, h, l, c, v = (q.get("open"), q.get("high"), q.get("low"),
@@ -171,7 +180,8 @@ def read_config():
 
 
 def meta(c, name):
-    return {"ticker": c["ticker"], "name": name, "exchange": c["exchange"],
+    exch = c["exchange"] or EXCH.get(c["ticker"], "")
+    return {"ticker": c["ticker"], "name": name, "exchange": exch,
             "major": c["major"], "sub": c["sub"],
             "benchmark": c.get("benchmark", ""), "risk": c["risk"], "breakout": c["breakout"]}
 
