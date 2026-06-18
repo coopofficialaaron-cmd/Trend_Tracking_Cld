@@ -41,10 +41,23 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/data/latest.json
-          if git diff --cached --quiet; then
-            echo "No changes."
-          else
-            git commit -m "data: refresh signals ($(date -u +%Y-%m-%d))"
-            git push
-          fi
+          # Save the freshly built file, then on each attempt reset to the latest
+          # remote tip and re-apply it. This avoids "fetch first" / merge conflicts
+          # if another run or your own commit advanced main while we were building.
+          cp docs/data/latest.json /tmp/latest.json
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q
+            git reset --hard FETCH_HEAD -q
+            mkdir -p docs/data
+            cp /tmp/latest.json docs/data/latest.json
+            git add docs/data/latest.json
+            if git diff --cached --quiet; then
+              echo "No changes vs remote."; exit 0
+            fi
+            git commit -m "data: refresh signals ($(date -u +%Y-%m-%dT%H:%MZ))" -q
+            if git push; then
+              echo "Pushed."; exit 0
+            fi
+            echo "Push raced with another update, retrying ($i)…"; sleep 4
+          done
+          echo "Could not push after retries (will catch up next run)."; exit 0
