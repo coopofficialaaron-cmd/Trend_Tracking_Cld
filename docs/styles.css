@@ -47,6 +47,9 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .pill.ok .dot{background:var(--enter);box-shadow:0 0 6px rgba(26,138,74,.5)}
 .pill.no .dot{background:var(--bad)}
+.pill .arrow{font-weight:700;font-size:15px;line-height:1}
+.pill.ok .arrow{color:var(--enter)}
+.pill.no .arrow{color:var(--bad)}
 .meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--muted);font-size:11px;
   font-family:var(--mono)}
 .meta .src{color:var(--faint)}
