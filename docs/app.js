@@ -188,8 +188,9 @@ function renderMarket(){
     const div=document.createElement("div");
     div.className="pill "+(ok?"ok":(m?"no":""));
     const nm=ETF_NAME[b]?`(${ETF_NAME[b]})`:"";
-    div.innerHTML=`<span class="dot"></span><b>${b}</b>${nm} ${ok?"向上":"回避"}`;
-    div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") + (m ? `收盘 ${fmt.n2(m.close)} · SMA100 ${fmt.n2(m.sma100)} · 10日 ${fmt.pct(m.dd10)}` : "");
+    div.innerHTML=`<b>${b}</b>${nm} <span class="arrow">${ok?"↑":"↓"}</span>`;
+    div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") + (ok?"向上（可入场）":"回避") +
+      (m ? ` · 收盘 ${fmt.n2(m.close)} · SMA100 ${fmt.n2(m.sma100)} · 10日 ${fmt.pct(m.dd10)}` : "");
     el.appendChild(div);
   });
 }
