@@ -6,7 +6,7 @@
 <title>趋势追踪 · Trend Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -38,6 +38,7 @@
 <div class="filterbar">
   <span class="flabel">大类</span>
   <div class="tiles" id="majorTiles"></div>
+  <span class="risk-ctl">可亏损 $<input id="riskInput" type="number" min="1" step="5" inputmode="numeric"></span>
   <button class="add-btn" id="addBtn">＋ 添加股票</button>
 </div>
 
