@@ -42,7 +42,7 @@ const COLS = [
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
   {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
-  {k:"shares",  t:"股数",        f:s=>fmt.n1(s.shares), v:s=>s.shares},
+  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   {k:"mult",    t:"ATR倍数",     f:s=>fmt.n1(s.mult), v:s=>s.mult},
   {k:"buf",     t:"EntryBuf",    f:s=>fmt.n2(s.buf), v:s=>s.buf},
 ];
@@ -66,7 +66,10 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="overview", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="";
+let DATA=null, view="overview", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", RISK=25, currentTk=null;
+
+function mround(x,m){ return Math.round(x/m)*m; }
+function sharesFor(r0){ return (r0!=null && r0>0) ? mround(RISK/r0,0.5) : null; }
 
 async function load(){
   try{
@@ -78,6 +81,9 @@ async function load(){
     return;
   }
   EXPECTED = lastUSTradingDay(new Date());   // most recent expected US trading day
+  const dflt = (DATA.stocks.find(s=>s.risk)||{}).risk || 25;
+  RISK = Number(localStorage.getItem("riskUsd")) || dflt;
+  const ri=document.getElementById("riskInput"); if(ri) ri.value=RISK;
   renderMarket();
   renderMeta();
   buildFilters();
@@ -273,6 +279,7 @@ function detailFresh(st){
 }
 function openDetail(tk){
   const st=DATA.stocks.find(s=>s.ticker===tk); if(!st) return;
+  currentTk=tk;
   const s=st.summary;
   const keyCards=[
     ["最新日期",s.date||"—"],["最新收盘",fmt.n2(s.close)],["ATR%",fmt.pct(s.atrpct)],
@@ -282,7 +289,7 @@ function openDetail(tk){
     ["止损(候选)",fmt.n2(s.stop)],["最低买入",fmt.n2(s.minentry)],["最高买入",fmt.n2(s.maxentry)],
     ["溢价",fmt.n2(s.premium)],["入场分位",fmt.pct(s.entry_pct)],
     ["ER22",fmt.er(s.er22)],["ER55",fmt.er(s.er55)],["ATR50",fmt.n2(s.atr50)],
-    ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",fmt.n1(s.shares)],
+    ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",(()=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"—";})()],
     ["ATR倍数",fmt.n1(s.mult)],["EntryBuffer",fmt.n2(s.buf)],
   ];
   const cardHTML=(arr)=>arr.map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
@@ -300,7 +307,7 @@ function openDetail(tk){
     </div>
     <div class="signal-row">
       ${sigTag(s.signal)}
-      <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 可亏限额 $${st.risk} · 突破确认 +${fmt.pct(st.breakout)}</span>
+      <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 可亏限额 $${RISK} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
     <div class="hero">
@@ -318,6 +325,7 @@ function openDetail(tk){
   wireChart();
 }
 function closeDetail(){
+  currentTk=null;
   document.getElementById("scrim").hidden=true;
   const dr=document.getElementById("drawer"); dr.hidden=true; dr.setAttribute("aria-hidden","true");
 }
@@ -327,29 +335,28 @@ function gaugeHTML(s){
   const mn=num(s.minentry), mx=num(s.maxentry), cl=num(s.close), stop=num(s.stop);
   if([mn,mx,cl].some(v=>v==null)) return `<div class="gauge"><div class="gauge-head"><span class="g-pos">暂无入场区间</span></div></div>`;
   const zone=Math.max(mx-mn, mx*0.004);
-  let lo=Math.min(mn,cl), hi=Math.max(mx,cl);
-  const pad=Math.max(zone*0.8,(hi-lo)*0.18)||1; lo-=pad; hi+=pad;
+  // domain centred on the buy zone (independent of how far close sits), so the
+  // band always keeps a readable width and labels never collide
+  const lo=mn-zone*0.9, hi=mx+zone*0.9;
   const pct=v=> Math.max(0,Math.min(100, ((v-lo)/(hi-lo))*100 ));
   const inZone = cl>=mn && cl<mx;
   const clColor = inZone?"var(--enter)":(cl>=mx?"var(--toohigh)":"var(--accent)");
   const posTxt = inZone? `区间内 · 分位 ${fmt.pct(s.entry_pct)}` : (cl>=mx? "高于上限 · 追高":"低于入场价");
+  const sh=sharesFor(s.r0);
   return `<div class="gauge">
     <div class="gauge-head">
       <span class="g-close" style="color:${clColor}">收盘 ${fmt.n2(cl)}</span>
       <span class="g-pos" style="color:${clColor}">${posTxt}</span>
     </div>
     <div class="gauge-track">
-      <div class="g-zone" style="left:${pct(mn)}%;width:${pct(mx)-pct(mn)}%"></div>
+      <div class="g-zone" style="left:${pct(mn)}%;width:${Math.max(pct(mx)-pct(mn),2)}%"></div>
       <div class="g-mark" style="left:${pct(cl)}%;background:${clColor}"></div>
     </div>
-    <div class="gauge-scale">
-      <span style="left:${pct(mn)}%">最低 ${fmt.n2(mn)}</span>
-      <span style="left:${pct(mx)}%">最高 ${fmt.n2(mx)}</span>
-    </div>
+    <div class="gauge-scale"><span>最低 ${fmt.n2(mn)}</span><span>最高 ${fmt.n2(mx)}</span></div>
     <div class="gauge-foot">
       <span><i style="background:var(--bad)"></i>止损候选 <b>${fmt.n2(stop)}</b></span>
       <span>R0 <b>${fmt.n2(s.r0)}</b></span>
-      <span>可建仓 <b>${s.shares!=null?fmt.n1(s.shares):"—"}</b> 股</span>
+      <span>可建仓 <b>${sh!=null?fmt.n1(sh):"—"}</b> 股</span>
     </div>
   </div>`;
 }
@@ -475,6 +482,17 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim();render();});
 document.getElementById("subFilter").addEventListener("change",e=>{fSub=e.target.value;render();});
+const riskEl=document.getElementById("riskInput");
+if(riskEl){
+  const applyRisk=()=>{
+    const v=Math.max(1, Number(riskEl.value)||0);
+    riskEl.value=v; RISK=v; localStorage.setItem("riskUsd",String(v));
+    render();
+    if(currentTk && !document.getElementById("drawer").hidden){ const t=currentTk; openDetail(t); }
+  };
+  riskEl.addEventListener("change",applyRisk);
+  riskEl.addEventListener("keydown",e=>{if(e.key==="Enter"){applyRisk();riskEl.blur();}});
+}
 
 /* ---------- in-app add stock ---------- */
 const CFG_COLS=["ticker","exchange","benchmark","major","sub"];
