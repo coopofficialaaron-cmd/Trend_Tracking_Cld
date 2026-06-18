@@ -91,6 +91,8 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
   transition:all .12s}
 .tile:hover{color:var(--ink);border-color:var(--accent)}
 .tile.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tile .tcount{font-family:var(--mono);font-size:12px;opacity:.7;margin-left:2px}
+.tile.active .tcount{opacity:.85}
 .add-btn{margin-left:auto;appearance:none;border:1px solid var(--accent);background:var(--panel);
   color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:7px 16px;border-radius:999px;cursor:pointer}
 .add-btn:hover{background:var(--accent);color:#fff}
