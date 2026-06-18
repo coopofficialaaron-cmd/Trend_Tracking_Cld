@@ -6,7 +6,7 @@
 <title>趋势追踪 · Trend Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -57,11 +57,12 @@
   <p class="modal-sub">填好后生成新的 <code>config.csv</code>，一键复制或直接到 GitHub 提交。提交后自动重算。</p>
   <div class="form-grid">
     <label>代码 ticker<input id="f_ticker" placeholder="如 NVDA / MOG.A" autocomplete="off"></label>
-    <label>交易所<input id="f_exch" placeholder="如 NASDAQ" autocomplete="off"></label>
+    <label>交易所（可留空，自动识别）<input id="f_exch" list="exchList" placeholder="留空将自动抓取" autocomplete="off"></label>
     <label>对标 ETF<input id="f_bench" list="benchList" placeholder="如 SOXX" autocomplete="off"></label>
     <label>大类<input id="f_major" list="majorList" placeholder="如 科技" autocomplete="off"></label>
     <label>小类<input id="f_sub" list="subList" placeholder="如 半导体" autocomplete="off"></label>
   </div>
+  <datalist id="exchList"></datalist>
   <datalist id="benchList"></datalist>
   <datalist id="majorList"></datalist>
   <datalist id="subList"></datalist>
