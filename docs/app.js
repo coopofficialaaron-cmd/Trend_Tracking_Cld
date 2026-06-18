@@ -187,7 +187,8 @@ function renderMarket(){
     const m=DATA.market[b]; const ok=m&&m.ok;
     const div=document.createElement("div");
     div.className="pill "+(ok?"ok":(m?"no":""));
-    div.innerHTML=`<span class="dot"></span><b>${b}</b> ${ok?"向上":"回避"}`;
+    const nm=ETF_NAME[b]?`(${ETF_NAME[b]})`:"";
+    div.innerHTML=`<span class="dot"></span><b>${b}</b>${nm} ${ok?"向上":"回避"}`;
     div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") + (m ? `收盘 ${fmt.n2(m.close)} · SMA100 ${fmt.n2(m.sma100)} · 10日 ${fmt.pct(m.dd10)}` : "");
     el.appendChild(div);
   });
@@ -200,17 +201,20 @@ function buildFilters(){
 
 function hasData(s){ return s.summary && s.summary.date; }
 function renderMajorTiles(){
-  const majors=[...new Set(DATA.stocks.filter(hasData).map(s=>s.major).filter(Boolean))].sort();
+  const pool=DATA.stocks.filter(hasData);
+  const counts={};
+  pool.forEach(s=>{ if(s.major) counts[s.major]=(counts[s.major]||0)+1; });
+  const majors=Object.keys(counts).sort((a,b)=>counts[b]-counts[a] || a.localeCompare(b));
   const el=document.getElementById("majorTiles"); el.innerHTML="";
   const mk=(val,label)=>{
     const b=document.createElement("button");
     b.className="tile"+((fMajor===val)?" active":"");
-    b.textContent=label; b.dataset.val=val;
+    b.innerHTML=label; b.dataset.val=val;
     b.onclick=()=>{ fMajor=val; refreshSubOptions(); renderMajorTiles(); render(); };
     el.appendChild(b);
   };
-  mk("","全部");
-  majors.forEach(m=>mk(m,m));
+  mk("",`全部 <span class="tcount">${pool.length}</span>`);
+  majors.forEach(m=>mk(m,`${m} <span class="tcount">${counts[m]}</span>`));
 }
 
 function refreshSubOptions(){
