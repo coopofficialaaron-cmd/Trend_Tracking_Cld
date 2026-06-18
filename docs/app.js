@@ -527,6 +527,7 @@ function fillDatalists(){
   document.getElementById("benchList").innerHTML=
     all.map(b=>`<option value="${b}">${etfLabel(b)}</option>`).join("");
   document.getElementById("majorList").innerHTML=uniq("major").map(v=>`<option value="${v}">`).join("");
+  document.getElementById("exchList").innerHTML=uniq("exchange").map(v=>`<option value="${v}">`).join("");
   refreshAddSubs();
 }
 function refreshAddSubs(){
