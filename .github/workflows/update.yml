@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}        # manual "Run workflow" button
   push:
     paths:
-      - "config.csv"
+      - "config.csv"           # adding a stock triggers an immediate rebuild
       - "engine/**"
 
 permissions:
