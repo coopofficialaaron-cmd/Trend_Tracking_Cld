@@ -41,16 +41,15 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Save the freshly built file, then on each attempt reset to the latest
+          # Save the freshly built data, then on each attempt reset to the latest
           # remote tip and re-apply it. This avoids "fetch first" / merge conflicts
           # if another run or your own commit advanced main while we were building.
-          cp docs/data/latest.json /tmp/latest.json
+          rm -rf /tmp/data && cp -r docs/data /tmp/data
           for i in 1 2 3 4 5; do
             git fetch origin main -q
             git reset --hard FETCH_HEAD -q
-            mkdir -p docs/data
-            cp /tmp/latest.json docs/data/latest.json
-            git add docs/data/latest.json
+            rm -rf docs/data && mkdir -p docs && cp -r /tmp/data docs/data
+            git add -A docs/data
             if git diff --cached --quiet; then
               echo "No changes vs remote."; exit 0
             fi
