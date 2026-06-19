@@ -73,11 +73,11 @@ function sharesFor(r0){ return (r0!=null && r0>0) ? mround(RISK/r0,0.5) : null; 
 
 async function load(){
   try{
-    const r = await fetch("data/latest.json", {cache:"no-store"});
+    const r = await fetch("data/index.json", {cache:"no-store"});
     DATA = await r.json();
   }catch(e){
     document.getElementById("empty").hidden=false;
-    document.getElementById("empty").textContent="无法加载数据。请确认 docs/data/latest.json 已生成（运行 GitHub Action 或 python engine/build.py --seed）。";
+    document.getElementById("empty").textContent="无法加载数据。请确认 docs/data/index.json 已生成（运行 GitHub Action 或 python engine/build.py --seed）。";
     return;
   }
   EXPECTED = lastUSTradingDay(new Date());   // most recent expected US trading day
@@ -282,9 +282,26 @@ function detailFresh(st){
     ? `<span class="freshness ok sm"><span class="dot"></span>数据最新 · ${f.date}</span>`
     : `<span class="freshness stale sm" title="应为 ${EXPECTED}"><span class="dot"></span>数据滞后 · ${f.date}</span>`;
 }
-function openDetail(tk){
+async function openDetail(tk){
   const st=DATA.stocks.find(s=>s.ticker===tk); if(!st) return;
   currentTk=tk;
+  // show drawer immediately with a loading note
+  document.getElementById("scrim").hidden=false;
+  const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false"); dr.scrollTop=0;
+  if(!st.rows){
+    document.getElementById("detail").innerHTML=
+      `<div class="d-head"><h2>${st.ticker}</h2><span class="dname">${st.name||""}</span></div><p class="loading">加载历史数据…</p>`;
+    if(st.file){
+      try{ const r=await fetch(`data/stocks/${st.file}.json`,{cache:"no-store"}); const j=await r.json(); st.rows=j.rows||[]; }
+      catch(e){ st.rows=[]; }
+    } else { st.rows=[]; }
+    if(currentTk!==tk) return;   // user moved on while loading
+  }
+  renderDetailBody(st);
+  wireChart();
+}
+
+function renderDetailBody(st){
   const s=st.summary;
   const keyCards=[
     ["最新日期",s.date||"—"],["最新收盘",fmt.n2(s.close)],["ATR%",fmt.pct(s.atrpct)],
@@ -324,10 +341,6 @@ function openDetail(tk){
     <div class="hist-head"><h3>历史数据与逐日计算</h3><span class="hint">与你原表的股票 tab 一致（最近在上）</span></div>
     ${histTable(st)}
   `;
-  document.getElementById("scrim").hidden=false;
-  const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false");
-  dr.scrollTop=0;
-  wireChart();
 }
 function closeDetail(){
   currentTk=null;
