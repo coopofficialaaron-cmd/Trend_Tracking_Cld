@@ -17,7 +17,7 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;
-  -webkit-font-smoothing:antialiased}
+  -webkit-font-smoothing:antialiased;font-synthesis:none}
 h1{font-size:17px;font-weight:700;letter-spacing:.2px;margin:0}
 code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--accent)}
 
@@ -151,6 +151,7 @@ tbody tr.hot td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .hot-banner{background:rgba(192,57,43,.09);border:1px solid rgba(192,57,43,.3);color:var(--bad);
   border-radius:9px;padding:11px 14px;margin:14px 0 4px;font-size:14px;font-weight:500}
 .calm-note{color:var(--muted);font-size:14px;margin:12px 0 4px}
+.loading{color:var(--muted);font-size:14px;padding:24px 4px}
 
 /* table */
 main{padding:0 12px 60px}
