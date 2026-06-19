@@ -26,8 +26,24 @@ from indicators import compute_benchmark, compute_stock
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 CONFIG = os.path.join(ROOT, "config.csv")
-OUT = os.path.join(ROOT, "docs", "data", "latest.json")
+DATA_DIR = os.path.join(ROOT, "docs", "data")
+INDEX_OUT = os.path.join(DATA_DIR, "index.json")        # small: summaries + market
+STOCK_DIR = os.path.join(DATA_DIR, "stocks")            # one small file per ticker
+OUT = os.path.join(DATA_DIR, "latest.json")             # legacy (no longer written)
 SEED = os.path.join(HERE, "seed_prices.json")
+
+def safe_name(t):
+    return "".join(ch if ch.isalnum() else "_" for ch in t)
+
+def rnd(o, nd=4):
+    """Recursively round floats to keep the JSON small."""
+    if isinstance(o, float):
+        return round(o, nd)
+    if isinstance(o, list):
+        return [rnd(x, nd) for x in o]
+    if isinstance(o, dict):
+        return {k: rnd(v, nd) for k, v in o.items()}
+    return o
 
 RISK_DEFAULT = 25.0          # 可亏限额 $
 BREAKOUT_DEFAULT = 0.01      # 突破确认 +1%
@@ -80,9 +96,11 @@ def _finalize(rows):
 def fetch_yahoo(ticker):
     """Return [[date,o,h,l,c,v], ...] ascending, or []. Also caches the name."""
     sym = yahoo_symbol(ticker)
+    p2 = int(time.time()) + 86400               # tomorrow, to be sure today is included
+    p1 = p2 - 760 * 86400                        # ~2 years back
     for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
         url = (f"https://{host}/v8/finance/chart/{sym}"
-               f"?range=2y&interval=1d&includePrePost=false")
+               f"?period1={p1}&period2={p2}&interval=1d&includePrePost=false")
         try:
             data = json.loads(_get(url))
             res = (data.get("chart", {}).get("result") or [None])[0]
@@ -252,19 +270,49 @@ def main():
 
     have = sum(1 for s in stocks if s.get("rows"))
     if have == 0 and not use_seed:
-        sys.stderr.write("[keep] no data fetched this run; existing latest.json left unchanged\n")
+        sys.stderr.write("[keep] no data fetched this run; existing files left unchanged\n")
         return
 
-    payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source": "seed" if use_seed else "yahoo/stooq",
-        "market": market,
-        "stocks": stocks,
+    os.makedirs(STOCK_DIR, exist_ok=True)
+    gen = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    src = "seed" if use_seed else "yahoo/stooq"
+
+    # 1) small index.json — meta + summary for every stock (NO history rows)
+    index = {
+        "generated_at": gen, "source": src, "market": rnd(market),
+        "stocks": [{
+            "ticker": s["ticker"], "name": s["name"], "exchange": s["exchange"],
+            "benchmark": s.get("benchmark", ""), "major": s.get("major", ""),
+            "sub": s.get("sub", ""), "risk": s.get("risk"), "breakout": s.get("breakout"),
+            "file": safe_name(s["ticker"]) if s.get("rows") else None,
+            "summary": rnd(s.get("summary", {})),
+        } for s in stocks],
     }
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    json.dump(payload, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    json.dump(index, open(INDEX_OUT, "w", encoding="utf-8"),
+              ensure_ascii=False, separators=(",", ":"))
+
+    # 2) one compact file per stock — just the history rows (lazy-loaded on demand)
+    keep = set()
+    for s in stocks:
+        if not s.get("rows"):
+            continue
+        fn = safe_name(s["ticker"]); keep.add(fn + ".json")
+        json.dump({"ticker": s["ticker"], "rows": rnd(s["rows"])},
+                  open(os.path.join(STOCK_DIR, fn + ".json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, separators=(",", ":"))
+    # prune stale per-stock files (tickers removed from config)
+    for f in os.listdir(STOCK_DIR):
+        if f.endswith(".json") and f not in keep:
+            try: os.remove(os.path.join(STOCK_DIR, f))
+            except OSError: pass
+    # drop the old monolithic file if present
+    if os.path.exists(OUT):
+        try: os.remove(OUT)
+        except OSError: pass
+
     enter = sum(1 for s in stocks if s.get("summary", {}).get("signal") == "Enter")
-    print(f"wrote {OUT}: {have}/{len(stocks)} stocks with data, {enter} ENTER, source={payload['source']}")
+    print(f"wrote {INDEX_OUT} + {len(keep)} stock files: "
+          f"{have}/{len(stocks)} with data, {enter} ENTER, source={src}")
 
 
 if __name__ == "__main__":
