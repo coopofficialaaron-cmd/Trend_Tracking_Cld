@@ -229,6 +229,27 @@ def main():
                                       risk=c["risk"], breakout=c["breakout"])
         stocks.append({**meta(c, name), "summary": summary, "rows": rows})
 
+    # Self-heal: some tickers fall a day behind when their first fetch fell back to
+    # Stooq (slower EOD). Re-fetch the stragglers via Yahoo to pull them level with
+    # the freshest date the rest of the universe reached.
+    if not use_seed:
+        cfg_by = {c["ticker"]: c for c in cfg}
+        dated = [s for s in stocks if s.get("rows")]
+        if dated:
+            target = max(s["rows"][-1]["date"] for s in dated)
+            lagging = [s for s in stocks if s.get("rows") and s["rows"][-1]["date"] < target]
+            if lagging:
+                sys.stderr.write(f"[heal] retrying {len(lagging)} tickers behind {target}\n")
+            for s in lagging[:150]:
+                t = s["ticker"]
+                rows2 = fetch_yahoo(t)
+                time.sleep(0.15)
+                if rows2 and rows2[-1][0] > s["rows"][-1]["date"]:
+                    c = cfg_by[t]
+                    r2, sm2 = compute_stock(rows2, bench_ok.get(c["benchmark"], {}),
+                                            risk=c["risk"], breakout=c["breakout"])
+                    s["rows"], s["summary"] = r2, sm2
+
     have = sum(1 for s in stocks if s.get("rows"))
     if have == 0 and not use_seed:
         sys.stderr.write("[keep] no data fetched this run; existing latest.json left unchanged\n")
