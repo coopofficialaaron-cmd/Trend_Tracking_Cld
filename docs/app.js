@@ -23,26 +23,26 @@ const fmt = {
 
 // overview columns: key, label, align, formatter, accessor(summary)
 const COLS = [
-  {k:"ticker",  t:"代码", l:true,  f:(s,st)=>`${freshDot(st)}<span class="tk">${st.ticker}</span>`, v:(s,st)=>st.ticker},
-  {k:"name",    t:"名称", l:true,  f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
-  {k:"major",   t:"大类", l:true,  f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
-  {k:"sub",     t:"小类", l:true,  f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
+  {k:"ticker",  t:"代码", l:true, s:true, f:(s,st)=>`${freshDot(st)}<span class="tk">${st.ticker}</span>`, v:(s,st)=>st.ticker},
+  {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
+  {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
+  {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
+  {k:"signal",  t:"信号",        f:s=>sigTag(s.signal)+hotBadge(s), v:s=>s.signal},
+  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
+  {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
+  {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
+  {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
+  {k:"entry_pct",t:"入场分位",   f:s=>fmt.pct(s.entry_pct), v:s=>s.entry_pct==null?-1:s.entry_pct},
+  {k:"mktok",   t:"大盘",        f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
+  {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
+  {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
   {k:"atr14",   t:"ATR14",       f:s=>fmt.n2(s.atr14), v:s=>s.atr14},
   {k:"atrpct",  t:"ATR%",        f:s=>fmt.pct(s.atrpct), v:s=>s.atrpct},
   {k:"selfvol", t:"ATR自身波动", f:s=>flagged(fmt.pct(s.selfvol), s.selfvol!=null&&s.selfvol>SELFVOL_HOT, "ATR 短期波动 > "+(SELFVOL_HOT*100)+"%，警惕追高"), v:s=>s.selfvol},
   {k:"dev",     t:"ATR偏离(nR)", f:s=>flagged(fmt.n1(s.dev), s.dev!=null&&s.dev>DEV_HOT, "偏离 MA20 > "+DEV_HOT+"×ATR，警惕高位接盘"), v:s=>s.dev},
-  {k:"mktok",   t:"大盘",        f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
-  {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
-  {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
-  {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
-  {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
-  {k:"signal",  t:"信号",        f:s=>sigTag(s.signal)+hotBadge(s), v:s=>s.signal},
-  {k:"entry_pct",t:"入场分位",   f:s=>fmt.pct(s.entry_pct), v:s=>s.entry_pct==null?-1:s.entry_pct},
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
-  {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
-  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   {k:"mult",    t:"ATR倍数",     f:s=>fmt.n1(s.mult), v:s=>s.mult},
   {k:"buf",     t:"EntryBuf",    f:s=>fmt.n2(s.buf), v:s=>s.buf},
 ];
@@ -248,9 +248,10 @@ function rows(){
 
 function render(){
   const head=document.querySelector("#grid thead");
-  head.innerHTML="<tr>"+COLS.map(c=>{
+  head.innerHTML="<tr>"+COLS.map((c,i)=>{
     const arrow = sort.k===c.k?`<span class="arrow">${sort.dir>0?"▲":"▼"}</span>`:"";
-    return `<th class="${c.l?"l":""}" data-k="${c.k}">${c.t}${arrow}</th>`;
+    const cls=(c.l?"l ":"")+(c.s?`sticky col${i}`:"");
+    return `<th class="${cls.trim()}" data-k="${c.k}">${c.t}${arrow}</th>`;
   }).join("")+"</tr>";
   head.querySelectorAll("th").forEach(th=>th.onclick=()=>{ sortBy(th.dataset.k); render(); });
 
@@ -261,7 +262,7 @@ function render(){
     const hot = (view==="signals") && hotReasons(s).length>0;
     const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
-      COLS.map(c=>`<td class="${c.l?"l":""}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
+      COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
   body.querySelectorAll("tr").forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.tk));
 
