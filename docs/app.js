@@ -67,7 +67,7 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="overview", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
+let DATA=null, view="signals", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
 let ACCOUNT=20000, RISKPCT=1.2;   // 账户总额 / 每笔风险%
 
 function mround(x,m){ return Math.round(x/m)*m; }
@@ -89,7 +89,7 @@ async function load(){
   EXPECTED = lastUSTradingDay(new Date());   // most recent expected US trading day
   ACCOUNT = Number(localStorage.getItem("acctUsd")) || 20000;
   RISKPCT = Number(localStorage.getItem("riskPct")) || 1.2;
-  const ai=document.getElementById("acctInput"); if(ai) ai.value=ACCOUNT;
+  const ai=document.getElementById("acctInput"); if(ai) ai.value=ACCOUNT.toLocaleString("en-US");
   const pi=document.getElementById("rpctInput"); if(pi) pi.value=RISKPCT;
   renderMarket();
   renderMeta();
@@ -513,10 +513,13 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim();render();});
 document.getElementById("subFilter").addEventListener("change",e=>{fSub=e.target.value;render();});
 function applySizing(){
-  ACCOUNT = Math.max(0, Number(document.getElementById("acctInput").value)||0);
+  const rawAcct = (document.getElementById("acctInput").value||"").replace(/[, ]/g,"");
+  ACCOUNT = Math.max(0, Number(rawAcct)||0);
   RISKPCT = Math.max(0.1, Number(document.getElementById("rpctInput").value)||0);
   localStorage.setItem("acctUsd", String(ACCOUNT));
   localStorage.setItem("riskPct", String(RISKPCT));
+  document.getElementById("acctInput").value = ACCOUNT.toLocaleString("en-US");
+  document.getElementById("rpctInput").value = RISKPCT;
   render();
   if(currentTk && !document.getElementById("drawer").hidden){ openDetail(currentTk); }
 }
