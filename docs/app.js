@@ -16,6 +16,7 @@ function hotReasons(s){
 const fmt = {
   n2:(v)=>v==null||v===""?"":Number(v).toFixed(2),
   n1:(v)=>v==null||v===""?"":Number(v).toFixed(1),
+  n0:(v)=>v==null||v===""?"":Math.round(Number(v)).toLocaleString("en-US"),
   pct:(v)=>v==null||v===""?"":(Number(v)*100).toFixed(1)+"%",
   er:(v)=>v==null||v===""?"":Number(v).toFixed(2),
   int:(v)=>v==null||v===""?"":Number(v).toLocaleString(),
@@ -66,10 +67,15 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="overview", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", RISK=25, currentTk=null;
+let DATA=null, view="overview", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
+let ACCOUNT=20000, RISKPCT=1.2;   // 账户总额 / 每笔风险%
 
 function mround(x,m){ return Math.round(x/m)*m; }
-function sharesFor(r0){ return (r0!=null && r0>0) ? mround(RISK/r0,0.5) : null; }
+function perTradeRisk(){ return ACCOUNT * RISKPCT / 100; }       // 单笔可亏金额
+function sharesFor(r0){ return (r0!=null && r0>0) ? mround(perTradeRisk()/r0, 0.5) : null; }
+function buyPrice(s){ return s.maxentry!=null ? s.maxentry : s.close; }   // 计仓用的买入价(保守取上沿)
+function capitalFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*buyPrice(s) : null; }
+function worstLossFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*s.r0 : null; }
 
 async function load(){
   try{
@@ -81,9 +87,10 @@ async function load(){
     return;
   }
   EXPECTED = lastUSTradingDay(new Date());   // most recent expected US trading day
-  const dflt = (DATA.stocks.find(s=>s.risk)||{}).risk || 25;
-  RISK = Number(localStorage.getItem("riskUsd")) || dflt;
-  const ri=document.getElementById("riskInput"); if(ri) ri.value=RISK;
+  ACCOUNT = Number(localStorage.getItem("acctUsd")) || 20000;
+  RISKPCT = Number(localStorage.getItem("riskPct")) || 1.2;
+  const ai=document.getElementById("acctInput"); if(ai) ai.value=ACCOUNT;
+  const pi=document.getElementById("rpctInput"); if(pi) pi.value=RISKPCT;
   renderMarket();
   renderMeta();
   buildFilters();
@@ -269,6 +276,7 @@ function render(){
   const empty=document.getElementById("empty");
   empty.hidden = list.length>0;
   if(!list.length) empty.textContent = view==="signals"?"当前没有 ENTER 信号。":"没有匹配的股票。";
+  renderRiskReadout();
 }
 
 function sortBy(k){
@@ -313,6 +321,8 @@ function renderDetailBody(st){
     ["溢价",fmt.n2(s.premium)],["入场分位",fmt.pct(s.entry_pct)],
     ["ER22",fmt.er(s.er22)],["ER55",fmt.er(s.er55)],["ATR50",fmt.n2(s.atr50)],
     ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",(()=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"—";})()],
+    ["占用资金",(()=>{const c=capitalFor(s);return c!=null?"$"+fmt.n0(c):"—";})()],
+    ["最坏亏损",(()=>{const w=worstLossFor(s);return w!=null?"−$"+fmt.n0(w):"—";})()],
     ["ATR倍数",fmt.n1(s.mult)],["EntryBuffer",fmt.n2(s.buf)],
   ];
   const cardHTML=(arr)=>arr.map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
@@ -330,7 +340,7 @@ function renderDetailBody(st){
     </div>
     <div class="signal-row">
       ${sigTag(s.signal)}
-      <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 可亏限额 $${RISK} · 突破确认 +${fmt.pct(st.breakout)}</span>
+      <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
     <div class="hero">
@@ -361,7 +371,7 @@ function gaugeHTML(s){
   const inZone = cl>=mn && cl<mx;
   const clColor = inZone?"var(--enter)":(cl>=mx?"var(--toohigh)":"var(--accent)");
   const posTxt = inZone? `区间内 · 分位 ${fmt.pct(s.entry_pct)}` : (cl>=mx? "高于上限 · 追高":"低于入场价");
-  const sh=sharesFor(s.r0);
+  const sh=sharesFor(s.r0); const cap=capitalFor(s); const wl=worstLossFor(s);
   return `<div class="gauge">
     <div class="gauge-head">
       <span class="g-close" style="color:${clColor}">收盘 ${fmt.n2(cl)}</span>
@@ -374,8 +384,9 @@ function gaugeHTML(s){
     <div class="gauge-scale"><span>最低 ${fmt.n2(mn)}</span><span>最高 ${fmt.n2(mx)}</span></div>
     <div class="gauge-foot">
       <span><i style="background:var(--bad)"></i>止损候选 <b>${fmt.n2(stop)}</b></span>
-      <span>R0 <b>${fmt.n2(s.r0)}</b></span>
       <span>可建仓 <b>${sh!=null?fmt.n1(sh):"—"}</b> 股</span>
+      <span>占用 <b>${cap!=null?"$"+fmt.n0(cap):"—"}</b></span>
+      <span>最坏 <b>${wl!=null?"−$"+fmt.n0(wl):"—"}</b></span>
     </div>
   </div>`;
 }
@@ -501,17 +512,31 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim();render();});
 document.getElementById("subFilter").addEventListener("change",e=>{fSub=e.target.value;render();});
-const riskEl=document.getElementById("riskInput");
-if(riskEl){
-  const applyRisk=()=>{
-    const v=Math.max(1, Number(riskEl.value)||0);
-    riskEl.value=v; RISK=v; localStorage.setItem("riskUsd",String(v));
-    render();
-    if(currentTk && !document.getElementById("drawer").hidden){ const t=currentTk; openDetail(t); }
-  };
-  riskEl.addEventListener("change",applyRisk);
-  riskEl.addEventListener("keydown",e=>{if(e.key==="Enter"){applyRisk();riskEl.blur();}});
+function applySizing(){
+  ACCOUNT = Math.max(0, Number(document.getElementById("acctInput").value)||0);
+  RISKPCT = Math.max(0.1, Number(document.getElementById("rpctInput").value)||0);
+  localStorage.setItem("acctUsd", String(ACCOUNT));
+  localStorage.setItem("riskPct", String(RISKPCT));
+  render();
+  if(currentTk && !document.getElementById("drawer").hidden){ openDetail(currentTk); }
 }
+function renderRiskReadout(){
+  const el=document.getElementById("riskReadout"); if(!el) return;
+  const per=perTradeRisk();
+  // capital used by all current ENTER signals (sizing if you took them all)
+  let used=0, n=0;
+  DATA.stocks.forEach(s=>{
+    const sm=s.summary;
+    if(sm && sm.signal==="Enter"){ const cap=capitalFor(sm); if(cap){ used+=cap; n++; } }
+  });
+  const left=Math.max(0, ACCOUNT-used);
+  el.innerHTML=`单笔可亏 <b>$${fmt.n0(per)}</b> · 入场信号 ${n} 笔占用 <b>$${fmt.n0(used)}</b> · 剩 <b>$${fmt.n0(left)}</b>`;
+}
+["acctInput","rpctInput"].forEach(id=>{
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener("change",applySizing);
+  el.addEventListener("keydown",e=>{if(e.key==="Enter"){applySizing();el.blur();}});
+});
 
 /* ---------- in-app add stock ---------- */
 const CFG_COLS=["ticker","exchange","benchmark","major","sub"];
