@@ -99,20 +99,21 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .tile.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .tile .tcount{font-family:var(--mono);font-size:12px;opacity:.7;margin-left:2px}
 .tile.active .tcount{opacity:.85}
-.add-btn{margin-left:auto;appearance:none;border:1px solid var(--accent);background:var(--panel);
+.add-btn{margin-left:10px;appearance:none;border:1px solid var(--accent);background:var(--panel);
   color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:7px 16px;border-radius:999px;cursor:pointer}
 .add-btn:hover{background:var(--accent);color:#fff}
-.risk-ctl{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--muted);
+.risk-ctl{display:inline-flex;align-items:center;gap:7px;color:var(--muted);
   font-size:13px;font-weight:600}
+.risk-ctl.acct{margin-left:auto}
+.risk-ctl.pct{margin-left:18px}
 .risk-ctl input{background:var(--panel);border:1px solid var(--line);color:var(--ink);
   font:inherit;font-family:var(--mono);font-size:14px;padding:6px 9px;border-radius:8px;text-align:right}
 .risk-ctl.acct input{width:96px}
 .risk-ctl.pct input{width:52px}
 .risk-ctl input:focus{outline:none;border-color:var(--accent)}
 .risk-ctl input::-webkit-outer-spin-button,.risk-ctl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.risk-readout{font-size:13px;color:var(--muted);white-space:nowrap}
+.risk-readout{font-size:13px;color:var(--muted);white-space:nowrap;margin-left:14px}
 .risk-readout b{color:var(--ink);font-family:var(--mono);font-weight:600}
-.risk-ctl + .add-btn{margin-left:14px}
 
 .modal-scrim{position:fixed;inset:0;background:var(--scrim);z-index:60}
 .modal{position:fixed;inset:0;margin:auto;z-index:70;
