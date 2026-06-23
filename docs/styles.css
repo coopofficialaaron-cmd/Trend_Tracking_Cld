@@ -104,10 +104,13 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .add-btn:hover{background:var(--accent);color:#fff}
 .risk-ctl{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--muted);
   font-size:13px;font-weight:600}
-.risk-ctl input{width:74px;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+.risk-ctl input{background:var(--panel);border:1px solid var(--line);color:var(--ink);
   font:inherit;font-family:var(--mono);font-size:14px;padding:6px 9px;border-radius:8px;text-align:right}
+.risk-ctl.acct input{width:96px}
+.risk-ctl.pct input{width:52px}
 .risk-ctl input:focus{outline:none;border-color:var(--accent)}
-.risk-readout{font-size:12.5px;color:var(--muted)}
+.risk-ctl input::-webkit-outer-spin-button,.risk-ctl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.risk-readout{flex-basis:100%;font-size:12.5px;color:var(--muted);margin-top:2px}
 .risk-readout b{color:var(--ink);font-family:var(--mono);font-weight:600}
 .risk-ctl + .add-btn{margin-left:14px}
 
@@ -223,10 +226,9 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:20px;cursor:pointer;z-index:2}
 .drawer-close:hover{color:var(--ink);border-color:var(--accent)}
 #detail{padding:22px 26px 60px}
-.d-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.d-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-right:46px}
 .d-head h2{font-family:var(--mono);font-size:24px;margin:0}
 .d-head .dname{color:var(--muted)}
-.d-head .type-tag{margin-left:auto}
 
 .signal-row{display:flex;align-items:center;gap:14px;margin:16px 0 4px}
 .signal-row .sig{font-size:13px;padding:5px 14px}
