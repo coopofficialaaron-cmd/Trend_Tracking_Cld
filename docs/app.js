@@ -67,8 +67,8 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="signals", sort={k:"signal",dir:1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
-let ACCOUNT=20000, RISKPCT=1.2;   // 账户总额 / 每笔风险%
+let DATA=null, view="signals", sort={k:"er55",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
+let ACCOUNT=20000, RISKPCT=1.0;   // 账户总额 / 每笔风险%
 
 function mround(x,m){ return Math.round(x/m)*m; }
 function perTradeRisk(){ return ACCOUNT * RISKPCT / 100; }       // 单笔可亏金额
@@ -88,14 +88,13 @@ async function load(){
   }
   EXPECTED = lastUSTradingDay(new Date());   // most recent expected US trading day
   ACCOUNT = Number(localStorage.getItem("acctUsd")) || 20000;
-  RISKPCT = Number(localStorage.getItem("riskPct")) || 1.2;
+  RISKPCT = Number(localStorage.getItem("riskPct")) || 1.0;
   const ai=document.getElementById("acctInput"); if(ai) ai.value=ACCOUNT.toLocaleString("en-US");
   const pi=document.getElementById("rpctInput"); if(pi) pi.value=RISKPCT;
   renderMarket();
   renderMeta();
   buildFilters();
-  // default sort: Enter first, then by entry proximity
-  sortBy("signal");
+  // default sort comes from the `sort` global (ER55 descending)
   document.getElementById("sigCount").textContent =
     DATA.stocks.filter(s=>s.summary.signal==="Enter").length;
   render();
@@ -525,15 +524,7 @@ function applySizing(){
 }
 function renderRiskReadout(){
   const el=document.getElementById("riskReadout"); if(!el) return;
-  const per=perTradeRisk();
-  // capital used by all current ENTER signals (sizing if you took them all)
-  let used=0, n=0;
-  DATA.stocks.forEach(s=>{
-    const sm=s.summary;
-    if(sm && sm.signal==="Enter"){ const cap=capitalFor(sm); if(cap){ used+=cap; n++; } }
-  });
-  const left=Math.max(0, ACCOUNT-used);
-  el.innerHTML=`单笔可亏 <b>$${fmt.n0(per)}</b> · 入场信号 ${n} 笔占用 <b>$${fmt.n0(used)}</b> · 剩 <b>$${fmt.n0(left)}</b>`;
+  el.innerHTML=`单笔可亏 <b>$${fmt.n0(perTradeRisk())}</b>`;
 }
 ["acctInput","rpctInput"].forEach(id=>{
   const el=document.getElementById(id); if(!el) return;
