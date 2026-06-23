@@ -38,7 +38,9 @@
 <div class="filterbar">
   <span class="flabel">大类</span>
   <div class="tiles" id="majorTiles"></div>
-  <span class="risk-ctl">可亏损 $<input id="riskInput" type="number" min="1" step="5" inputmode="numeric"></span>
+  <span class="risk-ctl">账户 $<input id="acctInput" type="number" min="0" step="1000" inputmode="numeric"></span>
+  <span class="risk-ctl">每笔风险<input id="rpctInput" type="number" min="0.1" max="100" step="0.1" inputmode="decimal">%</span>
+  <span class="risk-readout" id="riskReadout"></span>
   <button class="add-btn" id="addBtn">＋ 添加股票</button>
 </div>
 
