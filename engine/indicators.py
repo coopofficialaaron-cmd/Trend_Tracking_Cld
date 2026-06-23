@@ -156,7 +156,7 @@ def build_summary(rows):
         signal = "Wait"
     entry_pct = ((close - mine) / (maxe - mine)) if (signal == "Enter" and maxe and mine is not None and maxe != mine) else None
     return {
-        "date": r["date"], "close": close, "atr14": r["atr14"], "atrpct": r["atrpct"],
+        "date": r["date"], "close": close, "atr14": r["atr14"], "atr50": r["atr50"], "atrpct": r["atrpct"],
         "selfvol": r["selfvol"], "dev": r["dev"], "mktok": mktok,
         "stop": cand, "minentry": mine, "maxentry": maxe, "premium": premium,
         "signal": signal, "entry_pct": entry_pct, "er22": r["er22"], "er55": r["er55"],
