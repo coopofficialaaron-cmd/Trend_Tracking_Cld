@@ -85,6 +85,7 @@ function initControls(){
   document.getElementById("syncClose").addEventListener("click",closeSync);
   document.getElementById("syncScrim").addEventListener("click",closeSync);
   document.getElementById("copySync").addEventListener("click",copySync);
+  document.getElementById("markSynced").addEventListener("click",markSynced);
   document.getElementById("pullBtn").addEventListener("click",pullCloud);
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"){closeAdd();closeDrawer();closeSync();} });
   markDirty();
@@ -409,6 +410,8 @@ function openSync(){
   document.getElementById("syncScrim").hidden=false; document.getElementById("syncModal").hidden=false;
 }
 function closeSync(){ document.getElementById("syncScrim").hidden=true; document.getElementById("syncModal").hidden=true; }
+function markSynced(){ DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty();
+  document.getElementById("syncHint").textContent="已标记为同步（棕色提醒已清除）。"; }
 function copySync(){ const t=document.getElementById("syncOut"); t.select(); document.execCommand&&document.execCommand("copy");
   navigator.clipboard&&navigator.clipboard.writeText(t.value); document.getElementById("syncHint").textContent="已复制。到 GitHub 把它存为 docs/positions.json 并提交。"; }
 async function pullCloud(){
