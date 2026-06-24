@@ -58,7 +58,7 @@
   <h3>添加股票</h3>
   <p class="modal-sub">填好后生成新的 <code>config.csv</code>，一键复制或直接到 GitHub 提交。提交后自动重算。</p>
   <div class="form-grid">
-    <label>代码 ticker<input id="f_ticker" placeholder="如 NVDA / MOG.A" autocomplete="off"></label>
+    <label>代码 ticker<input id="f_ticker" placeholder="如 NVDA / MOG.A" autocomplete="off"><span class="dup-note" id="dupNote"></span></label>
     <label>交易所（可留空，自动识别）<input id="f_exch" list="exchList" placeholder="留空将自动抓取" autocomplete="off"></label>
     <label>对标 ETF<input id="f_bench" list="benchList" placeholder="如 SOXX" autocomplete="off"></label>
     <label>大类<input id="f_major" list="majorList" placeholder="如 科技" autocomplete="off"></label>
