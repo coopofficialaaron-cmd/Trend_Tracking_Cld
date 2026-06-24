@@ -29,8 +29,9 @@
 .mini{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--muted);
   font:inherit;font-size:12px;font-weight:600;padding:4px 9px;border-radius:7px;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
+.mini.dirty{border-color:var(--toohigh);color:var(--toohigh);background:rgba(180,118,12,.08)}
 .drawer .pdetail h3{margin:0 0 2px;font-size:20px}
-.drawer .pdetail .psub{color:var(--muted);font-size:12px;margin:0 0 16px}
+.drawer .pdetail .psub{color:var(--muted);font-size:12px;margin:0 0 12px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;margin:0 0 16px}
 .kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right;font-family:var(--mono);color:var(--ink)}
 .section-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;
@@ -50,11 +51,11 @@
 .empty-cta{text-align:center;color:var(--muted);padding:48px 20px}
 .empty-cta b{color:var(--ink)}
 .warn-txt{color:var(--toohigh);font-size:12px}
-/* stop-vs-price chart */
-.stopchart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 8px 4px;margin:2px 0 4px}
-.stopchart .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);padding:0 6px 4px}
-.stopchart .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
-.chart-note{color:var(--faint);font-size:11.5px;margin:2px 6px 0}
+.chart-note{color:var(--faint);font-size:11.5px;margin:2px 12px 8px}
+.synctip{color:var(--muted);font-size:12px;margin:0 0 12px}
+.synctip code{font-family:var(--mono);background:var(--panel-2);padding:1px 5px;border-radius:4px;color:var(--accent)}
+#syncOut{width:100%;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:8px;
+  padding:10px;background:var(--panel-2);color:var(--ink);resize:vertical}
 </style>
 </head>
 <body>
@@ -81,8 +82,10 @@
   <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
   <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
   <button class="add-btn" id="addBtn">＋ 添加持仓</button>
-  <button class="mini" id="exportBtn" title="导出持仓为 JSON 备份">导出</button>
-  <button class="mini" id="importBtn" title="从 JSON 导入持仓">导入</button>
+  <button class="mini" id="syncBtn" title="跨设备同步：把持仓存到仓库 positions.json">同步</button>
+  <button class="mini" id="pullBtn" title="从云端 positions.json 重新拉取（覆盖本机）">从云端刷新</button>
+  <button class="mini" id="exportBtn" title="导出 JSON 备份">导出</button>
+  <button class="mini" id="importBtn" title="从 JSON 文件导入">导入</button>
   <input type="file" id="importFile" accept="application/json" hidden>
 </nav>
 
@@ -95,6 +98,7 @@
   <div class="empty-cta" id="empty" hidden></div>
 </main>
 
+<!-- Add-position modal -->
 <div class="modal-scrim" id="addScrim" hidden></div>
 <div class="modal" id="addModal" hidden role="dialog" aria-modal="true">
   <button class="drawer-close" id="addClose" aria-label="关闭">×</button>
@@ -120,6 +124,21 @@
   </div>
 </div>
 
+<!-- Sync modal -->
+<div class="modal-scrim" id="syncScrim" hidden></div>
+<div class="modal" id="syncModal" hidden role="dialog" aria-modal="true">
+  <button class="drawer-close" id="syncClose" aria-label="关闭">×</button>
+  <h3>跨设备同步</h3>
+  <p class="synctip">持仓默认存在本机浏览器。要在别的设备也能看，需把它存成仓库里的 <code>docs/positions.json</code>：①复制下面内容 → ②到 GitHub 提交这个文件。其他设备打开本页会自动读取它。改动后再来同步一次即可。</p>
+  <textarea id="syncOut" readonly rows="8"></textarea>
+  <div class="modal-actions">
+    <button class="btn-primary" id="copySync">复制全部</button>
+    <a class="btn-link" id="syncLink" target="_blank" rel="noopener">在 GitHub 提交 positions.json ↗</a>
+  </div>
+  <p class="modal-hint" id="syncHint"></p>
+</div>
+
+<!-- Manage drawer -->
 <div class="drawer-scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-hidden="true">
   <button class="drawer-close" id="drawerClose" aria-label="关闭">×</button>
@@ -127,7 +146,7 @@
 </aside>
 
 <footer class="foot">
-  <span>数据：Yahoo Finance（备用 Stooq）· 持仓存于本机浏览器 · 仅供研究，非投资建议</span>
+  <span>数据：Yahoo Finance（备用 Stooq）· 持仓本机存储，可同步到仓库跨设备查看 · 仅供研究，非投资建议</span>
 </footer>
 
 <script src="positions.js"></script>
