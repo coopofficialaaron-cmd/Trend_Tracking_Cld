@@ -573,21 +573,39 @@ function openAdd(){
   fillDatalists();
   document.getElementById("addScrim").hidden=false;
   document.getElementById("addModal").hidden=false;
+  document.getElementById("dupNote").textContent="";
+  document.getElementById("f_ticker").classList.remove("dup");
+  document.getElementById("addQueue").disabled=false;
   renderPending();
 }
 function closeAdd(){
   document.getElementById("addScrim").hidden=true;
   document.getElementById("addModal").hidden=true;
 }
+function checkDup(){
+  const inp=document.getElementById("f_ticker");
+  const note=document.getElementById("dupNote");
+  const btn=document.getElementById("addQueue");
+  const t=(inp.value||"").trim().toUpperCase();
+  if(!t){ note.textContent=""; inp.classList.remove("dup"); btn.disabled=false; return false; }
+  const inCfg = currentConfigRows().some(r=>r[0]===t);
+  const inPend = pending.some(r=>r[0]===t);
+  if(inCfg || inPend){
+    const where = inCfg ? "已在清单中" : "已在待添加中";
+    note.textContent = `⚠ ${t} ${where}，无需重复添加`;
+    inp.classList.add("dup"); btn.disabled=true; return true;
+  }
+  note.textContent=""; inp.classList.remove("dup"); btn.disabled=false; return false;
+}
 function queueAdd(){
+  if(checkDup()) return;                      // block duplicates
   const g=id=>document.getElementById(id).value.trim();
   const t=g("f_ticker").toUpperCase();
   if(!t){ document.getElementById("f_ticker").focus(); return; }
-  const known=new Set([...currentConfigRows().map(r=>r[0]), ...pending.map(r=>r[0])]);
-  if(known.has(t)){ document.getElementById("pendingNote").textContent=`${t} 已存在`; return; }
   pending.push([t, g("f_exch"), g("f_bench")||"SPY", g("f_major")||"国防航空航天", g("f_sub")]);
   localStorage.setItem("pendingAdds",JSON.stringify(pending));
   ["f_ticker","f_exch","f_bench","f_major","f_sub"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("dupNote").textContent="";
   document.getElementById("f_ticker").focus();
   renderPending();
 }
@@ -612,6 +630,7 @@ document.getElementById("addClose").onclick=closeAdd;
 document.getElementById("addScrim").onclick=closeAdd;
 document.getElementById("addQueue").onclick=queueAdd;
 document.getElementById("f_ticker").addEventListener("keydown",e=>{if(e.key==="Enter")queueAdd();});
+document.getElementById("f_ticker").addEventListener("input",checkDup);
 document.getElementById("f_major").addEventListener("input",refreshAddSubs);
 document.getElementById("clearPending").onclick=()=>{ pending=[]; localStorage.removeItem("pendingAdds"); renderPending(); };
 document.getElementById("copyCfg").onclick=()=>{
