@@ -1,6 +1,7 @@
 /* 持仓管理 — 与信号引擎同源、同收盘价口径、同 ATR 自适应止损
-   初始止损 = 入场当日吊灯候选 cand（定 R0）；今日止损 = 棘轮后的 trail/final（每天去券商改这个）。
-   持仓存于 localStorage，可导出/导入 JSON 备份。 */
+   初始止损 = 入场当日吊灯候选 cand（定 R0）
+   今日止损 = 每只票最新行的 final/trail（棘轮、只升不降，去券商挂这个）
+   持仓存 localStorage；可同步到仓库 positions.json 跨设备查看。 */
 "use strict";
 
 const ADD_MAX=3, MILESTONE=1.5, ADD_FACTOR=0.8, POS_KEY="tt_positions_v1";
@@ -16,10 +17,12 @@ const fmt={
 const num=v=>(v==null||v==="")?null:Number(v);
 function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${f(v)}</span>`; }
 
-let DATA=null, SUM={}, ROWS={}, POS=[], ACCOUNT=20000, RISKPCT=1.0, q="";
+let DATA=null, SUM={}, ROWS={}, LIVE={}, POS=[], ACCOUNT=20000, RISKPCT=1.0, q="";
+let DIRTY=false, CLOUD_EXISTS=false;
 
 const mround=(x,m)=>Math.round(x/m)*m;
 const perTradeRisk=()=>ACCOUNT*RISKPCT/100;
+const stopOf=r=>(r.final??r.trail??r.cand);
 
 async function load(){
   try{ const r=await fetch("data/index.json",{cache:"no-store"}); DATA=await r.json(); }
@@ -28,10 +31,26 @@ async function load(){
   (DATA.stocks||[]).forEach(s=>{ if(s.summary&&s.summary.date) SUM[s.ticker]={...s.summary,name:s.name,file:s.file,major:s.major,sub:s.sub}; });
   ACCOUNT=Number(localStorage.getItem("acctUsd"))||20000;
   RISKPCT=Number(localStorage.getItem("riskPct"))||1.0;
-  loadPositions(); initControls(); renderMeta(); fillTickerList(); render();
+  await loadPositions();
+  initControls(); renderMeta(); fillTickerList();
+  await buildLive();
+  render();
 }
-function loadPositions(){ try{ POS=JSON.parse(localStorage.getItem(POS_KEY))||[]; }catch(e){ POS=[]; } }
-function savePositions(){ localStorage.setItem(POS_KEY,JSON.stringify(POS)); }
+
+/* ===== 持久化 + 云端同步 ===== */
+function saveLocal(){ localStorage.setItem(POS_KEY,JSON.stringify({pos:POS,dirty:DIRTY})); }
+function savePositions(){ DIRTY=true; saveLocal(); markDirty(); }
+async function loadPositions(){
+  let local=null, localDirty=false;
+  try{ const o=JSON.parse(localStorage.getItem(POS_KEY)); if(o){ local=Array.isArray(o)?o:(o.pos||[]); localDirty=Array.isArray(o)?false:!!o.dirty; } }catch(e){}
+  let cloud=null;
+  try{ const r=await fetch("positions.json",{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(Array.isArray(j)){ cloud=j; CLOUD_EXISTS=true; } } }catch(e){}
+  if(localDirty&&local){ POS=local; DIRTY=true; }            // 本机有未同步改动 → 保留
+  else if(cloud){ POS=cloud; DIRTY=false; saveLocal(); }     // 否则以云端为准
+  else if(local){ POS=local; DIRTY=localDirty; }
+  else POS=[];
+}
+function markDirty(){ const b=document.getElementById("syncBtn"); if(b){ b.classList.toggle("dirty",DIRTY); b.textContent=DIRTY?"同步 ●":"同步"; } }
 
 function renderMeta(){
   document.getElementById("updated").textContent=DATA.generated_at?("更新 "+DATA.generated_at.replace("T"," ").slice(0,16)):"—";
@@ -61,17 +80,35 @@ function initControls(){
   document.getElementById("exportBtn").addEventListener("click",exportJSON);
   document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change",importJSON);
-  document.addEventListener("keydown",e=>{ if(e.key==="Escape"){closeAdd();closeDrawer();} });
+  document.getElementById("syncBtn").addEventListener("click",openSync);
+  document.getElementById("syncClose").addEventListener("click",closeSync);
+  document.getElementById("syncScrim").addEventListener("click",closeSync);
+  document.getElementById("copySync").addEventListener("click",copySync);
+  document.getElementById("pullBtn").addEventListener("click",pullCloud);
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"){closeAdd();closeDrawer();closeSync();} });
+  markDirty();
 }
 function fillTickerList(){
   document.getElementById("tkList").innerHTML=Object.keys(SUM).sort()
     .map(t=>`<option value="${t}">${(SUM[t].name||"").replace(/"/g,"")}</option>`).join("");
 }
 
+/* ===== 实时止损：用每只持仓最新行的 final（棘轮），而非 summary.stop(候选) ===== */
+async function fetchRows(file){ if(ROWS[file])return ROWS[file];
+  try{ const r=await fetch(`data/stocks/${file}.json`,{cache:"no-store"}); const j=await r.json(); ROWS[file]=j.rows||[]; }catch(e){ ROWS[file]=[]; } return ROWS[file]; }
+function setLiveFromRows(tk){ const s=SUM[tk]; if(!s)return; const rows=ROWS[s.file]||[];
+  for(let i=rows.length-1;i>=0;i--){ if(rows[i].close!=null){ LIVE[tk]={close:rows[i].close,stop:stopOf(rows[i]),date:rows[i].date}; return; } } }
+async function buildLive(){
+  const tks=[...new Set(POS.map(h=>h.ticker))].filter(t=>SUM[t]);
+  await Promise.all(tks.map(async t=>{ await fetchRows(SUM[t].file); setLiveFromRows(t); }));
+}
+function liveClose(tk){ return LIVE[tk]?.close ?? (SUM[tk]?.close); }
+function liveStop(tk){ return LIVE[tk]?.stop ?? (SUM[tk]?.stop); }
+
 /* ===== 单笔派生计算 ===== */
 function compute(h){
   const s=SUM[h.ticker]; if(!s) return null;
-  const close=num(s.close), stop=num(s.stop), r0=num(h.r0);
+  const close=num(liveClose(h.ticker)), stop=num(liveStop(h.ticker)), r0=num(h.r0);
   const adds=h.adds||[];
   const shares=h.shares+adds.reduce((a,x)=>a+x.shares,0);
   const costTot=h.entryPrice*h.shares+adds.reduce((a,x)=>a+x.price*x.shares,0);
@@ -88,7 +125,7 @@ function compute(h){
   const pnl=mktVal!=null?mktVal-costTot:null;
   const pnlPct=costTot>0&&pnl!=null?pnl/costTot:null;
   const R=(r0&&r0>0&&close!=null)?(close-avgCost)/r0:null;
-  const lockedIfStop=(stop!=null)?(stop-avgCost)*shares:null;   // 此刻被止损则盈亏
+  const lockedIfStop=(stop!=null)?(stop-avgCost)*shares:null;
   const distPct=(close!=null&&stop!=null&&close)?(close-stop)/close:null;
   let addWhy="";
   if(!g3) addWhy=`已加满 ${ADD_MAX} 次`;
@@ -173,11 +210,7 @@ function openAdd(){ document.getElementById("addScrim").hidden=false; document.g
   document.getElementById("f_loss").placeholder=`留空 → 按 ${RISKPCT}% (≈${fmt.money(perTradeRisk())})`;
   refreshSizePreview(); }
 function closeAdd(){ document.getElementById("addScrim").hidden=true; document.getElementById("addModal").hidden=true; document.getElementById("addNote").textContent=""; }
-
-async function fetchRows(file){ if(ROWS[file])return ROWS[file];
-  try{ const r=await fetch(`data/stocks/${file}.json`,{cache:"no-store"}); const j=await r.json(); ROWS[file]=j.rows||[]; }catch(e){ ROWS[file]=[]; } return ROWS[file]; }
 function candOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.cand!=null) best=r; } return best; }
-
 async function onTickerPick(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase(); const s=SUM[tk]; if(!s)return;
   if(!document.getElementById("f_price").value) document.getElementById("f_price").value=fmt.n2(s.close);
@@ -188,7 +221,7 @@ async function autofillStop(){
   const date=document.getElementById("f_date").value; const s=SUM[tk]; if(!s||!date)return;
   const rows=await fetchRows(s.file); const row=candOnOrBefore(rows,date);
   if(row&&row.cand!=null&&!document.getElementById("f_stop").dataset.touched)
-    document.getElementById("f_stop").value=fmt.n2(row.cand);   // 初始止损 = 吊灯候选 cand
+    document.getElementById("f_stop").value=fmt.n2(row.cand);
   refreshSizePreview();
 }
 function sizeFromInputs(){
@@ -198,9 +231,7 @@ function sizeFromInputs(){
   const loss=num(document.getElementById("f_loss").value);
   if(price==null||stop==null) return {err:"need"};
   const r0=price-stop; if(r0<=0) return {err:"stop"};
-  let shares;
-  if(sharesIn!=null&&sharesIn>0) shares=sharesIn;          // 直填股数优先
-  else shares=mround((loss!=null?loss:perTradeRisk())/r0,0.5);
+  const shares=(sharesIn!=null&&sharesIn>0)?sharesIn:mround((loss!=null?loss:perTradeRisk())/r0,0.5);
   return {r0,shares,worst:shares*r0,stop};
 }
 function refreshSizePreview(){
@@ -210,7 +241,6 @@ function refreshSizePreview(){
   const r=sizeFromInputs();
   if(r.err==="need"){ box.textContent="填入入场价与初始止损后计算。"; return; }
   if(r.err==="stop"){ box.innerHTML=`<span class="warn-txt">初始止损必须低于入场价。</span>`; return; }
-  // 反推：若直填股数则同时显示用了多少风险预算
   box.className="addbox ok";
   box.innerHTML=`止损若触发 <b>${fmt.n2(r.stop)}</b>，亏 ≈ <b>${fmt.money(r.worst)}</b>（${ACCOUNT>0?fmt.pct(r.worst/ACCOUNT):""} 账户）· 买入 <b>${fmt.n1(r.shares)}</b> 股`;
 }
@@ -227,42 +257,47 @@ function saveNewPosition(){
   if(r.shares<1){ note.textContent="股数不足 1，请提高股数或预算"; return; }
   POS.push({ticker:tk,file:SUM[tk].file,name:SUM[tk].name,major:SUM[tk].major,
     entryDate:date,entryPrice:price,initialStop:stop,r0:r.r0,shares:r.shares,adds:[],status:"open",createdAt:Date.now()});
-  savePositions(); closeAdd(); render();
+  setLiveFromRows(tk); savePositions(); closeAdd(); render();
 }
 
-/* ===== 止损 vs 股价 走势图（SVG） ===== */
+/* ===== 止损 vs 股价 走势图（信号页同款样式） ===== */
 function stopChartSVG(rows,h,c){
-  if(!rows||!rows.length) return "";
-  let ei=rows.findIndex(r=>r.date===h.entryDate);
-  if(ei<0){ for(let k=0;k<rows.length;k++){ if(rows[k].date&&rows[k].date<=h.entryDate) ei=k; } }
-  if(ei<0) ei=Math.max(0,rows.length-40);
-  const start=Math.max(0,ei-15);
-  const win=rows.slice(start).filter(r=>r.close!=null);
-  if(win.length<2) return "";
-  const stopOf=r=>(r.final??r.trail??r.cand);
-  const ys=[]; win.forEach(r=>{ if(r.close!=null)ys.push(r.close); const s=stopOf(r); if(s!=null)ys.push(s); });
-  ys.push(c.avgCost);
-  let lo=Math.min(...ys), hi=Math.max(...ys); const pad=(hi-lo)*0.06||1; lo-=pad; hi+=pad;
-  const W=520,H=180,pl=8,pr=54,pt=12,pb=20,n=win.length;
-  const X=i=>pl+(W-pl-pr)*(n>1?i/(n-1):0);
-  const Y=v=>pt+(H-pt-pb)*(1-(v-lo)/(hi-lo));
-  const line=(key)=>win.map((r,i)=>{ const v=key==="close"?r.close:stopOf(r); return v==null?null:`${X(i).toFixed(1)},${Y(v).toFixed(1)}`; }).filter(Boolean).join(" ");
-  const eix=ei-start;
-  const lastStop=stopOf(win[n-1]), lastClose=win[n-1].close;
-  return `<div class="stopchart">
-    <div class="legend"><span><i style="background:var(--ink)"></i>股价</span>
-      <span><i style="background:var(--enter)"></i>移动止损</span>
-      <span><i style="background:var(--muted);height:0;border-top:2px dashed var(--muted)"></i>成本</span></div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" style="display:block">
-      <line x1="${X(eix).toFixed(1)}" y1="${pt}" x2="${X(eix).toFixed(1)}" y2="${H-pb}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>
-      <line x1="${pl}" y1="${Y(c.avgCost).toFixed(1)}" x2="${W-pr}" y2="${Y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".7"/>
-      <polyline points="${line("stop")}" fill="none" stroke="var(--enter)" stroke-width="1.8"/>
-      <polyline points="${line("close")}" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
-      <circle cx="${X(eix).toFixed(1)}" cy="${Y(win[eix].close).toFixed(1)}" r="3.5" fill="var(--accent)"/>
-      <text x="${W-pr+4}" y="${Y(lastStop).toFixed(1)+4}" fill="var(--enter)" font-size="11" font-family="var(--mono)">${fmt.n2(lastStop)}</text>
-      <text x="${W-pr+4}" y="${Y(lastClose).toFixed(1)+4}" fill="var(--ink)" font-size="11" font-family="var(--mono)">${fmt.n2(lastClose)}</text>
-      <text x="${X(eix).toFixed(1)}" y="${H-6}" fill="var(--faint)" font-size="10" text-anchor="middle">入场</text>
+  const data=(rows||[]).filter(x=>x.close!=null);
+  if(data.length<2) return "";
+  const N=Math.min(data.length,180), d=data.slice(-N);
+  const W=820,H=250,padL=46,padR=14,padT=12,padB=26;
+  const xs=d.map((_,i)=>padL+(i/(d.length-1))*(W-padL-padR));
+  const allV=[]; d.forEach(p=>{ [p.close,stopOf(p)].forEach(v=>{if(v!=null)allV.push(v);}); }); allV.push(c.avgCost);
+  let lo=Math.min(...allV),hi=Math.max(...allV); const pad=(hi-lo)*0.06||1; lo-=pad;hi+=pad;
+  const y=v=>padT+(1-(v-lo)/(hi-lo))*(H-padT-padB);
+  const path=(fn)=>{ let s="",pen=false; d.forEach((p,i)=>{const v=fn(p); if(v==null){pen=false;return;}
+    s+=(pen?" L":" M")+xs[i].toFixed(1)+" "+y(v).toFixed(1); pen=true;}); return s; };
+  let grid="";
+  for(let g=0;g<=4;g++){ const val=lo+(hi-lo)*g/4, yy=y(val);
+    grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`+
+          `<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--faint)" font-family="JetBrains Mono, monospace">${val.toFixed(0)}</text>`; }
+  let xticks="",lastM="";
+  d.forEach((p,i)=>{ const ym=p.date.slice(0,7); if(ym!==lastM){ lastM=ym; const lab=p.date.slice(2,7).replace("-","/");
+    xticks+=`<line x1="${xs[i].toFixed(1)}" y1="${padT}" x2="${xs[i].toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="1" opacity="0.6"/>`+
+            `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`; }});
+  // entry marker + cost line
+  let entryMark="";
+  const ei=d.findIndex(p=>p.date===h.entryDate);
+  if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`+
+    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="3.6" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>`;
+  const costLine=`<line x1="${padL}" y1="${y(c.avgCost).toFixed(1)}" x2="${W-padR}" y2="${y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>`;
+  return `<div class="chart-box">
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${grid}${xticks}${costLine}${entryMark}
+      <path d="${path(p=>stopOf(p))}" fill="none" stroke="var(--enter)" stroke-width="1.6"/>
+      <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
     </svg>
+    <div class="chart-legend">
+      <span><i style="background:var(--accent)"></i>收盘</span>
+      <span><i style="background:var(--enter)"></i>移动止损</span>
+      <span><i style="background:var(--muted)"></i>成本</span>
+      <span><i style="background:var(--accent)"></i>入场</span>
+    </div>
     <p class="chart-note">绿色止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
   </div>`;
 }
@@ -328,12 +363,40 @@ function doClose(){ const h=POS[drawerIdx];
   h.status="closed"; h.exit={date,price}; savePositions(); openDrawer(drawerIdx); render(); }
 function doDelete(){ if(!confirm("删除这笔持仓记录？无法撤销。"))return; POS.splice(drawerIdx,1); savePositions(); closeDrawer(); render(); }
 
-/* ===== 导出 / 导入 ===== */
+/* ===== 同步（仓库 positions.json，跨设备） ===== */
+function ghPositionsUrl(){
+  const h=location.hostname, parts=location.pathname.split("/").filter(Boolean);
+  if(!h.endsWith("github.io")) return null;
+  const owner=h.split(".")[0], repo=parts[0];
+  return CLOUD_EXISTS
+    ? `https://github.com/${owner}/${repo}/edit/main/docs/positions.json`
+    : `https://github.com/${owner}/${repo}/new/main/docs?filename=positions.json`;
+}
+function openSync(){
+  document.getElementById("syncOut").value=JSON.stringify(POS,null,2);
+  const link=document.getElementById("syncLink"), hint=document.getElementById("syncHint");
+  const url=ghPositionsUrl();
+  if(url){ link.href=url; link.style.display=""; hint.textContent=CLOUD_EXISTS?"提交后，其他设备打开本页会自动读到最新持仓。":"首次会让你新建 docs/positions.json，把内容粘进去提交即可。"; }
+  else{ link.style.display="none"; hint.textContent="非 GitHub Pages 环境：手动把内容存成 docs/positions.json 并提交。"; }
+  document.getElementById("syncScrim").hidden=false; document.getElementById("syncModal").hidden=false;
+}
+function closeSync(){ document.getElementById("syncScrim").hidden=true; document.getElementById("syncModal").hidden=true; }
+function copySync(){ const t=document.getElementById("syncOut"); t.select(); document.execCommand&&document.execCommand("copy");
+  navigator.clipboard&&navigator.clipboard.writeText(t.value); document.getElementById("syncHint").textContent="已复制。到 GitHub 把它存为 docs/positions.json 并提交。"; }
+async function pullCloud(){
+  try{ const r=await fetch("positions.json",{cache:"no-store"}); if(!r.ok){alert("还没有 positions.json，请先同步一次。");return;}
+    const j=await r.json(); if(!Array.isArray(j)){alert("positions.json 格式不对");return;}
+    if(DIRTY&&!confirm("本机有未同步改动，确定用云端覆盖？"))return;
+    POS=j; DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty(); await buildLive(); render();
+  }catch(e){ alert("拉取失败"); }
+}
+
+/* ===== 导出 / 导入（本地文件备份） ===== */
 function exportJSON(){ const blob=new Blob([JSON.stringify(POS,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download=`positions_${(DATA.generated_at||"").slice(0,10)||"backup"}.json`; a.click(); URL.revokeObjectURL(a.href); }
 function importJSON(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
-  r.onload=()=>{ try{ const arr=JSON.parse(r.result); if(Array.isArray(arr)&&confirm(`导入 ${arr.length} 笔持仓，覆盖当前 ${POS.length} 笔？`)){ POS=arr; savePositions(); render(); } }catch(err){ alert("文件格式不对"); } };
+  r.onload=async()=>{ try{ const arr=JSON.parse(r.result); if(Array.isArray(arr)&&confirm(`导入 ${arr.length} 笔持仓，覆盖当前 ${POS.length} 笔？`)){ POS=arr; savePositions(); await buildLive(); render(); } }catch(err){ alert("文件格式不对"); } };
   r.readAsText(f); e.target.value=""; }
 
 load();
