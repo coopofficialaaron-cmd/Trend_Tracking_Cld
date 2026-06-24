@@ -13,6 +13,7 @@ const fmt={
   money2:v=>v==null?"":(v<0?"-$":"$")+Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}),
   pct:v=>v==null||v===""?"":(v*100).toFixed(1)+"%",
   signedPct:v=>v==null?"":(v>=0?"+":"")+(v*100).toFixed(1)+"%",
+  er:v=>v==null||v===""?"":(+v).toFixed(2),
 };
 const num=v=>(v==null||v==="")?null:Number(v);
 function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${f(v)}</span>`; }
@@ -265,7 +266,7 @@ function stopChartSVG(rows,h,c){
   const data=(rows||[]).filter(x=>x.close!=null);
   if(data.length<2) return "";
   const N=Math.min(data.length,180), d=data.slice(-N);
-  const W=820,H=250,padL=46,padR=14,padT=12,padB=26;
+  const W=820,H=250,padL=46,padR=54,padT=12,padB=26;
   const xs=d.map((_,i)=>padL+(i/(d.length-1))*(W-padL-padR));
   const allV=[]; d.forEach(p=>{ [p.close,stopOf(p)].forEach(v=>{if(v!=null)allV.push(v);}); }); allV.push(c.avgCost);
   let lo=Math.min(...allV),hi=Math.max(...allV); const pad=(hi-lo)*0.06||1; lo-=pad;hi+=pad;
@@ -280,26 +281,51 @@ function stopChartSVG(rows,h,c){
   d.forEach((p,i)=>{ const ym=p.date.slice(0,7); if(ym!==lastM){ lastM=ym; const lab=p.date.slice(2,7).replace("-","/");
     xticks+=`<line x1="${xs[i].toFixed(1)}" y1="${padT}" x2="${xs[i].toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="1" opacity="0.6"/>`+
             `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`; }});
-  // entry marker + cost line
-  let entryMark="";
-  const ei=d.findIndex(p=>p.date===h.entryDate);
-  if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`+
-    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="3.6" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>`;
-  const costLine=`<line x1="${padL}" y1="${y(c.avgCost).toFixed(1)}" x2="${W-padR}" y2="${y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>`;
+  // cost line + entry marker (black, larger)
+  const costLine=`<line x1="${padL}" y1="${y(c.avgCost).toFixed(1)}" x2="${W-padR}" y2="${y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".55"/>`;
+  let entryMark=""; const ei=d.findIndex(p=>p.date===h.entryDate);
+  if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
+    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--ink)" stroke="#fff" stroke-width="1.6"/>`;
+  // latest values at right edge
+  const lastClose=d[d.length-1].close, lastStop=stopOf(d[d.length-1]);
+  const rx=W-padR+5;
+  const rlabels=`<text x="${rx}" y="${(y(lastClose)+3).toFixed(1)}" font-size="11" fill="var(--ink)" font-family="JetBrains Mono, monospace">${fmt.n2(lastClose)}</text>`+
+    (lastStop!=null?`<text x="${rx}" y="${(y(lastStop)+3).toFixed(1)}" font-size="11" fill="var(--bad)" font-family="JetBrains Mono, monospace">${fmt.n2(lastStop)}</text>`:"");
   return `<div class="chart-box">
     <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
       ${grid}${xticks}${costLine}${entryMark}
-      <path d="${path(p=>stopOf(p))}" fill="none" stroke="var(--enter)" stroke-width="1.6"/>
+      <path d="${path(p=>stopOf(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
       <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+      ${rlabels}
     </svg>
     <div class="chart-legend">
       <span><i style="background:var(--accent)"></i>收盘</span>
-      <span><i style="background:var(--enter)"></i>移动止损</span>
+      <span><i style="background:var(--bad);height:0;border-top:2px dashed var(--bad)"></i>移动止损(trail)</span>
       <span><i style="background:var(--muted)"></i>成本</span>
-      <span><i style="background:var(--accent)"></i>入场</span>
+      <span><i style="background:var(--ink)"></i>入场</span>
     </div>
-    <p class="chart-note">绿色止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
+    <p class="chart-note">止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
   </div>`;
+}
+
+/* ===== 历史数据与逐日计算（与信号页一致） ===== */
+const HCOLS=[
+  ["date","日期","l",v=>v],["close","收盘","",fmt.n2],["tr","TR","",fmt.n2],
+  ["atr14","ATR14","",fmt.n2],["atr50","ATR50","",fmt.n2],["selfvol","自身波动","",fmt.pct],
+  ["ma20","MA20","",fmt.n2],["dev","偏离nR","",fmt.n1],["hc55","HC55","",fmt.n2],
+  ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
+  ["hc22","HC22","",fmt.n2],["mktok","大盘","",v=>v==null?"":(v?"✓":"✕")],
+  ["buf","Buf","",fmt.n2],["minentry","最低买入","",fmt.n2],["maxentry","最高买入","",fmt.n2],
+  ["enter","信号","",v=>v||""],["r0","R0","",fmt.n2],["shares","股数","",fmt.n1],
+  ["er22","ER22","",fmt.er],["er55","ER55","",fmt.er],
+];
+function histTable(rows){
+  if(!rows||!rows.length) return "";
+  const rs=rows.slice().reverse();
+  const head="<tr>"+HCOLS.map(c=>`<th class="${c[2]?"l":""}">${c[1]}</th>`).join("")+"</tr>";
+  const body=rs.map(r=>`<tr class="${r.enter==="ENTER"?"enter":""}">`+
+    HCOLS.map(c=>`<td class="${c[2]?"l":""}">${c[3](r[c[0]])}</td>`).join("")+"</tr>").join("");
+  return `<div class="hist-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 /* ===== 管理抽屉 ===== */
@@ -332,20 +358,22 @@ async function openDrawer(i){ drawerIdx=i; const h=POS[i]; const c=compute(h); i
       ${addBox}${addLog}
       <div class="section-h">记录加仓</div>
       <div class="frow">
-        <div class="fld">日期<input id="a_date" type="date" value="${DATA.generated_at?DATA.generated_at.slice(0,10):""}"></div>
-        <div class="fld">价格<input id="a_price" inputmode="decimal" value="${fmt.n2(c.close)}"></div>
+        <div class="fld">日期<input id="a_date" type="date"></div>
+        <div class="fld">价格<input id="a_price" inputmode="decimal" placeholder="成交价"></div>
       </div>
-      <div class="fld">股数<input id="a_shares" inputmode="decimal" value="${c.canAdd?c.addShares:""}" placeholder="${c.canAdd?c.addShares:'按建议或自填'}"></div>
+      <div class="fld">股数<input id="a_shares" inputmode="decimal" placeholder="${c.canAdd?('建议 '+c.addShares):'自填股数'}"></div>
       <button class="btn-primary" id="doAdd">确认加仓</button>
       <div class="section-h">平仓</div>
       <div class="frow">
-        <div class="fld">平仓日期<input id="x_date" type="date" value="${DATA.generated_at?DATA.generated_at.slice(0,10):""}"></div>
-        <div class="fld">平仓价格<input id="x_price" inputmode="decimal" value="${fmt.n2(c.close)}"></div>
+        <div class="fld">平仓日期<input id="x_date" type="date"></div>
+        <div class="fld">平仓价格<input id="x_price" inputmode="decimal" placeholder="成交价"></div>
       </div>
       <button class="mini" id="doClose">标记平仓</button>
       `}
       <div class="section-h">其他</div>
       <button class="mini danger" id="doDelete">删除这笔记录</button>
+      <div class="hist-head" style="margin-top:20px"><h3>历史数据与逐日计算</h3><span class="hint">与信号页一致（最近在上）</span></div>
+      ${histTable(rows)}
     </div>`;
   document.getElementById("scrim").hidden=false;
   const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false");
