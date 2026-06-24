@@ -1,0 +1,50 @@
+[
+  {
+    "ticker": "SNX",
+    "file": "SNX",
+    "name": "TD SYNNEX Corporation",
+    "major": "科技",
+    "entryDate": "2026-06-23",
+    "entryPrice": 286.37,
+    "initialStop": 253.15,
+    "r0": 33.22,
+    "shares": 6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1782320314957
+  },
+  {
+    "ticker": "APLD",
+    "file": "APLD",
+    "name": "Applied Digital Corporation",
+    "major": "科技",
+    "entryDate": "2026-05-21",
+    "entryPrice": 48.3,
+    "initialStop": 30.81,
+    "r0": 17.49,
+    "shares": 3,
+    "adds": [
+      {
+        "date": "2026-06-02",
+        "price": 48,
+        "shares": 5
+      }
+    ],
+    "status": "open",
+    "createdAt": 1782327260203
+  },
+  {
+    "ticker": "BHE",
+    "file": "BHE",
+    "name": "Benchmark Electronics, Inc.",
+    "major": "科技",
+    "entryDate": "2026-06-23",
+    "entryPrice": 93.66,
+    "initialStop": 79.77,
+    "r0": 13.89,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1782340107646
+  }
+]
