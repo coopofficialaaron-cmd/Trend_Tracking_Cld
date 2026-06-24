@@ -9,12 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
-/* ---- position-management additions (reuse existing tokens) ---- */
-.linktab{appearance:none;background:none;border:1px solid transparent;color:var(--muted);
-  font:inherit;font-weight:600;font-size:14px;padding:7px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
-.linktab:hover{color:var(--ink);background:var(--panel)}
-.linktab.active{color:#fff;background:var(--accent)}
-
 .totals{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--line);
   background:var(--bg);flex:none;font-size:13px;color:var(--muted)}
 .totals .stat b{color:var(--ink);font-family:var(--mono);font-weight:600;font-size:14px}
@@ -24,26 +18,17 @@
   background:var(--panel);border:1px solid var(--line);font-size:11.5px}
 .expo .chip b{font-family:var(--mono);color:var(--ink)}
 .expo .chip.hot{border-color:rgba(180,118,12,.5);background:rgba(180,118,12,.08);color:var(--toohigh)}
-
-.riskbar{height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;width:120px;display:inline-block;vertical-align:middle}
-.riskbar > i{display:block;height:100%;background:var(--accent)}
-.riskbar > i.warn{background:var(--toohigh)}
-.riskbar > i.over{background:var(--bad)}
-
 .exit-row td{background:var(--hot-solid)!important}
 .exit-row td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .addable td:first-child{box-shadow:inset 3px 0 0 var(--enter)}
-
 .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;font-family:var(--ui)}
 .tag.ok{color:var(--enter);background:var(--enter-bg)}
 .tag.no{color:var(--muted);background:var(--panel-2)}
 .tag.exit{color:#fff;background:var(--bad)}
 .stopcell{font-family:var(--mono);font-weight:600;color:var(--accent)}
-.rowact{display:inline-flex;gap:6px}
 .mini{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--muted);
   font:inherit;font-size:12px;font-weight:600;padding:4px 9px;border-radius:7px;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
-
 .drawer .pdetail h3{margin:0 0 2px;font-size:20px}
 .drawer .pdetail .psub{color:var(--muted);font-size:12px;margin:0 0 16px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;margin:0 0 16px}
@@ -65,6 +50,11 @@
 .empty-cta{text-align:center;color:var(--muted);padding:48px 20px}
 .empty-cta b{color:var(--ink)}
 .warn-txt{color:var(--toohigh);font-size:12px}
+/* stop-vs-price chart */
+.stopchart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 8px 4px;margin:2px 0 4px}
+.stopchart .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);padding:0 6px 4px}
+.stopchart .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.chart-note{color:var(--faint);font-size:11.5px;margin:2px 6px 0}
 </style>
 </head>
 <body>
@@ -85,8 +75,6 @@
 </header>
 
 <nav class="tabs">
-  <a class="linktab" href="index.html">信号</a>
-  <a class="linktab active" href="positions.html">持仓</a>
   <div class="controls">
     <input id="search" type="search" placeholder="搜索代码…" autocomplete="off">
   </div>
@@ -107,12 +95,11 @@
   <div class="empty-cta" id="empty" hidden></div>
 </main>
 
-<!-- Add-position modal -->
 <div class="modal-scrim" id="addScrim" hidden></div>
 <div class="modal" id="addModal" hidden role="dialog" aria-modal="true">
   <button class="drawer-close" id="addClose" aria-label="关闭">×</button>
   <h3>添加持仓</h3>
-  <p class="modal-sub">填入你<b>实际成交</b>的代码、日期、价格。初始止损会自动取入场当日引擎算出的吊灯止损（可改），并按"可亏金额 ÷ R0"算出股数建议。</p>
+  <p class="modal-sub">填入你<b>实际成交</b>的代码、日期、价格。初始止损自动取入场当日的吊灯候选（可改）。股数可<b>直接填</b>，或填"可忍受亏损"由 ÷R0 算出。</p>
   <div class="fld">代码 ticker
     <input id="f_ticker" list="tkList" placeholder="如 NVDA" autocomplete="off">
     <datalist id="tkList"></datalist>
@@ -122,17 +109,17 @@
     <div class="fld">入场价格<input id="f_price" inputmode="decimal" placeholder="实际成交价"></div>
   </div>
   <div class="frow">
-    <div class="fld">初始止损（自动）<input id="f_stop" inputmode="decimal" placeholder="选好代码与日期后自动填"></div>
-    <div class="fld">可忍受亏损 $<input id="f_loss" inputmode="numeric" placeholder="留空=按每笔风险%"></div>
+    <div class="fld">初始止损（自动=吊灯候选）<input id="f_stop" inputmode="decimal" placeholder="选好代码与日期后自动填"></div>
+    <div class="fld">买入股数<input id="f_shares" inputmode="decimal" placeholder="直接填股数"></div>
   </div>
-  <div class="addbox" id="sizePreview">填好代码、日期、价格后，这里会算出 R0、建议股数与最坏亏损。</div>
+  <div class="fld">可忍受亏损 $（留空且未填股数时按每笔风险%）<input id="f_loss" inputmode="numeric" placeholder=""></div>
+  <div class="addbox" id="sizePreview">填好代码、日期、价格后，这里显示止损触发的亏损。</div>
   <div class="modal-actions">
     <button class="btn-primary" id="addSave">保存持仓</button>
     <span class="pending-note" id="addNote"></span>
   </div>
 </div>
 
-<!-- Manage drawer -->
 <div class="drawer-scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-hidden="true">
   <button class="drawer-close" id="drawerClose" aria-label="关闭">×</button>
