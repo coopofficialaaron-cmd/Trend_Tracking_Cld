@@ -395,7 +395,6 @@ DIOD,NASDAQ,SOXX,科技,半导体
 IMOS,NASDAQ,SOXX,科技,半导体
 ENTG,NASDAQ,SOXX,科技,半导体材料
 KGS,NYSE,XLE,油气,油气设备服务
-KGS,NYSE,XLE,油气,油气设备服务
 OSCR,NYSE,XLV,医药,健康保险
 ALKS,NASDAQ,XBI,医药,生物制药
 VLTO,NYSE,XLI,化工,污水处理
@@ -403,3 +402,6 @@ LNT,NASDAQ,XLU,可再生能源,天然气/电力
 BUD,NYSE,XLP,消费,消费必需品
 WAY,NASDAQ,IGV,科技,软件
 ESE,NYSE,ITA,航空国防卫星,航空航天国防
+CBRS,NASDAQ,SOXX,科技,半导体
+GENB,NASDAQ,XBI,医药,生物制药
+WEN,NASDAQ,XLY,消费,餐饮
