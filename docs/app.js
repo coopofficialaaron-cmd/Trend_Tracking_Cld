@@ -29,7 +29,7 @@ const COLS = [
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
   {k:"signal",  t:"信号",        f:s=>sigTag(s.signal)+hotBadge(s), v:s=>s.signal},
-  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
+  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
   {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
   {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
@@ -72,7 +72,7 @@ let ACCOUNT=20000, RISKPCT=1.0;   // 账户总额 / 每笔风险%
 
 function mround(x,m){ return Math.round(x/m)*m; }
 function perTradeRisk(){ return ACCOUNT * RISKPCT / 100; }       // 单笔可亏金额
-function sharesFor(r0){ return (r0!=null && r0>0) ? mround(perTradeRisk()/r0, 0.5) : null; }
+function sharesFor(r0){ return (r0!=null && r0>0) ? Math.floor(perTradeRisk()/r0) : null; }
 function buyPrice(s){ return s.maxentry!=null ? s.maxentry : s.close; }   // 计仓用的买入价(保守取上沿)
 function capitalFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*buyPrice(s) : null; }
 function worstLossFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*s.r0 : null; }
@@ -319,7 +319,7 @@ function renderDetailBody(st){
     ["止损(候选)",fmt.n2(s.stop)],["最低买入",fmt.n2(s.minentry)],["最高买入",fmt.n2(s.maxentry)],
     ["溢价",fmt.n2(s.premium)],["入场分位",fmt.pct(s.entry_pct)],
     ["ER22",fmt.er(s.er22)],["ER55",fmt.er(s.er55)],["ATR50",fmt.n2(s.atr50)],
-    ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",(()=>{const x=sharesFor(s.r0);return x!=null?fmt.n1(x):"—";})()],
+    ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",(()=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"—";})()],
     ["占用资金",(()=>{const c=capitalFor(s);return c!=null?"$"+fmt.n0(c):"—";})()],
     ["最坏亏损",(()=>{const w=worstLossFor(s);return w!=null?"−$"+fmt.n0(w):"—";})()],
     ["ATR倍数",fmt.n1(s.mult)],["EntryBuffer",fmt.n2(s.buf)],
@@ -383,7 +383,7 @@ function gaugeHTML(s){
     <div class="gauge-scale"><span>最低 ${fmt.n2(mn)}</span><span>最高 ${fmt.n2(mx)}</span></div>
     <div class="gauge-foot">
       <span><i style="background:var(--bad)"></i>止损候选 <b>${fmt.n2(stop)}</b></span>
-      <span>可建仓 <b>${sh!=null?fmt.n1(sh):"—"}</b> 股</span>
+      <span>可建仓 <b>${sh!=null?fmt.n0(sh):"—"}</b> 股</span>
       <span>占用 <b>${cap!=null?"$"+fmt.n0(cap):"—"}</b></span>
       <span>最坏 <b>${wl!=null?"−$"+fmt.n0(wl):"—"}</b></span>
     </div>
@@ -537,7 +537,14 @@ const CFG_COLS=["ticker","exchange","benchmark","major","sub"];
 function csvCell(v){ v=(v==null?"":String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function currentConfigRows(){
   // reconstruct current config.csv rows from loaded data (committed source of truth)
-  return DATA.stocks.map(s=>[s.ticker,s.exchange||"",s.benchmark||"",s.major||"",s.sub||""]);
+  const seen=new Set(), out=[];
+  DATA.stocks.forEach(s=>{
+    const k=(s.ticker||"").toUpperCase();
+    if(!k || seen.has(k)) return;     // drop duplicate tickers
+    seen.add(k);
+    out.push([s.ticker,s.exchange||"",s.benchmark||"",s.major||"",s.sub||""]);
+  });
+  return out;
 }
 let pending=[];
 try{ pending=JSON.parse(localStorage.getItem("pendingAdds")||"[]"); }catch(e){ pending=[]; }
