@@ -178,12 +178,17 @@ def fetch(ticker, retries=2):
 
 
 def read_config():
-    out = []
+    out, seen = [], set()
     with open(CONFIG, newline="", encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             t = (row.get("ticker") or "").strip()
             if not t:
                 continue
+            key = t.upper()
+            if key in seen:        # skip duplicate tickers (first one wins)
+                sys.stderr.write(f"[dedup] skipping duplicate ticker {t}\n")
+                continue
+            seen.add(key)
             out.append({
                 "ticker": t,
                 "exchange": (row.get("exchange") or "").strip(),
