@@ -30,6 +30,12 @@
   <button class="tab active" data-view="signals">信号<span class="badge" id="sigCount">0</span></button>
   <button class="tab" data-view="overview">总览</button>
   <div class="controls">
+    <span class="hist-pill" id="histPill" title="按日期查看历史信号快照">
+      <label class="hist-label" for="dateSelect">回看</label>
+      <input id="dateSelect" type="date">
+      <button class="hist-clear" id="dateClear" hidden title="返回最新">✕</button>
+    </span>
+    <span class="hist-loading" id="histLoading" hidden></span>
     <input id="search" type="search" placeholder="搜索代码 / 名称…" autocomplete="off">
     <select id="subFilter"><option value="">全部小类</option></select>
   </div>
@@ -42,12 +48,6 @@
   <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
   <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
   <span class="risk-readout" id="riskReadout"></span>
-  <span class="risk-ctl hist">
-    <label for="dateSelect">按日期回看</label>
-    <input id="dateSelect" type="date">
-    <button class="hist-clear" id="dateClear" hidden title="返回最新">✕</button>
-    <span class="hist-loading" id="histLoading" hidden></span>
-  </span>
 </div>
 
 <div class="history-banner" id="historyBanner" hidden>
