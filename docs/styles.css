@@ -127,6 +127,7 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .history-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;
   padding:9px 20px;background:rgba(180,118,12,.12);border-bottom:1px solid rgba(180,118,12,.35);
   color:var(--toohigh);font-size:13px;font-weight:600;flex:none;z-index:17}
+.history-banner[hidden]{display:none}
 .history-banner b{font-family:var(--mono)}
 .history-banner button{appearance:none;border:1px solid var(--toohigh);background:var(--panel);
   color:var(--toohigh);font:inherit;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:999px;
