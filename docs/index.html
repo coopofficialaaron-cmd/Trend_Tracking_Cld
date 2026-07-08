@@ -42,6 +42,17 @@
   <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
   <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
   <span class="risk-readout" id="riskReadout"></span>
+  <span class="risk-ctl hist">
+    <label for="dateSelect">按日期回看</label>
+    <input id="dateSelect" type="date">
+    <button class="hist-clear" id="dateClear" hidden title="返回最新">✕</button>
+    <span class="hist-loading" id="histLoading" hidden></span>
+  </span>
+</div>
+
+<div class="history-banner" id="historyBanner" hidden>
+  <span>📅 历史回看 · 显示 <b id="hbDate"></b> 收盘时的信号（历史快照，并非当前可操作信号，不能据此下单）</span>
+  <button id="hbReset">返回最新 →</button>
 </div>
 
 <main>
