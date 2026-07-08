@@ -82,7 +82,7 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .tab .badge{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.28);color:inherit;
   padding:1px 7px;border-radius:10px}
 .tab:not(.active) .badge{background:var(--enter);color:#fff}
-.controls{margin-left:auto;display:flex;gap:10px}
+.controls{margin-left:auto;display:flex;align-items:center;gap:10px}
 .controls input,.controls select{background:var(--panel);border:1px solid var(--line);color:var(--ink);
   font:inherit;padding:7px 10px;border-radius:8px;min-width:150px}
 .controls input:focus,.controls select:focus{outline:none;border-color:var(--accent)}
@@ -115,14 +115,22 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .risk-readout{font-size:13px;color:var(--muted);white-space:nowrap;margin-left:14px}
 .risk-readout b{color:var(--ink);font-family:var(--mono);font-weight:600}
 
-.risk-ctl.hist{margin-left:18px;gap:8px}
-.risk-ctl.hist input[type=date]{background:var(--panel);border:1px solid var(--line);color:var(--ink);
-  font:inherit;font-family:var(--mono);font-size:13px;padding:6px 9px;border-radius:8px}
-.risk-ctl.hist input[type=date]:focus{outline:none;border-color:var(--accent)}
-.risk-ctl.hist .hist-clear{appearance:none;border:1px solid var(--line);background:var(--panel);
-  color:var(--muted);font-size:12px;width:26px;height:26px;border-radius:7px;cursor:pointer;line-height:1}
-.risk-ctl.hist .hist-clear:hover{color:var(--bad);border-color:var(--bad)}
 .hist-loading{font-size:12px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+
+/* 按日期回看 —— 紧凑的分段pill,放在搜索框前面 */
+.hist-pill{display:inline-flex;align-items:stretch;flex:none;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;transition:border-color .12s}
+.hist-pill:focus-within{border-color:var(--accent)}
+.hist-pill .hist-label{display:flex;align-items:center;padding:0 10px;font-size:12.5px;font-weight:600;
+  color:var(--muted);background:var(--panel-2);white-space:nowrap;cursor:pointer;border-right:1px solid var(--line)}
+.hist-pill input[type=date]{border:none;background:none;color:var(--ink);font:inherit;
+  font-family:var(--mono);font-size:13px;padding:7px 9px;width:124px;min-width:0;cursor:pointer}
+.hist-pill input[type=date]:focus{outline:none}
+.hist-pill input[type=date]::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
+.hist-pill input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+.hist-pill .hist-clear{appearance:none;border:none;border-left:1px solid var(--line);background:var(--panel-2);
+  color:var(--muted);font-size:11px;padding:0 9px;cursor:pointer;flex:none}
+.hist-pill .hist-clear:hover{color:var(--bad);background:rgba(192,57,43,.08)}
 
 .history-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;
   padding:9px 20px;background:rgba(180,118,12,.12);border-bottom:1px solid rgba(180,118,12,.35);
@@ -320,6 +328,6 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
 
 @media (max-width:720px){
   .topbar{flex-wrap:wrap;gap:12px}.meta{align-items:flex-start}
-  .controls{width:100%;margin:8px 0 0}.controls input{flex:1}
+  .controls{width:100%;margin:8px 0 0;flex-wrap:wrap}.controls input{flex:1}
 }
 @media (prefers-reduced-motion:reduce){.drawer{animation:none}}
