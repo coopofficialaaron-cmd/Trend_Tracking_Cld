@@ -30,6 +30,7 @@ DATA_DIR = os.path.join(ROOT, "docs", "data")
 INDEX_OUT = os.path.join(DATA_DIR, "index.json")        # small: summaries + market
 STOCK_DIR = os.path.join(DATA_DIR, "stocks")            # one small file per ticker
 OUT = os.path.join(DATA_DIR, "latest.json")             # legacy (no longer written)
+HISTORY_DIR = os.path.join(DATA_DIR, "history")         # permanent daily signal log (one CSV per month)
 SEED = os.path.join(HERE, "seed_prices.json")
 
 def safe_name(t):
@@ -44,6 +45,57 @@ def rnd(o, nd=4):
     if isinstance(o, dict):
         return {k: rnd(v, nd) for k, v in o.items()}
     return o
+
+HISTORY_FIELDS = [
+    "date", "ticker", "name", "major", "sub", "benchmark",
+    "close", "signal", "entry_pct", "minentry", "maxentry", "stop",
+    "atrpct", "dev", "selfvol", "er22", "er55", "r0", "mult", "buf",
+]
+
+def append_history_log(stocks):
+    """Permanent, ever-growing daily signal archive — independent of the rolling
+    290-day window in docs/data/stocks/*.json. One CSV per calendar month
+    (docs/data/history/YYYY-MM.csv), keyed by (date, ticker): re-running the
+    workflow the same day upserts that day's row instead of duplicating it,
+    so retries/self-heal reruns stay clean. Designed to be pointed at directly
+    from Power BI (Get Data > Web, or a Folder query over docs/data/history/)."""
+    by_month = {}
+    for s in stocks:
+        summ = s.get("summary") or {}
+        d = summ.get("date")
+        if not d or not summ.get("signal"):
+            continue  # no data for this ticker on this run — nothing to log
+        row = {
+            "date": d, "ticker": s["ticker"], "name": s.get("name", ""),
+            "major": s.get("major", ""), "sub": s.get("sub", ""),
+            "benchmark": s.get("benchmark", ""),
+            "close": summ.get("close"), "signal": summ.get("signal"),
+            "entry_pct": summ.get("entry_pct"), "minentry": summ.get("minentry"),
+            "maxentry": summ.get("maxentry"), "stop": summ.get("stop"),
+            "atrpct": summ.get("atrpct"), "dev": summ.get("dev"),
+            "selfvol": summ.get("selfvol"), "er22": summ.get("er22"),
+            "er55": summ.get("er55"), "r0": summ.get("r0"),
+            "mult": summ.get("mult"), "buf": summ.get("buf"),
+        }
+        by_month.setdefault(d[:7], {})[(d, s["ticker"])] = rnd(row)
+
+    if not by_month:
+        return
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+    for month, new_rows in by_month.items():
+        path = os.path.join(HISTORY_DIR, f"{month}.csv")
+        existing = {}
+        if os.path.exists(path):
+            with open(path, newline="", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    existing[(r["date"], r["ticker"])] = r
+        existing.update(new_rows)  # today's fresh values win over any earlier retry
+        ordered = sorted(existing.values(), key=lambda r: (r["date"], r["ticker"]))
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=HISTORY_FIELDS)
+            w.writeheader()
+            for r in ordered:
+                w.writerow({k: r.get(k, "") for k in HISTORY_FIELDS})
 
 RISK_DEFAULT = 25.0          # 可亏限额 $
 BREAKOUT_DEFAULT = 0.01      # 突破确认 +1%
@@ -295,6 +347,9 @@ def main():
     }
     json.dump(index, open(INDEX_OUT, "w", encoding="utf-8"),
               ensure_ascii=False, separators=(",", ":"))
+
+    # 1b) permanent daily signal archive (survives beyond the 290-day rolling window)
+    append_history_log(stocks)
 
     # 2) one compact file per stock — just the history rows (lazy-loaded on demand)
     keep = set()
