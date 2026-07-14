@@ -279,7 +279,8 @@ function stopChartSVG(rows,h,c){
     grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`+
           `<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--faint)" font-family="JetBrains Mono, monospace">${val.toFixed(0)}</text>`; }
   let xticks="",lastM="";
-  d.forEach((p,i)=>{ const ym=p.date.slice(0,7); if(ym!==lastM){ lastM=ym; const lab=p.date.slice(2,7).replace("-","/");
+  const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  d.forEach((p,i)=>{ const ym=p.date.slice(0,7); if(ym!==lastM){ lastM=ym; const lab=MON[(+p.date.slice(5,7))-1]+p.date.slice(2,4);
     xticks+=`<line x1="${xs[i].toFixed(1)}" y1="${padT}" x2="${xs[i].toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="1" opacity="0.6"/>`+
             `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`; }});
   // cost line + entry marker (black, larger)
