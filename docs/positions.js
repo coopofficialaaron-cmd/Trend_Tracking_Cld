@@ -288,18 +288,27 @@ function stopChartSVG(rows,h,c){
   let entryMark=""; const ei=d.findIndex(p=>p.date===h.entryDate);
   if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
     `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--ink)" stroke="#fff" stroke-width="1.6"/>`;
-  // latest values at right edge
+  // latest values at right edge (nudge apart if overlapping)
   const lastClose=d[d.length-1].close, lastStop=stopOf(d[d.length-1]);
-  const rx=W-padR+5;
-  const rlabels=`<text x="${rx}" y="${(y(lastClose)+3).toFixed(1)}" font-size="11" fill="var(--ink)" font-family="JetBrains Mono, monospace">${fmt.n2(lastClose)}</text>`+
-    (lastStop!=null?`<text x="${rx}" y="${(y(lastStop)+3).toFixed(1)}" font-size="11" fill="var(--bad)" font-family="JetBrains Mono, monospace">${fmt.n2(lastStop)}</text>`:"");
-  return `<div class="chart-box">
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+  const rx=W-padR+5; let ycL=y(lastClose), ysL=(lastStop!=null?y(lastStop):null);
+  if(ysL!=null&&Math.abs(ycL-ysL)<12){ if(ycL<=ysL) ysL=ycL+12; else ysL=ycL-12; }
+  const rlabels=`<text x="${rx}" y="${(ycL+3).toFixed(1)}" font-size="11" fill="var(--ink)" font-family="JetBrains Mono, monospace">${fmt.n2(lastClose)}</text>`+
+    (lastStop!=null?`<text x="${rx}" y="${(ysL+3).toFixed(1)}" font-size="11" fill="var(--bad)" font-family="JetBrains Mono, monospace">${fmt.n2(lastStop)}</text>`:"");
+  const pts=d.map((p,i)=>({x:+xs[i].toFixed(1),cy:+y(p.close).toFixed(1),date:p.date,close:p.close,trail:stopOf(p),enter:p.enter==="ENTER"}));
+  POSCHART={pts,W,cost:c.avgCost};
+  return `<div class="chart-box" id="posChartBox">
+    <svg id="posChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
       ${grid}${xticks}${costLine}${entryMark}
       <path d="${path(p=>stopOf(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
       <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
       ${rlabels}
+      <g id="posCross" style="display:none">
+        <line id="posCrossX" y1="${padT}" y2="${H-padB}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle id="posCrossDot" r="4" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>
+      </g>
+      <rect id="posHit" x="${padL}" y="${padT}" width="${W-padL-padR}" height="${H-padT-padB}" fill="transparent"/>
     </svg>
+    <div id="posChartTip" class="chart-tip" style="display:none"></div>
     <div class="chart-legend">
       <span><i style="background:var(--accent)"></i>收盘</span>
       <span><i style="background:var(--bad);height:0;border-top:2px dashed var(--bad)"></i>移动止损(trail)</span>
@@ -308,6 +317,35 @@ function stopChartSVG(rows,h,c){
     </div>
     <p class="chart-note">止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
   </div>`;
+}
+
+let POSCHART=null;
+function wirePosChart(){
+  const svg=document.getElementById("posChart"); if(!svg||!POSCHART) return;
+  const hit=document.getElementById("posHit"), cross=document.getElementById("posCross");
+  const cx=document.getElementById("posCrossX"), dot=document.getElementById("posCrossDot");
+  const tip=document.getElementById("posChartTip"), box=document.getElementById("posChartBox");
+  const {pts,W,cost}=POSCHART;
+  const move=(ev)=>{
+    const rect=svg.getBoundingClientRect();
+    const clientX=(ev.touches?ev.touches[0].clientX:ev.clientX);
+    const vbX=(clientX-rect.left)/rect.width*W;
+    let best=pts[0],bd=1e9; for(const p of pts){const dd=Math.abs(p.x-vbX); if(dd<bd){bd=dd;best=p;}}
+    cross.style.display=""; cx.setAttribute("x1",best.x); cx.setAttribute("x2",best.x);
+    dot.setAttribute("cx",best.x); dot.setAttribute("cy",best.cy);
+    const row=(cl,k,v)=>v==null?"":`<div class="tr"><span class="sw" style="background:${cl}"></span>${k}<b>${fmt.n2(v)}</b></div>`;
+    tip.innerHTML=`<div class="dt">${best.date}${best.enter?' · <span style="color:var(--enter)">ENTER</span>':''}</div>`+
+      row('var(--accent)','收盘',best.close)+row('var(--bad)','移动止损',best.trail)+row('var(--muted)','成本',cost);
+    tip.style.display="";
+    const brect=box.getBoundingClientRect();
+    let left=clientX-brect.left+14; if(left+170>brect.width) left=clientX-brect.left-184;
+    tip.style.left=Math.max(4,left)+"px"; tip.style.top="14px";
+  };
+  const leave=()=>{cross.style.display="none"; tip.style.display="none";};
+  hit.addEventListener("mousemove",move);
+  hit.addEventListener("touchmove",move,{passive:true});
+  hit.addEventListener("mouseleave",leave);
+  hit.addEventListener("touchend",leave);
 }
 
 /* ===== 历史数据与逐日计算（与信号页一致） ===== */
@@ -381,6 +419,7 @@ async function openDrawer(i){ drawerIdx=i; const h=POS[i]; const c=compute(h); i
   const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false");
   if(!closed){ document.getElementById("doAdd").addEventListener("click",doAdd); document.getElementById("doClose").addEventListener("click",doClose); }
   document.getElementById("doDelete").addEventListener("click",doDelete);
+  wirePosChart();
 }
 function closeDrawer(){ const dr=document.getElementById("drawer"); dr.hidden=true; dr.setAttribute("aria-hidden","true"); document.getElementById("scrim").hidden=true; drawerIdx=null; }
 function doAdd(){ const h=POS[drawerIdx];
