@@ -61,7 +61,6 @@ function stockFresh(st){
   return {fresh: d>=EXPECTED, date:d};
 }
 function freshDot(st){
-  if(asOfDate) return `<span class="fdot none" title="历史回看模式，非实时"></span>`;
   const f=stockFresh(st);
   if(!f.date) return `<span class="fdot none" title="无数据"></span>`;
   const tip = f.fresh ? `数据最新 · ${f.date}` : `数据滞后 · 最新 ${f.date}，应为 ${EXPECTED}（此信号可能不是当日最新）`;
@@ -70,7 +69,6 @@ function freshDot(st){
 
 let DATA=null, view="signals", sort={k:"er55",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
 let ACCOUNT=20000, RISKPCT=1.0;   // 账户总额 / 每笔风险%
-let asOfDate="", ROWS_ALL_LOADED=false, ROWS_LOADING=false;   // 历史回看状态
 
 function mround(x,m){ return Math.round(x/m)*m; }
 function perTradeRisk(){ return ACCOUNT * RISKPCT / 100; }       // 单笔可亏金额
@@ -78,76 +76,6 @@ function sharesFor(r0){ return (r0!=null && r0>0) ? Math.floor(perTradeRisk()/r0
 function buyPrice(s){ return s.maxentry!=null ? s.maxentry : s.close; }   // 计仓用的买入价(保守取上沿)
 function capitalFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*buyPrice(s) : null; }
 function worstLossFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*s.r0 : null; }
-
-/* ---------- 历史回看:复刻 indicators.py build_summary() 的 SWITCH 判定 ----------
-   每条历史row本身已包含 close/minentry/maxentry/cand/mktok 等"当天为止"的滚动指标
-   （无未来函数），所以任意历史日期的信号都能现算，不需要额外的数据管线。 */
-function deriveSummary(row){
-  if(!row) return null;
-  const premium = (row.minentry!=null) ? row.close - row.minentry : null;
-  let signal;
-  if(row.mktok===false || row.mktok==null) signal="Bad Market";
-  else if(premium!=null && premium>0 && row.maxentry!=null && row.close<row.maxentry
-           && row.cand!=null && row.cand<row.minentry) signal="Enter";
-  else if(premium!=null && premium>0 && row.maxentry!=null && row.close>row.maxentry) signal="Too High";
-  else signal="Wait";
-  const entry_pct = (signal==="Enter" && row.maxentry!=null && row.minentry!=null && row.maxentry!==row.minentry)
-    ? (row.close-row.minentry)/(row.maxentry-row.minentry) : null;
-  return {
-    date:row.date, close:row.close, atr14:row.atr14, atr50:row.atr50, atrpct:row.atrpct,
-    selfvol:row.selfvol, dev:row.dev, mktok:row.mktok,
-    stop:row.cand, minentry:row.minentry, maxentry:row.maxentry, premium,
-    signal, entry_pct, er22:row.er22, er55:row.er55,
-    r0:row.r0, shares:row.shares, mult:row.mult, buf:row.buf,
-  };
-}
-function rowAsOf(st, dateStr){
-  // rightmost row with date <= dateStr (rows are ascending by date)
-  const rs=st.rows; if(!rs || !rs.length) return null;
-  let lo=0, hi=rs.length-1, ans=-1;
-  while(lo<=hi){ const mid=(lo+hi)>>1; if(rs[mid].date<=dateStr){ans=mid; lo=mid+1;} else hi=mid-1; }
-  return ans>=0 ? rs[ans] : null;
-}
-function curSummary(st){ return asOfDate ? deriveSummary(rowAsOf(st, asOfDate)) : st.summary; }
-function countEnter(){ return DATA.stocks.filter(st=>{const s=curSummary(st); return s&&s.signal==="Enter";}).length; }
-
-async function loadAllRowsOnce(){
-  if(ROWS_ALL_LOADED || ROWS_LOADING) return;
-  ROWS_LOADING=true;
-  const label=document.getElementById("histLoading");
-  const targets=DATA.stocks.filter(st=>st.file && !st.rows);
-  if(label){ label.hidden=false; label.textContent=`加载历史数据中…(0/${targets.length})`; }
-  let done=0;
-  await Promise.all(targets.map(async st=>{
-    try{ const r=await fetch(`data/stocks/${st.file}.json`,{cache:"no-store"}); const j=await r.json(); st.rows=j.rows||[]; }
-    catch(e){ st.rows=[]; }
-    done++;
-    if(label) label.textContent=`加载历史数据中…(${done}/${targets.length})`;
-  }));
-  if(label) label.hidden=true;
-  ROWS_ALL_LOADED=true; ROWS_LOADING=false;
-}
-function updateHistoryUI(){
-  const banner=document.getElementById("historyBanner");
-  const clearBtn=document.getElementById("dateClear");
-  const fr=document.getElementById("freshness");
-  if(asOfDate){
-    banner.hidden=false;
-    document.getElementById("hbDate").textContent=asOfDate;
-    clearBtn.hidden=false;
-    if(fr) fr.style.visibility="hidden";
-  } else {
-    banner.hidden=true;
-    clearBtn.hidden=true;
-    if(fr) fr.style.visibility="";
-  }
-}
-async function afterDateChange(){
-  updateHistoryUI();
-  buildFilters();
-  document.getElementById("sigCount").textContent=countEnter();
-  render();
-}
 
 async function load(){
   try{
@@ -163,28 +91,12 @@ async function load(){
   RISKPCT = Number(localStorage.getItem("riskPct")) || 1.0;
   const ai=document.getElementById("acctInput"); if(ai) ai.value=ACCOUNT.toLocaleString("en-US");
   const pi=document.getElementById("rpctInput"); if(pi) pi.value=RISKPCT;
-  const dateSel=document.getElementById("dateSelect");
-  if(dateSel){
-    dateSel.max=EXPECTED;
-    dateSel.addEventListener("change", async ()=>{
-      const v=dateSel.value;
-      if(!v){ asOfDate=""; afterDateChange(); return; }
-      dateSel.disabled=true;
-      await loadAllRowsOnce();
-      dateSel.disabled=false;
-      asOfDate=v;
-      afterDateChange();
-    });
-  }
-  const dateClear=document.getElementById("dateClear");
-  if(dateClear) dateClear.onclick=()=>{ asOfDate=""; if(dateSel) dateSel.value=""; afterDateChange(); };
-  const hbReset=document.getElementById("hbReset");
-  if(hbReset) hbReset.onclick=()=>{ asOfDate=""; if(dateSel) dateSel.value=""; afterDateChange(); };
   renderMarket();
   renderMeta();
   buildFilters();
   // default sort comes from the `sort` global (ER55 descending)
-  document.getElementById("sigCount").textContent = countEnter();
+  document.getElementById("sigCount").textContent =
+    DATA.stocks.filter(s=>s.summary.signal==="Enter").length;
   render();
 }
 
@@ -294,7 +206,7 @@ function buildFilters(){
   refreshSubOptions();
 }
 
-function hasData(st){ const s=curSummary(st); return !!(s && s.date); }
+function hasData(s){ return s.summary && s.summary.date; }
 function renderMajorTiles(){
   const pool=DATA.stocks.filter(hasData);
   const counts={};
@@ -322,19 +234,18 @@ function refreshSubOptions(){
 }
 
 function rows(){
-  let list = DATA.stocks.filter(st=>{ const s=curSummary(st); return s && s.date; });  // hide no-data tickers
-  if(view==="signals") list = list.filter(st=>curSummary(st).signal==="Enter");
-  if(fMajor) list = list.filter(st=>st.major===fMajor);
-  if(fSub) list = list.filter(st=>st.sub===fSub);
+  let list = DATA.stocks.filter(s=>s.summary && s.summary.date);  // hide no-data tickers
+  if(view==="signals") list = list.filter(s=>s.summary.signal==="Enter");
+  if(fMajor) list = list.filter(s=>s.major===fMajor);
+  if(fSub) list = list.filter(s=>s.sub===fSub);
   if(q){ const Q=q.toLowerCase();
-    list = list.filter(st=>st.ticker.toLowerCase().includes(Q)||(st.name||"").toLowerCase().includes(Q)); }
+    list = list.filter(s=>s.ticker.toLowerCase().includes(Q)||(s.name||"").toLowerCase().includes(Q)); }
   const col = COLS.find(c=>c.k===sort.k);
   const sigRank={"Enter":0,"Too High":1,"Wait":2,"Bad Market":3};
   list.sort((a,b)=>{
-    const sa=curSummary(a), sb=curSummary(b);
     let va,vb;
-    if(sort.k==="signal"){ va=sigRank[sa.signal]??9; vb=sigRank[sb.signal]??9; }
-    else { va=col.v(sa,a); vb=col.v(sb,b);
+    if(sort.k==="signal"){ va=sigRank[a.summary.signal]??9; vb=sigRank[b.summary.signal]??9; }
+    else { va=col.v(a.summary,a); vb=col.v(b.summary,b);
       if(typeof va==="string"){ return sort.dir*va.localeCompare(vb); } }    va=va==null?-Infinity:va; vb=vb==null?-Infinity:vb;
     return sort.dir*(va-vb);
   });
@@ -353,7 +264,7 @@ function render(){
   const list=rows();
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
-    const s=curSummary(st);
+    const s=st.summary;
     const hot = (view==="signals") && hotReasons(s).length>0;
     const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
@@ -363,11 +274,7 @@ function render(){
 
   const empty=document.getElementById("empty");
   empty.hidden = list.length>0;
-  if(!list.length){
-    empty.textContent = asOfDate
-      ? `所选日期（${asOfDate}）暂无可用数据 — 可能早于该股票的数据起点，或超出约14个月的留存范围。`
-      : (view==="signals"?"当前没有 ENTER 信号。":"没有匹配的股票。");
-  }
+  if(!list.length) empty.textContent = view==="signals"?"当前没有 ENTER 信号。":"没有匹配的股票。";
   renderRiskReadout();
 }
 
@@ -422,11 +329,6 @@ function renderDetailBody(st){
   const note = flags.length
       ? `⚠ 过热风险，需谨慎：${flags.join("；")}`
       : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。":"");
-  const asofNote = asOfDate ? (()=>{
-    const hs=deriveSummary(rowAsOf(st, asOfDate));
-    return hs ? `<div class="asof-note">📅 历史回看 ${asOfDate}：${sigTag(hs.signal)} · 收盘 ${fmt.n2(hs.close)}（下方卡片与图表仍为完整历史，非仅当天）</div>`
-              : `<div class="asof-note">📅 历史回看 ${asOfDate}：该日期无数据</div>`;
-  })() : "";
 
   document.getElementById("detail").innerHTML = `
     <div class="d-head">
@@ -440,7 +342,6 @@ function renderDetailBody(st){
       <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
-    ${asofNote}
     <div class="hero">
       <div class="hero-left">${gaugeHTML(s)}</div>
       <div class="hero-right"><div class="cards">${cardHTML(keyCards)}</div></div>
@@ -517,12 +418,14 @@ function chartHTML(st){
     grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`+
           `<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--faint)" font-family="JetBrains Mono, monospace">${val.toFixed(0)}</text>`; }
   // monthly x ticks
+  const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   let xticks="", lastM="";
   data.forEach((p,i)=>{ const ym=p.date.slice(0,7);
     if(ym!==lastM){ lastM=ym;
-      const lab = p.date.slice(2,7).replace("-","/");   // YY/MM
+      const lab = MON[(+p.date.slice(5,7))-1]+p.date.slice(2,4);   // e.g. Mar26
+      const nearEdge = xs[i] < padL+22 || xs[i] > W-padR-22;
       xticks+=`<line x1="${xs[i].toFixed(1)}" y1="${padT}" x2="${xs[i].toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="1" opacity="0.6"/>`+
-              `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`;
+              (nearEdge ? "" : `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`);
     }});
   // points payload for interaction
   const pts=data.map((p,i)=>({x:+xs[i].toFixed(1), cy:+y(p.close).toFixed(1),
