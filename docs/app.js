@@ -28,7 +28,7 @@ const COLS = [
   {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
-  {k:"signal",  t:"信号",        f:s=>sigTag(s.signal)+hotBadge(s), v:s=>s.signal},
+  {k:"signal",  t:"信号",        f:s=>sigTag(s.signal)+qtag(s)+hotBadge(s), v:s=>s.signal},
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
   {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
@@ -51,6 +51,25 @@ const COLS = [
 function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title="${tip}">⚠</span>` : txt; }
 function sigTag(s){ return s?`<span class="sig ${SIG_CLASS[s]||"Wait"}">${s}</span>`:""; }
 function hotBadge(s){ const r=hotReasons(s); return r.length?`<span class="hot-badge" title="过热风险，需谨慎：&#10;· ${r.join("&#10;· ")}">⚠ 过热</span>`:""; }
+
+/* 入场质量角标：只对 Enter 信号显示。判定看 R0%(止损距离) 和 ATR%(波动)；
+   selfvol 仅作提示、不参与评分。改这四个阈值即可调松紧。 */
+const QUALITY = { r0Good:0.05, r0Bad:0.035, atrGood:0.015, atrBad:0.010 };
+function entryQuality(s){
+  const r0p=(s.r0!=null&&s.close)?s.r0/s.close:null, atr=s.atrpct;
+  let tier;
+  if((r0p!=null&&r0p<QUALITY.r0Bad)||(atr!=null&&atr<QUALITY.atrBad)) tier="bad";
+  else if((r0p==null||r0p>=QUALITY.r0Good)&&(atr==null||atr>=QUALITY.atrGood)) tier="good";
+  else tier="mid";
+  return {tier,r0p,atr,selfvol:s.selfvol};
+}
+function qtag(s){
+  if(!s||s.signal!=="Enter") return "";
+  const {tier,r0p,atr,selfvol}=entryQuality(s);
+  const cfg={good:["优","var(--enter)","var(--enter-bg)"],mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],bad:["差","#fff","var(--bad)"]}[tier];
+  const tip=`入场质量：${cfg[0]}&#10;R0/价 ${r0p!=null?(r0p*100).toFixed(1)+"%":"—"}（止损距离，越大越稳）&#10;ATR% ${atr!=null?(atr*100).toFixed(1)+"%":"—"}（波动水平）&#10;selfvol ${selfvol!=null?(selfvol*100).toFixed(0)+"%":"—"}（仅参考）`;
+  return `<span class="qtag" title="${tip}" style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
+}
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
 
@@ -338,7 +357,7 @@ function renderDetailBody(st){
       ${st.sub?`<span class="type-tag">${st.sub}</span>`:""}
     </div>
     <div class="signal-row">
-      ${sigTag(s.signal)}
+      ${sigTag(s.signal)}${qtag(s)}
       <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
