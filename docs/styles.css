@@ -208,11 +208,13 @@ thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);font
   text-align:right;padding:11px 14px;white-space:nowrap;cursor:pointer;user-select:none;
   border-bottom:1px solid var(--line);z-index:2}
 thead th.l{text-align:left}
+thead th.la{text-align:left}
 thead th:hover{color:var(--ink)}
 thead th .arrow{color:var(--accent);font-size:10px;margin-left:3px}
 tbody td{padding:11px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);
   font-family:var(--mono);font-variant-numeric:tabular-nums;background:var(--panel)}
 tbody td.l{text-align:left;font-family:var(--ui)}
+tbody td.la{text-align:left}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:var(--panel-2)}
 tbody tr.enter td{background:var(--enter-solid)}
