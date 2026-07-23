@@ -66,9 +66,9 @@ function entryQuality(s){
 function qtag(s){
   if(!s||s.signal!=="Enter") return "";
   const {tier,r0p,atr,selfvol}=entryQuality(s);
-  const cfg={good:["优","var(--enter)","var(--enter-bg)"],mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],bad:["差","#fff","var(--bad)"]}[tier];
-  const tip=`入场质量：${cfg[0]}&#10;R0/价 ${r0p!=null?(r0p*100).toFixed(1)+"%":"—"}（止损距离，越大越稳）&#10;ATR% ${atr!=null?(atr*100).toFixed(1)+"%":"—"}（波动水平）&#10;selfvol ${selfvol!=null?(selfvol*100).toFixed(0)+"%":"—"}（仅参考）`;
-  return `<span class="qtag" title="${tip}" style="display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:500;line-height:1.5;vertical-align:middle;white-space:nowrap;letter-spacing:.5px;color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
+  const cfg={good:["A","优","var(--enter)","var(--enter-bg)"],mid:["B","中","var(--toohigh)","rgba(180,118,12,.12)"],bad:["C","差","#fff","var(--bad)"]}[tier];
+  const tip=`入场质量 ${cfg[0]}（${cfg[1]}）&#10;R0/价 ${r0p!=null?(r0p*100).toFixed(1)+"%":"—"}（止损距离，越大越稳）&#10;ATR% ${atr!=null?(atr*100).toFixed(1)+"%":"—"}（波动水平）&#10;selfvol ${selfvol!=null?(selfvol*100).toFixed(0)+"%":"—"}（仅参考）`;
+  return `<span class="qtag" title="${tip}" style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;line-height:1.4;vertical-align:middle;color:${cfg[2]};background:${cfg[3]}">${cfg[0]}</span>`;
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
