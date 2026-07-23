@@ -284,7 +284,8 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
     const s=st.summary;
-    const hot = (view==="signals") && hotReasons(s).length>0;
+    const badTier = s.signal==="Enter" && entryQuality(s).tier==="bad";   // C 级入场质量
+    const hot = (view==="signals") && (hotReasons(s).length>0 || badTier);
     const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
       COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
