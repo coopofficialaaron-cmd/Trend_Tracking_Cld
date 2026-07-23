@@ -106,11 +106,21 @@ async function buildLive(){
 }
 function liveClose(tk){ return LIVE[tk]?.close ?? (SUM[tk]?.close); }
 function liveStop(tk){ return LIVE[tk]?.stop ?? (SUM[tk]?.stop); }
+/* 入场锚定的移动止损：从入场日起，对每日吊灯候选 cand 取棘轮最大，seed=初始止损。
+   不继承入场前的旧高点（那正是"一入场就被旧止损打掉"的 bug 根源）。 */
+function holdingStop(h){
+  const f=SUM[h.ticker]?.file; const rows=ROWS[f]||[];
+  if(!rows.length) return h.initialStop??null;
+  let ei=rows.findIndex(r=>r.date>=h.entryDate); if(ei<0) ei=0;
+  let tr=(h.initialStop!=null)?h.initialStop:(rows[ei].cand??rows[ei].final??null);
+  for(let k=ei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(tr==null||cd>tr)) tr=cd; }
+  return tr;
+}
 
 /* ===== 单笔派生计算 ===== */
 function compute(h){
   const s=SUM[h.ticker]; if(!s) return null;
-  const close=num(liveClose(h.ticker)), stop=num(liveStop(h.ticker)), r0=num(h.r0);
+  const close=num(liveClose(h.ticker)), stop=num(holdingStop(h)), r0=num(h.r0);
   const adds=h.adds||[];
   const shares=h.shares+adds.reduce((a,x)=>a+x.shares,0);
   const costTot=h.entryPrice*h.shares+adds.reduce((a,x)=>a+x.price*x.shares,0);
@@ -267,9 +277,14 @@ function stopChartSVG(rows,h,c){
   const data=(rows||[]).filter(x=>x.close!=null);
   if(data.length<2) return "";
   const N=Math.min(data.length,180), d=data.slice(-N);
+  // entry-anchored trailing stop (ratchet cand from entry, NOT full-window)
+  let tei=rows.findIndex(r=>r.date>=h.entryDate); if(tei<0) tei=0;
+  let ttr=(h.initialStop!=null)?h.initialStop:(rows[tei]?.cand); const trailMap={};
+  for(let k=tei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(ttr==null||cd>ttr)) ttr=cd; if(ttr!=null) trailMap[rows[k].date]=ttr; }
+  const trailAt=p=>trailMap[p.date];
   const W=820,H=250,padL=46,padR=54,padT=12,padB=26;
   const xs=d.map((_,i)=>padL+(i/(d.length-1))*(W-padL-padR));
-  const allV=[]; d.forEach(p=>{ [p.close,stopOf(p)].forEach(v=>{if(v!=null)allV.push(v);}); }); allV.push(c.avgCost);
+  const allV=[]; d.forEach(p=>{ [p.close,trailAt(p)].forEach(v=>{if(v!=null)allV.push(v);}); }); allV.push(c.avgCost);
   let lo=Math.min(...allV),hi=Math.max(...allV); const pad=(hi-lo)*0.06||1; lo-=pad;hi+=pad;
   const y=v=>padT+(1-(v-lo)/(hi-lo))*(H-padT-padB);
   const path=(fn)=>{ let s="",pen=false; d.forEach((p,i)=>{const v=fn(p); if(v==null){pen=false;return;}
@@ -289,17 +304,17 @@ function stopChartSVG(rows,h,c){
   if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
     `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--ink)" stroke="#fff" stroke-width="1.6"/>`;
   // latest values at right edge (nudge apart if overlapping)
-  const lastClose=d[d.length-1].close, lastStop=stopOf(d[d.length-1]);
+  const lastClose=d[d.length-1].close, lastStop=trailAt(d[d.length-1]);
   const rx=W-padR+5; let ycL=y(lastClose), ysL=(lastStop!=null?y(lastStop):null);
   if(ysL!=null&&Math.abs(ycL-ysL)<12){ if(ycL<=ysL) ysL=ycL+12; else ysL=ycL-12; }
   const rlabels=`<text x="${rx}" y="${(ycL+3).toFixed(1)}" font-size="11" fill="var(--ink)" font-family="JetBrains Mono, monospace">${fmt.n2(lastClose)}</text>`+
     (lastStop!=null?`<text x="${rx}" y="${(ysL+3).toFixed(1)}" font-size="11" fill="var(--bad)" font-family="JetBrains Mono, monospace">${fmt.n2(lastStop)}</text>`:"");
-  const pts=d.map((p,i)=>({x:+xs[i].toFixed(1),cy:+y(p.close).toFixed(1),date:p.date,close:p.close,trail:stopOf(p),enter:p.enter==="ENTER"}));
+  const pts=d.map((p,i)=>({x:+xs[i].toFixed(1),cy:+y(p.close).toFixed(1),date:p.date,close:p.close,trail:trailAt(p),enter:p.enter==="ENTER"}));
   POSCHART={pts,W,cost:c.avgCost};
   return `<div class="chart-box" id="posChartBox">
     <svg id="posChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
       ${grid}${xticks}${costLine}${entryMark}
-      <path d="${path(p=>stopOf(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
+      <path d="${path(p=>trailAt(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
       <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
       ${rlabels}
       <g id="posCross" style="display:none">
