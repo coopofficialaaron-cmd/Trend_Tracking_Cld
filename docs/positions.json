@@ -46,5 +46,37 @@
     "adds": [],
     "status": "open",
     "createdAt": 1782340107646
+  },
+  {
+    "ticker": "AES",
+    "file": "AES",
+    "name": "The AES Corporation",
+    "major": "可再生能源",
+    "entryDate": "2026-07-22",
+    "entryPrice": 14.87,
+    "initialStop": 14.63,
+    "r0": 0.23999999999999844,
+    "shares": 75,
+    "adds": [],
+    "status": "closed",
+    "createdAt": 1784813835689,
+    "exit": {
+      "date": "2026-07-27",
+      "price": 14.84
+    }
+  },
+  {
+    "ticker": "RPRX",
+    "file": "RPRX",
+    "name": "Royalty Pharma plc",
+    "major": "医药",
+    "entryDate": "2026-07-29",
+    "entryPrice": 60,
+    "initialStop": 55.06,
+    "r0": 4.939999999999998,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785333950475
   }
 ]
