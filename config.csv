@@ -372,7 +372,7 @@ AMZN,NASDAQ,QQQ,科技,互联网零售
 AVGO,NASDAQ,QQQ,科技,半导体
 BE,NYSE,QQQ,可再生能源,电力
 BEPC,NYSE,SPY,可再生能源,电力
-CL,NYSE,XLI,消费,消费必需品
+CL,NYSE,XLP,消费,消费必需品
 D,NYSE,SPY,可再生能源,电力
 GOOGL,NASDAQ,QQQ,科技,IT
 MSFT,NASDAQ,QQQ,科技,软件
@@ -417,3 +417,17 @@ WFRD,NASDAQ,XLE,油气,油气设备服务
 GRMN,NYSE,XLY,消费,可选消费
 TFII,NYSE,IYT,化工,铁路/联运
 WAB,NYSE,XLI,化工,工业机械
+TNK,NYSE,SEA,油气,油气中游
+DSX,NYSE,SEA,油气,海运
+SHIP,NASDAQ,SEA,油气,海运
+NVGS,NYSE,SEA,油气,海运
+LPG,NYSE,SEA,油气,海运
+FLNG,NYSE,SEA,油气,海运
+NMM,NYSE,SEA,油气,海运
+SFL,NYSE,SEA,油气,海运
+SOLV,NYSE,XLV,医药,医疗器械
+HPQ,NYSE,XLK,科技,硬件
+SKHY,NASDAQ,SOXX,科技,半导体
+GSK,NYSE,XLV,医药,制药
+UL,NYSE,XLP,消费,消费必需品
+KO,NYSE,XLP,消费,消费必需品
