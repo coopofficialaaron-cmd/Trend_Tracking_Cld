@@ -27,6 +27,7 @@
 .tag.exit{color:#fff;background:var(--bad)}
 .stopcell{font-family:var(--mono);font-weight:600;color:var(--accent)}
 .stopcell-flat{font-family:var(--mono);font-weight:400;color:var(--faint)}
+.totals .stat.sep{border-left:1px solid var(--line);padding-left:18px}
 .mini{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--muted);
   font:inherit;font-size:12px;font-weight:600;padding:4px 9px;border-radius:7px;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
@@ -81,8 +82,15 @@
   <div class="controls">
     <input id="search" type="search" placeholder="搜索代码…" autocomplete="off">
   </div>
-  <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
-  <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
+  <span class="risk-group collapsed" id="riskGroup">
+    <button class="risk-toggle" id="riskToggle" title="仓位设置：账户金额与每笔风险%（用于计算建议股数）">
+      <span class="risk-readout" id="riskReadout"></span><span class="caret">▾</span>
+    </button>
+    <span class="risk-fields">
+      <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
+      <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
+    </span>
+  </span>
   <button class="add-btn" id="addBtn">＋ 添加持仓</button>
   <button class="mini" id="syncBtn" title="跨设备同步：把持仓存到仓库 positions.json">同步</button>
   <button class="mini" id="pullBtn" title="从云端 positions.json 重新拉取（覆盖本机）">从云端刷新</button>
