@@ -191,9 +191,22 @@ const ETF_NAME={SPY:"标普500",QQQ:"纳斯达克100",XLK:"科技",SOXX:"半导�
   DTCR:"数据中心",QTUM:"量子计算",ITA:"航空国防",XLE:"能源",SEA:"海运",AMLP:"油气管道",
   XLU:"公用事业",TAN:"太阳能",GRID:"智能电网",NLR:"核能",XME:"金属矿业",GDX:"金矿",
   SIL:"银矿",COPX:"铜矿",URA:"铀",XLF:"金融",MOO:"农业",XLB:"材料",XLI:"工业",
-  IYT:"运输",XLV:"医疗",XLRE:"房地产",XBI:"生物科技",IHI:"医疗器械",XLY:"可选消费"};
-const ETF_SIZE=["SPY","QQQ","XLK","XLV","XLF","XLE","XLI","XLY","XLB","XLU","XLRE","SOXX","IGV",
+  IYT:"运输",XLV:"医疗",XLRE:"房地产",XBI:"生物科技",IHI:"医疗器械",XLY:"可选消费",
+  XLP:"消费必需品"};
+const ETF_SIZE=["SPY","QQQ","XLK","XLV","XLF","XLE","XLI","XLY","XLP","XLB","XLU","XLRE","SOXX","IGV",
   "XBI","GDX","ITA","IHI","XME","URA","TAN","MOO","COPX","SIL","AMLP","IYT","SEA","NLR","GRID","DTCR","QTUM"];
+// 大类由对标 ETF 唯一决定：新增股票时自动带出，避免出现孤立大类
+const BENCH2MAJOR={
+  SOXX:"半导体", IGV:"软件", DTCR:"数据中心",
+  XLK:"科技硬件", QQQ:"科技硬件", QTUM:"科技硬件",
+  XLV:"医疗健康", XBI:"医疗健康", IHI:"医疗健康",
+  XLE:"油气", AMLP:"油气", SEA:"航运",
+  XLU:"公用电力", TAN:"公用电力", NLR:"公用电力", GRID:"公用电力",
+  XLI:"工业", IYT:"工业", XLB:"基础材料", MOO:"基础材料",
+  GDX:"矿业", SIL:"矿业", COPX:"矿业", URA:"矿业", XME:"矿业",
+  ITA:"航空国防", XLP:"消费", XLY:"消费",
+  XLF:"金融地产", XLRE:"金融地产"
+};
 const ETF_PIN={SPY:0,QQQ:1};
 function etfRank(b){ const i=ETF_SIZE.indexOf(b); return i<0?999:i; }
 function etfLabel(b){ return ETF_NAME[b]?`${b} · ${ETF_NAME[b]}`:b; }
@@ -631,7 +644,11 @@ function queueAdd(){
   const g=id=>document.getElementById(id).value.trim();
   const t=g("f_ticker").toUpperCase();
   if(!t){ document.getElementById("f_ticker").focus(); return; }
-  pending.push([t, g("f_exch"), g("f_bench")||"SPY", g("f_major")||"国防航空航天", g("f_sub")]);
+  const bench=g("f_bench").toUpperCase();
+  if(!bench){ document.getElementById("f_bench").focus(); return; }
+  const major=g("f_major") || BENCH2MAJOR[bench] || "";
+  if(!major){ document.getElementById("f_major").focus(); return; }
+  pending.push([t, g("f_exch"), bench, major, g("f_sub")]);
   localStorage.setItem("pendingAdds",JSON.stringify(pending));
   ["f_ticker","f_exch","f_bench","f_major","f_sub"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("dupNote").textContent="";
