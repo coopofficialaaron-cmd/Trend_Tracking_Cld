@@ -264,10 +264,28 @@ def meta(c, name):
 def main():
     use_seed = "--seed" in sys.argv
     cfg = read_config()
+
+    # ---- config 前置校验：在任何抓取之前失败，代价最小 ----
+    # 缺对标曾被静默兜底成 SPY，会让该股票的 regime filter 名不副实且难以察觉。
+    # 这属于配置错误（自己填漏了），不是运行时波动，所以直接退出而不是继续。
+    no_bench = [c["ticker"] for c in cfg if not c["benchmark"]]
+    seen, dup = set(), []
     for c in cfg:
-        if not c["benchmark"]:
-            c["benchmark"] = "SPY"
-            sys.stderr.write(f"[warn] {c['ticker']}: no benchmark in config.csv, defaulting to SPY\n")
+        if c["ticker"] in seen:
+            dup.append(c["ticker"])
+        seen.add(c["ticker"])
+
+    if no_bench or dup:
+        if no_bench:
+            sys.stderr.write(
+                f"[FATAL] config.csv 有 {len(no_bench)} 只股票未填 benchmark: "
+                f"{', '.join(no_bench)}\n")
+        if dup:
+            sys.stderr.write(
+                f"[FATAL] config.csv 有重复 ticker: {', '.join(sorted(set(dup)))}\n")
+        sys.stderr.write("[FATAL] 已中止，未抓取任何行情。请修正 config.csv 后重跑。\n")
+        sys.exit(1)
+
     benches = sorted({c["benchmark"] for c in cfg if c["benchmark"]})
 
     if use_seed:
@@ -286,11 +304,33 @@ def main():
             return [[x[0], x[4]] for x in get_ohlcv(b)]
 
     market, bench_ok = {}, {}
+    bench_users = {}
+    for c in cfg:
+        bench_users[c["benchmark"]] = bench_users.get(c["benchmark"], 0) + 1
+
+    bench_dead, bench_stale = [], []
     for b in benches:
         raw = get_bench(b)
         series = compute_benchmark(raw) if raw else []
         bench_ok[b] = {r["date"]: r["ok"] for r in series if r["ok"] is not None}
         market[b] = series[-1] if series else None
+        # 防护 1：对标完全无行情（代码拼错 / 已退市 / 抓取失败）
+        # bench_ok 为空 -> mktok 恒为 None -> indicators 判 Bad Market，且不会报错
+        if not bench_ok[b]:
+            bench_dead.append(b)
+            sys.stderr.write(
+                f"[ERROR] benchmark {b}: 无行情数据，挂靠其下的 {bench_users.get(b, 0)} "
+                f"只股票将全部静默判为 Bad Market，永不出信号。请检查代码是否有效。\n")
+
+    # 防护 2：对标行情滞后。bench_ok 按日期查表，对标缺的那几天同样落进 Bad Market
+    latest = max((market[b]["date"] for b in benches if market[b]), default=None)
+    for b in benches:
+        m = market[b]
+        if m and latest and m["date"] < latest:
+            bench_stale.append(b)
+            sys.stderr.write(
+                f"[warn] benchmark {b}: 数据滞后（最新 {m['date']}，全池 {latest}），"
+                f"其下 {bench_users.get(b, 0)} 只股票在滞后日期上会判为 Bad Market\n")
 
     stocks = []
     for c in cfg:
@@ -373,6 +413,14 @@ def main():
     enter = sum(1 for s in stocks if s.get("summary", {}).get("signal") == "Enter")
     print(f"wrote {INDEX_OUT} + {len(keep)} stock files: "
           f"{have}/{len(stocks)} with data, {enter} ENTER, source={src}")
+
+    # 对标健康度汇总：放在最后一行，Actions 日志里最显眼
+    print(f"benchmarks: {len(benches)} total, "
+          f"{len(benches) - len(bench_dead)} ok, {len(bench_dead)} dead, {len(bench_stale)} stale")
+    if bench_dead:
+        affected = sum(bench_users.get(b, 0) for b in bench_dead)
+        print(f"!! DEAD BENCHMARKS: {', '.join(bench_dead)} "
+              f"-> {affected} 只股票信号失效（全部 Bad Market）")
 
 
 if __name__ == "__main__":
