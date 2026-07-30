@@ -59,7 +59,7 @@ LAES,NASDAQ,SOXX,半导体,半导体
 LITE,NASDAQ,XLK,科技硬件,光通信
 LOGI,NASDAQ,XLK,科技硬件,硬件
 LSCC,NASDAQ,SOXX,半导体,半导体
-LUMN,NYSE,XLK,科技硬件,电信
+LUMN,NYSE,XLC,通讯服务,电信
 LWLG,NASDAQ,XLK,科技硬件,电光聚合物材料
 MARA,NASDAQ,DTCR,数据中心,数据中心
 MCHP,NASDAQ,SOXX,半导体,半导体
@@ -119,8 +119,8 @@ AIR,NYSE,ITA,航空国防,航空航天国防
 ASTS,NASDAQ,ITA,航空国防,通讯设备
 DGII,NASDAQ,XLK,科技硬件,通讯设备
 ERIC,NASDAQ,XLK,科技硬件,通讯设备
-GSAT,NASDAQ,XLK,科技硬件,电信服务
-IRDM,NASDAQ,XLK,科技硬件,电信服务
+GSAT,NASDAQ,ITA,航空国防,卫星通信
+IRDM,NASDAQ,ITA,航空国防,卫星通信
 LHX,NYSE,ITA,航空国防,航空航天国防
 LUNR,NASDAQ,ITA,航空国防,航空航天国防
 MDA,NYSE,ITA,航空国防,航空航天国防
@@ -319,7 +319,7 @@ LYB,NYSE,XLB,基础材料,化工
 MEOH,NASDAQ,XLB,基础材料,甲醇
 MLI,NYSE,XLI,工业,工业制造
 MOS,NYSE,MOO,基础材料,化肥
-MSGS,NYSE,XLY,消费,可选消费
+MSGS,NYSE,XLC,通讯服务,体育娱乐
 MTRN,NYSE,XLI,工业,工业金属
 MTZ,NYSE,XLI,工业,建筑
 NTR,NYSE,MOO,基础材料,化肥
@@ -374,7 +374,7 @@ BE,NYSE,GRID,公用电力,电力
 BEPC,NYSE,XLU,公用电力,电力
 CL,NYSE,XLP,消费,消费必需品
 D,NYSE,XLU,公用电力,电力
-GOOGL,NASDAQ,QQQ,科技硬件,IT
+GOOGL,NASDAQ,XLC,通讯服务,互联网媒体
 MSFT,NASDAQ,IGV,软件,软件
 NEE,NYSE,XLU,公用电力,电力
 NRG,NYSE,XLU,公用电力,电力
@@ -382,7 +382,7 @@ NVDA,NASDAQ,SOXX,半导体,半导体
 PLTR,NASDAQ,IGV,软件,软件
 RCL,NYSE,XLY,消费,旅游
 SNDK,NASDAQ,SOXX,半导体,存储硬件
-SPOT,NYSE,QQQ,科技硬件,IT
+SPOT,NYSE,XLC,通讯服务,流媒体娱乐
 UBER,NYSE,IYT,工业,铁路/联运
 VST,NYSE,XLU,公用电力,电力
 XEL,NASDAQ,XLU,公用电力,电力
@@ -438,3 +438,7 @@ AVTR,NYSE,XLV,医疗健康,生命科学工具
 GEHC,NASDAQ,IHI,医疗健康,医疗器械
 AR,NYSE,XLE,油气,油气勘探生产
 EQIX,NASDAQ,DTCR,数据中心,数据中心
+SONY,NYSE,XLY,消费,消费电子
+NYT,NYSE,XLC,通讯服务,媒体出版
+DBX,NASDAQ,IGV,软件,软件
+MGY,NYSE,XLE,油气,油气勘探开发
