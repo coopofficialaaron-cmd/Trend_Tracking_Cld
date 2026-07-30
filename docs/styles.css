@@ -104,8 +104,9 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .add-btn:hover{background:var(--accent);color:#fff}
 .risk-ctl{display:inline-flex;align-items:center;gap:7px;color:var(--muted);
   font-size:13px;font-weight:600}
-.risk-ctl.acct{margin-left:auto}
-.risk-ctl.pct{margin-left:18px}
+.risk-group{display:inline-flex;align-items:center;margin-left:16px;padding-left:16px;
+  border-left:1px solid var(--line)}
+.risk-ctl.pct{margin-left:16px}
 .risk-ctl input{background:var(--panel);border:1px solid var(--line);color:var(--ink);
   font:inherit;font-family:var(--mono);font-size:14px;padding:6px 9px;border-radius:8px;text-align:right}
 .risk-ctl.acct input{width:96px}
