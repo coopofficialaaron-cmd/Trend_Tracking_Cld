@@ -192,8 +192,8 @@ const ETF_NAME={SPY:"标普500",QQQ:"纳斯达克100",XLK:"科技",SOXX:"半导�
   XLU:"公用事业",TAN:"太阳能",GRID:"智能电网",NLR:"核能",XME:"金属矿业",GDX:"金矿",
   SIL:"银矿",COPX:"铜矿",URA:"铀",XLF:"金融",MOO:"农业",XLB:"材料",XLI:"工业",
   IYT:"运输",XLV:"医疗",XLRE:"房地产",XBI:"生物科技",IHI:"医疗器械",XLY:"可选消费",
-  XLP:"消费必需品"};
-const ETF_SIZE=["SPY","QQQ","XLK","XLV","XLF","XLE","XLI","XLY","XLP","XLB","XLU","XLRE","SOXX","IGV",
+  XLP:"消费必需品",XLC:"通讯服务"};
+const ETF_SIZE=["SPY","QQQ","XLK","XLV","XLF","XLE","XLI","XLY","XLC","XLP","XLB","XLU","XLRE","SOXX","IGV",
   "XBI","GDX","ITA","IHI","XME","URA","TAN","MOO","COPX","SIL","AMLP","IYT","SEA","NLR","GRID","DTCR","QTUM"];
 // 大类由对标 ETF 唯一决定：新增股票时自动带出，避免出现孤立大类
 const BENCH2MAJOR={
@@ -204,7 +204,7 @@ const BENCH2MAJOR={
   XLU:"公用电力", TAN:"公用电力", NLR:"公用电力", GRID:"公用电力",
   XLI:"工业", IYT:"工业", XLB:"基础材料", MOO:"基础材料",
   GDX:"矿业", SIL:"矿业", COPX:"矿业", URA:"矿业", XME:"矿业",
-  ITA:"航空国防", XLP:"消费", XLY:"消费",
+  ITA:"航空国防", XLP:"消费", XLY:"消费", XLC:"通讯服务",
   XLF:"金融地产", XLRE:"金融地产"
 };
 const ETF_PIN={SPY:0,QQQ:1};
