@@ -76,6 +76,7 @@
 </header>
 
 <nav class="tabs">
+  <a class="navlink" href="index.html" style="display:inline-flex;align-items:center;gap:4px;text-decoration:none;font:inherit;font-weight:600;font-size:14px;color:var(--accent);padding:7px 13px;border-radius:8px;border:1px solid var(--line)">← 信号</a>
   <div class="controls">
     <input id="search" type="search" placeholder="搜索代码…" autocomplete="off">
   </div>
@@ -116,6 +117,7 @@
     <div class="fld">初始止损（自动=吊灯候选）<input id="f_stop" inputmode="decimal" placeholder="选好代码与日期后自动填"></div>
     <div class="fld">买入股数<input id="f_shares" inputmode="decimal" placeholder="直接填股数"></div>
   </div>
+  <p id="barNote" style="margin:-2px 0 10px;font-size:11.5px;color:var(--faint);font-family:var(--mono)"></p>
   <div class="fld">可忍受亏损 $（留空且未填股数时按每笔风险%）<input id="f_loss" inputmode="numeric" placeholder=""></div>
   <div class="addbox" id="sizePreview">填好代码、日期、价格后，这里显示止损触发的亏损。</div>
   <div class="modal-actions">
