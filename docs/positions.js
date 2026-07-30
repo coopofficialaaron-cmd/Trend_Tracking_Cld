@@ -64,8 +64,18 @@ function renderMeta(){
 function initControls(){
   const acct=document.getElementById("acctInput"), rp=document.getElementById("rpctInput");
   acct.value=ACCOUNT.toLocaleString("en-US"); rp.value=RISKPCT;
-  acct.addEventListener("input",()=>{ const v=Number(acct.value.replace(/[^0-9.]/g,"")); if(v>0){ACCOUNT=v;localStorage.setItem("acctUsd",v);render();} });
-  rp.addEventListener("input",()=>{ const v=Number(rp.value); if(v>0){RISKPCT=v;localStorage.setItem("riskPct",v);render();} });
+  const syncRiskLabel=()=>{ const el=document.getElementById("riskReadout");
+    if(el) el.innerHTML=`单笔可亏 <b>$${Math.round(perTradeRisk()).toLocaleString("en-US")}</b>`; };
+  syncRiskLabel();
+  (function(){ const grp=document.getElementById("riskGroup"), tog=document.getElementById("riskToggle");
+    if(!grp||!tog) return;
+    tog.onclick=e=>{ e.stopPropagation(); const was=grp.classList.contains("collapsed");
+      grp.classList.toggle("collapsed"); if(was) acct.focus(); };
+    document.addEventListener("click",e=>{ if(!grp.contains(e.target)) grp.classList.add("collapsed"); });
+    document.addEventListener("keydown",e=>{ if(e.key==="Escape") grp.classList.add("collapsed"); });
+  })();
+  acct.addEventListener("input",()=>{ const v=Number(acct.value.replace(/[^0-9.]/g,"")); if(v>0){ACCOUNT=v;localStorage.setItem("acctUsd",v);syncRiskLabel();render();} });
+  rp.addEventListener("input",()=>{ const v=Number(rp.value); if(v>0){RISKPCT=v;localStorage.setItem("riskPct",v);syncRiskLabel();render();} });
   document.getElementById("search").addEventListener("input",e=>{ q=e.target.value.trim().toUpperCase(); render(); });
   document.getElementById("addBtn").addEventListener("click",openAdd);
   document.getElementById("addClose").addEventListener("click",closeAdd);
@@ -181,7 +191,7 @@ function render(){
       <td>${fmt.n2(c.avgCost)}</td>
       <td>${fmt.n1(c.shares)}</td>
       <td>${fmt.n2(c.close)}</td>
-      <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日 +"+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 需去券商改单"):(c.stopFresh?"新建仓，需首次挂止损":"与上一交易日相同，无需改单")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':(c.stopFresh?' <span style="font-size:10px">新</span>':"")}</td>
+      <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日 +"+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 需去券商改单"):(c.stopFresh?"新建仓，需首次挂止损":"与上一交易日相同，无需改单")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
       <td>${sig}</td>
       <td>${signed(c.pnl,fmt.money)}</td>
       <td>${signed(c.pnlPct,fmt.signedPct)}</td>
@@ -219,10 +229,10 @@ function renderTotals(open){
   const nChg=open.filter(({c})=>c.stopChanged||c.stopFresh).length;
   el.innerHTML=`
     <span class="stat big">持仓 <b>${open.length}</b> 笔</span>
-    <span class="stat" title="止损较上一交易日抬高、或新建仓需首次挂单的笔数">今日需改单 <b style="color:${nChg?"var(--accent)":"var(--faint)"}">${nChg}</b> 笔</span>
     <span class="stat">市值 <b>${fmt.money(mkt)}</b></span>
     <span class="stat">浮盈 ${signed(pnl,fmt.money)} <span style="color:var(--faint)">(${cost>0?fmt.signedPct(pnl/cost):""})</span></span>
     <span class="stat" title="假设此刻所有持仓都被各自的止损打掉，相对成本的总盈亏">若全部止损 ${signed(ifstop,fmt.money)} <span style="color:var(--faint)">(${fmt.signedPct(ifstopPct)})</span></span>
+    <span class="stat sep" title="止损较上一交易日抬高、或新建仓需首次挂单的笔数">今日需改单 <b style="color:${nChg?"var(--accent)":"var(--faint)"}">${nChg}</b> 笔</span>
     <span class="expo"><span style="color:var(--faint);font-size:11.5px">板块敞口</span>${chips}</span>`;
 }
 
