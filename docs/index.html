@@ -29,10 +29,14 @@
 <nav class="tabs">
   <button class="tab active" data-view="signals">信号<span class="badge" id="sigCount">0</span></button>
   <button class="tab" data-view="overview">总览</button>
-  <span class="risk-group">
-    <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
-    <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
-    <span class="risk-readout" id="riskReadout"></span>
+  <span class="risk-group collapsed" id="riskGroup">
+    <button class="risk-toggle" id="riskToggle" title="仓位设置：账户金额与每笔风险%">
+      <span class="risk-readout" id="riskReadout"></span><span class="caret">▾</span>
+    </button>
+    <span class="risk-fields">
+      <span class="risk-ctl acct">账户 $<input id="acctInput" type="text" inputmode="numeric" autocomplete="off"></span>
+      <span class="risk-ctl pct">每笔风险<input id="rpctInput" type="text" inputmode="decimal" autocomplete="off">%</span>
+    </span>
   </span>
   <div class="controls">
     <span class="hist-pill" id="histPill" title="按日期查看历史信号快照">
