@@ -109,19 +109,26 @@ function liveClose(tk){ return LIVE[tk]?.close ?? (SUM[tk]?.close); }
 function liveStop(tk){ return LIVE[tk]?.stop ?? (SUM[tk]?.stop); }
 /* 入场锚定的移动止损：从入场日起，对每日吊灯候选 cand 取棘轮最大，seed=初始止损。
    不继承入场前的旧高点（那正是"一入场就被旧止损打掉"的 bug 根源）。 */
-function holdingStop(h){
+function holdingStopInfo(h){
   const f=SUM[h.ticker]?.file; const rows=ROWS[f]||[];
-  if(!rows.length) return h.initialStop??null;
+  if(!rows.length) return {stop:h.initialStop??null,prev:null,changed:false,fresh:true,delta:null};
   let ei=rows.findIndex(r=>r.date>=h.entryDate); if(ei<0) ei=0;
   let tr=(h.initialStop!=null)?h.initialStop:(rows[ei].cand??rows[ei].final??null);
-  for(let k=ei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(tr==null||cd>tr)) tr=cd; }
-  return tr;
+  const ser=[];
+  for(let k=ei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(tr==null||cd>tr)) tr=cd;
+    if(tr!=null&&rows[k].close!=null) ser.push(tr); }
+  if(!ser.length) return {stop:tr,prev:null,changed:false,fresh:true,delta:null};
+  const stop=ser[ser.length-1], prev=ser.length>1?ser[ser.length-2]:null;
+  return {stop,prev,changed:prev!=null&&(stop-prev)>1e-6,fresh:ser.length<=1,
+          delta:prev!=null?stop-prev:null};
 }
+function holdingStop(h){ return holdingStopInfo(h).stop; }
 
 /* ===== 单笔派生计算 ===== */
 function compute(h){
   const s=SUM[h.ticker]; if(!s) return null;
-  const close=num(liveClose(h.ticker)), stop=num(holdingStop(h)), r0=num(h.r0);
+  const si=holdingStopInfo(h);
+  const close=num(liveClose(h.ticker)), stop=num(si.stop), r0=num(h.r0);
   const adds=h.adds||[];
   const shares=h.shares+adds.reduce((a,x)=>a+x.shares,0);
   const costTot=h.entryPrice*h.shares+adds.reduce((a,x)=>a+x.price*x.shares,0);
@@ -147,7 +154,8 @@ function compute(h){
   else if(!g2) addWhy=`距上次加仓仅 ${milestone==null?"—":milestone.toFixed(2)}R（需 ≥${MILESTONE}R）`;
   else if(!g4) addWhy="按风险算出的加仓股数不足 1 股";
   return {s,close,stop,shares,avgCost,r0,lastAdd,riskNow,milestone,addShares,exitNow,
-    canAdd,addWhy,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,addsCount:adds.length};
+    canAdd,addWhy,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,addsCount:adds.length,
+    stopPrev:si.prev,stopChanged:si.changed,stopFresh:si.fresh,stopDelta:si.delta};
 }
 
 /* ===== 表格 ===== */
@@ -173,7 +181,7 @@ function render(){
       <td>${fmt.n2(c.avgCost)}</td>
       <td>${fmt.n1(c.shares)}</td>
       <td>${fmt.n2(c.close)}</td>
-      <td class="stopcell">${fmt.n2(c.stop)}</td>
+      <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日 +"+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 需去券商改单"):(c.stopFresh?"新建仓，需首次挂止损":"与上一交易日相同，无需改单")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':(c.stopFresh?' <span style="font-size:10px">新</span>':"")}</td>
       <td>${sig}</td>
       <td>${signed(c.pnl,fmt.money)}</td>
       <td>${signed(c.pnlPct,fmt.signedPct)}</td>
@@ -208,8 +216,10 @@ function renderTotals(open){
   const ifstopPct=ACCOUNT>0?ifstop/ACCOUNT:0;
   const chips=Object.entries(bySec).sort((a,b)=>b[1]-a[1]).map(([m,v])=>{
     const p=mkt>0?v/mkt:0; return `<span class="chip ${p>0.4?"hot":""}">${m} <b>${(p*100).toFixed(0)}%</b></span>`; }).join("");
+  const nChg=open.filter(({c})=>c.stopChanged||c.stopFresh).length;
   el.innerHTML=`
     <span class="stat big">持仓 <b>${open.length}</b> 笔</span>
+    <span class="stat" title="止损较上一交易日抬高、或新建仓需首次挂单的笔数">今日需改单 <b style="color:${nChg?"var(--accent)":"var(--faint)"}">${nChg}</b> 笔</span>
     <span class="stat">市值 <b>${fmt.money(mkt)}</b></span>
     <span class="stat">浮盈 ${signed(pnl,fmt.money)} <span style="color:var(--faint)">(${cost>0?fmt.signedPct(pnl/cost):""})</span></span>
     <span class="stat" title="假设此刻所有持仓都被各自的止损打掉，相对成本的总盈亏">若全部止损 ${signed(ifstop,fmt.money)} <span style="color:var(--faint)">(${fmt.signedPct(ifstopPct)})</span></span>
@@ -411,7 +421,7 @@ async function openDrawer(i){ drawerIdx=i; const h=POS[i]; const c=compute(h); i
       <p class="psub">${c.s.name||""} · ${c.s.major||""} / ${c.s.sub||""}</p>
       ${stopChartSVG(rows,h,c)}
       <dl class="kv">
-        <dt>今日止损（去券商改这个）</dt><dd class="stopcell" style="font-size:15px">${fmt.n2(c.stop)}</dd>
+        <dt>今日止损（去券商改这个）</dt><dd class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" style="font-size:15px">${fmt.n2(c.stop)}${c.stopChanged?`<span style="font-size:11px;color:var(--enter)"> ↑ +${fmt.n2(c.stopDelta)}</span>`:(c.stopFresh?'<span style="font-size:11px;color:var(--muted)"> 首次</span>':'<span style="font-size:11px;color:var(--faint)"> 未变</span>')}</dd>
         <dt>现价 / 距止损</dt><dd>${fmt.n2(c.close)} / ${c.distPct==null?"":fmt.pct(c.distPct)}</dd>
         <dt>均价成本 / 股数</dt><dd>${fmt.n2(c.avgCost)} / ${fmt.n1(c.shares)}</dd>
         <dt>初始止损 / R0</dt><dd>${fmt.n2(h.initialStop)} / ${fmt.n2(h.r0)}</dd>
