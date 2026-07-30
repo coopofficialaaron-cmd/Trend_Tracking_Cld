@@ -240,10 +240,13 @@ function buildFilters(){
 
 function hasData(s){ return s.summary && s.summary.date; }
 function renderMajorTiles(){
-  const pool=DATA.stocks.filter(hasData);
+  // Counts follow the current view: overview = all stocks, signals = ENTER only.
+  const pool=DATA.stocks.filter(s=>hasData(s) && (view!=="signals" || s.summary.signal==="Enter"));
   const counts={};
   pool.forEach(s=>{ if(s.major) counts[s.major]=(counts[s.major]||0)+1; });
-  const majors=Object.keys(counts).sort((a,b)=>counts[b]-counts[a] || a.localeCompare(b));
+  let majors=Object.keys(counts).sort((a,b)=>counts[b]-counts[a] || a.localeCompare(b));
+  // keep the active filter visible even if it has no signals right now
+  if(fMajor && !majors.includes(fMajor)) majors.push(fMajor);
   const el=document.getElementById("majorTiles"); el.innerHTML="";
   const mk=(val,label)=>{
     const b=document.createElement("button");
@@ -253,7 +256,7 @@ function renderMajorTiles(){
     el.appendChild(b);
   };
   mk("",`全部 <span class="tcount">${pool.length}</span>`);
-  majors.forEach(m=>mk(m,`${m} <span class="tcount">${counts[m]}</span>`));
+  majors.forEach(m=>mk(m,`${m} <span class="tcount">${counts[m]||0}</span>`));
 }
 
 function refreshSubOptions(){
@@ -542,7 +545,7 @@ function histTable(st){
 /* ---------- wiring ---------- */
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active"); view=b.dataset.view; render();
+  b.classList.add("active"); view=b.dataset.view; renderMajorTiles(); refreshSubOptions(); render();
 });
 document.getElementById("search").addEventListener("input",e=>{q=e.target.value.trim();render();});
 document.getElementById("subFilter").addEventListener("change",e=>{fSub=e.target.value;render();});
@@ -564,8 +567,23 @@ function renderRiskReadout(){
 ["acctInput","rpctInput"].forEach(id=>{
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener("change",applySizing);
-  el.addEventListener("keydown",e=>{if(e.key==="Enter"){applySizing();el.blur();}});
+  el.addEventListener("keydown",e=>{if(e.key==="Enter"){applySizing();el.blur();
+    document.getElementById("riskGroup").classList.add("collapsed");}});
 });
+
+// collapsible position-sizing panel (account size is rarely changed)
+(function(){
+  const grp=document.getElementById("riskGroup"), tog=document.getElementById("riskToggle");
+  if(!grp||!tog) return;
+  tog.onclick=(e)=>{
+    e.stopPropagation();
+    const wasCollapsed=grp.classList.contains("collapsed");
+    grp.classList.toggle("collapsed");
+    if(wasCollapsed) document.getElementById("acctInput").focus();
+  };
+  document.addEventListener("click",e=>{ if(!grp.contains(e.target)) grp.classList.add("collapsed"); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") grp.classList.add("collapsed"); });
+})();
 
 /* ---------- in-app add stock ---------- */
 const CFG_COLS=["ticker","exchange","benchmark","major","sub"];
