@@ -76,6 +76,7 @@ function initControls(){
   document.getElementById("f_ticker").addEventListener("change",onTickerPick);
   document.getElementById("f_date").addEventListener("input",autofillStop);
   document.getElementById("f_stop").addEventListener("input",e=>{e.target.dataset.touched="1";});
+  document.getElementById("f_date").addEventListener("change",e=>{e.target.dataset.touched="1";});
   document.getElementById("drawerClose").addEventListener("click",closeDrawer);
   document.getElementById("scrim").addEventListener("click",closeDrawer);
   document.getElementById("exportBtn").addEventListener("click",exportJSON);
@@ -216,16 +217,26 @@ function renderTotals(open){
 }
 
 /* ===== 添加持仓 ===== */
+function latestBarDate(){ let m=""; for(const t in SUM){ const d=SUM[t].date; if(d&&d>m) m=d; } return m; }
 function openAdd(){ document.getElementById("addScrim").hidden=false; document.getElementById("addModal").hidden=false;
-  document.getElementById("f_date").value=DATA.generated_at?DATA.generated_at.slice(0,10):"";
+  document.getElementById("f_date").value=latestBarDate();   // 用最新K线日期，而非 generated_at（引擎可能在收盘前运行）
   ["f_ticker","f_price","f_stop","f_loss","f_shares"].forEach(id=>{const e=document.getElementById(id);e.value="";delete e.dataset.touched;});
   document.getElementById("f_loss").placeholder=`留空 → 按 ${RISKPCT}% (≈${fmt.money(perTradeRisk())})`;
+  const bn=document.getElementById("barNote"); if(bn) bn.textContent="";
   refreshSizePreview(); }
 function closeAdd(){ document.getElementById("addScrim").hidden=true; document.getElementById("addModal").hidden=true; document.getElementById("addNote").textContent=""; }
 function candOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.cand!=null) best=r; } return best; }
 async function onTickerPick(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase(); const s=SUM[tk]; if(!s)return;
-  if(!document.getElementById("f_price").value) document.getElementById("f_price").value=fmt.n2(s.close);
+  // 价格与日期都取该股票"最新那根K线"，保证同源同一天
+  const rows=await fetchRows(s.file);
+  let last=null; for(let i=rows.length-1;i>=0;i--){ if(rows[i].close!=null){ last=rows[i]; break; } }
+  const bar=last||{date:s.date,close:s.close};
+  const dEl=document.getElementById("f_date"), pEl=document.getElementById("f_price");
+  if(!dEl.dataset.touched) dEl.value=bar.date||"";
+  if(!pEl.value) pEl.value=fmt.n2(bar.close);
+  const bn=document.getElementById("barNote");
+  if(bn) bn.textContent=`最新收盘 ${fmt.n2(bar.close)} @ ${bar.date}（数据最后一个交易日）`;
   await autofillStop();
 }
 async function autofillStop(){
