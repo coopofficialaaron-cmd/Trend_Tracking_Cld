@@ -78,11 +78,9 @@ function structTier(s){
   const high55 = e55!=null && e55>=STRUCT.er55High;
   const badFresh = fr!=null && fr>=STRUCT.freshBad;
   const notes=[];
-  if(badFresh) notes.push(`✗ 新鲜度 ${fmt.n1(fr)} ≥ ${STRUCT.freshBad}（止损只剩约 1 ATR；回测胜率 18%、中位 R −0.98、PF 1.18）`);
-  if(bad22)  notes.push(`✗ ER22 ${fmt.er(e22)} < ${STRUCT.er22Bad}（近期效率低，回测 PF 仅 1.71）`);
-  else if(!good22) notes.push(`⚠ ER22 ${fmt.er(e22)} 中等`);
-  if(high55) notes.push(`✗ ER55 ${fmt.er(e55)} ≥ ${STRUCT.er55High}（已走完一大段，回测 PF 仅 1.77）`);
-  else if(e55!=null) notes.push(`✓ ER55 ${fmt.er(e55)} 偏低（长期横盘 + 近期启动 = 箱体突破）`);
+  notes.push(`ER22 ${fmt.er(e22)} · ${good22?"近期效率高":(bad22?"近期效率低":"中等")}`);
+  if(e55!=null) notes.push(`ER55 ${fmt.er(e55)} · ${high55?"已走完一大段":"长期横盘（箱体突破）"}`);
+  if(fr!=null)  notes.push(`新鲜度 ${fmt.n1(fr)} · ${badFresh?"止损仅约 1 ATR，过窄":(fr<1.5?"紧贴新高":"箱体内，止损尚宽")}`);
   let tier;
   if(badFresh)               tier="weak";     // 独立否决:剔除后最优格 PF 2.76→3.26
   else if(good22 && !high55) tier="strong";   // 最优格 PF 3.26
@@ -96,7 +94,7 @@ function structCell(s){
   const cfg={strong:["强","var(--enter)","var(--enter-bg)"],
              mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],
              weak:["弱","#fff","var(--bad)"]}[t.tier];
-  const tip=`趋势结构 ${cfg[0]}（按 ER22×ER55 回测分格）&#10;${t.notes.join("&#10;")}`;
+  const tip=`趋势结构 ${cfg[0]}&#10;${t.notes.join("&#10;")}`;
   return `<span class="stag" title="${tip}" style="color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
 }
 // 排序值:先分档,同档内按 ER22 —— 一次点击 = 「ER22 降序 + ER55 惩罚」的组合排序
