@@ -13,6 +13,30 @@ function hotReasons(s){
   return r;
 }
 
+// 突破新鲜度 = (HC55 − HC22) / ATR14  ——「这是真突破,还是低点反弹?」
+// 0  = 22 日高点已等于 55 日高点 → 真·55 日新高,头顶没有套牢盘
+// 2+ = 22 日高点比 55 日高点低 2 个 ATR 以上 → 只是反弹到中途,上方还有前高压制
+// 从 summary 反推(避免改引擎/重建数据):
+//   summary.stop 是吊灯"候选"值 → HC55 = stop + mult×ATR14
+//   minentry = HC22 + buf×ATR14 → HC22 = minentry − buf×ATR14
+const FRESH_WARN = 2.0;
+function freshFromSummary(s){
+  if(!s || !s.atr14) return null;
+  if(s.stop==null || s.mult==null || s.minentry==null || s.buf==null) return null;
+  const hc55 = s.stop + s.mult*s.atr14;
+  const hc22 = s.minentry - s.buf*s.atr14;
+  return (hc55 - hc22) / s.atr14;
+}
+function freshFromRow(r){
+  if(!r || !r.atr14 || r.hc55==null || r.hc22==null) return null;
+  return (r.hc55 - r.hc22) / r.atr14;
+}
+function freshCell(v){
+  if(v==null) return "";
+  return flagged(fmt.n1(v), v>FRESH_WARN,
+    `HC22 比 HC55 低 ${fmt.n1(v)} 个 ATR —— 非 55 日新高，只是反弹；上方仍有前高压制`);
+}
+
 const fmt = {
   n2:(v)=>v==null||v===""?"":Number(v).toFixed(2),
   n1:(v)=>v==null||v===""?"":Number(v).toFixed(1),
@@ -24,26 +48,34 @@ const fmt = {
 
 // overview columns: key, label, align, formatter, accessor(summary)
 const COLS = [
+  // ① 身份(冻结)
   {k:"ticker",  t:"代码", l:true, s:true, f:(s,st)=>`${freshDot(st)}<span class="tk">${st.ticker}</span>`, v:(s,st)=>st.ticker},
   {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
+  // ② 结论:能不能买
   {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+qtag(s)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
+  // ③ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
+  // ④ 买在哪
+  {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
   {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
-  {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
   {k:"entry_pct",t:"入场分位",   f:s=>fmt.pct(s.entry_pct), v:s=>s.entry_pct==null?-1:s.entry_pct},
+  {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
+  // ⑤ 亏多少
   {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
-  {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
   {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
-  {k:"atr14",   t:"ATR14",       f:s=>fmt.n2(s.atr14), v:s=>s.atr14},
-  {k:"atrpct",  t:"ATR%",        f:s=>fmt.pct(s.atrpct), v:s=>s.atrpct},
-  {k:"selfvol", t:"ATR自身波动", f:s=>flagged(fmt.pct(s.selfvol), s.selfvol!=null&&s.selfvol>SELFVOL_HOT, "ATR 短期波动 > "+(SELFVOL_HOT*100)+"%，警惕追高"), v:s=>s.selfvol},
-  {k:"dev",     t:"ATR偏离(nR)", f:s=>flagged(fmt.n1(s.dev), s.dev!=null&&s.dev>DEV_HOT, "偏离 MA20 > "+DEV_HOT+"×ATR，警惕高位接盘"), v:s=>s.dev},
+  // ⑥ 趋势与突破结构
+  {k:"fresh",   t:"突破新鲜度",  f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
+  // ⑦ 波动诊断
+  {k:"atrpct",  t:"ATR%",        f:s=>fmt.pct(s.atrpct), v:s=>s.atrpct},
+  {k:"atr14",   t:"ATR14",       f:s=>fmt.n2(s.atr14), v:s=>s.atr14},
+  {k:"selfvol", t:"ATR自身波动", f:s=>flagged(fmt.pct(s.selfvol), s.selfvol!=null&&s.selfvol>SELFVOL_HOT, "ATR 短期波动 > "+(SELFVOL_HOT*100)+"%，警惕追高"), v:s=>s.selfvol},
+  {k:"dev",     t:"ATR偏离(nR)", f:s=>flagged(fmt.n1(s.dev), s.dev!=null&&s.dev>DEV_HOT, "偏离 MA20 > "+DEV_HOT+"×ATR，警惕高位接盘"), v:s=>s.dev},
   {k:"mult",    t:"ATR倍数",     f:s=>fmt.n1(s.mult), v:s=>s.mult},
   {k:"buf",     t:"EntryBuf",    f:s=>fmt.n2(s.buf), v:s=>s.buf},
 ];
@@ -693,23 +725,33 @@ function wireChart(){
 }
 
 const HCOLS=[
-  ["date","日期","l",v=>v],["close","收盘","",fmt.n2],["tr","TR","",fmt.n2],
-  ["atr14","ATR14","",fmt.n2],["atr50","ATR50","",fmt.n2],["selfvol","自身波动","",fmt.pct],
-  ["ma20","MA20","",fmt.n2],["dev","偏离nR","",fmt.n1],["hc55","HC55","",fmt.n2],
+  // 基础
+  ["date","日期","l",v=>v],["close","收盘","",fmt.n2],
+  // 波动
+  ["tr","TR","",fmt.n2],["atr14","ATR14","",fmt.n2],["atr50","ATR50","",fmt.n2],
+  ["selfvol","自身波动","",fmt.pct],
+  // 趋势位置
+  ["ma20","MA20","",fmt.n2],["dev","偏离nR","",fmt.n1],
+  ["er22","ER22","",fmt.er],["er55","ER55","",fmt.er],
+  // 突破结构(HC22/HC55 相邻,新鲜度紧跟其后)
+  ["hc22","HC22","",fmt.n2],["hc55","HC55","",fmt.n2],
+  ["__fresh","突破新鲜度","",(v,r)=>freshCell(freshFromRow(r))],
+  // 吊灯止损
   ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
-  ["hc22","HC22","",fmt.n2],["mktok","大盘","",v=>v==null?"":(v?"✓":"✕")],
+  // 入场区间
   ["buf","Buf","",fmt.n2],["minentry","最低买入","",fmt.n2],["maxentry","最高买入","",fmt.n2],
-  ["enter","信号","",v=>v||""],["r0","R0","",fmt.n2],
+  // 输出
+  ["mktok","大盘","",v=>v==null?"":(v?"✓":"✕")],["enter","信号","",v=>v||""],
+  ["r0","R0","",fmt.n2],
   // recompute from R0 with the CURRENT sizing (account × per-trade risk%), so this
   // matches the cards above instead of the engine's old fixed-$ risk limit
   ["r0","股数","",v=>{const x=sharesFor(v);return x!=null?fmt.n0(x):"";}],
-  ["er22","ER22","",fmt.er],["er55","ER55","",fmt.er],
 ];
 function histTable(st){
   const rows=st.rows.slice().reverse();
   const head="<tr>"+HCOLS.map(c=>`<th class="${c[2]?"l":""}">${c[1]}</th>`).join("")+"</tr>";
   const body=rows.map(r=>`<tr class="${r.enter==="ENTER"?"enter":""}">`+
-    HCOLS.map(c=>`<td class="${c[2]?"l":""}">${c[3](r[c[0]])}</td>`).join("")+"</tr>").join("");
+    HCOLS.map(c=>`<td class="${c[2]?"l":""}">${c[3](r[c[0]], r)}</td>`).join("")+"</tr>").join("");
   return `<div class="hist-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
