@@ -28,7 +28,7 @@ const COLS = [
   {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
-  {k:"signal",  t:"信号", la:true, f:s=>sigTag(s.signal)+qtag(s)+hotBadge(s), v:s=>s.signal},
+  {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+qtag(s)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
@@ -168,6 +168,52 @@ function lastUSTradingDay(now){
   }
   return iso(d);
 }
+// ---- earnings proximity ----
+// Warn BEFORE earnings (a gap can jump straight past the chandelier stop, so a fresh
+// position has no buffer) and for a couple of days AFTER (ATR14 is a 14-day average,
+// so a big gap is only ~1/14 absorbed on day one — R0 looks too small, which makes
+// the stop too tight and the share count too large).
+const EARN_PRE = 5, EARN_POST = 2;   // trading days
+function tradingDaysBetween(fromISO, toISO){
+  // signed count of trading days from fromISO to toISO (0 if same day)
+  if(!fromISO || !toISO) return null;
+  const sign = toISO >= fromISO ? 1 : -1;
+  let a = new Date(fromISO+"T00:00:00Z"), b = new Date(toISO+"T00:00:00Z");
+  if(sign < 0){ const t=a; a=b; b=t; }
+  let n=0, d=new Date(a);
+  while(iso(d) < iso(b)){
+    d.setUTCDate(d.getUTCDate()+1);
+    const w=d.getUTCDay();
+    if(w!==0 && w!==6 && !usHolidays(d.getUTCFullYear()).has(iso(d))) n++;
+    if(n>60) break;                       // safety
+  }
+  return sign*n;
+}
+function earnFlag(st){
+  const e = st && st.earn;
+  const inHistory = (typeof histDate!=="undefined" && histDate) ||
+                    !document.getElementById("historyBanner")?.hidden;
+  if(!e || !e.d || inHistory) return null;   // no badge while reviewing a past date
+  const gap = tradingDaysBetween(EXPECTED, e.d);   // >0 upcoming, <0 already reported
+  if(gap==null) return null;
+  const slot = e.t==="pre" ? "盘前" : (e.t==="post" ? "盘后" : "");
+  if(gap >= 0 && gap <= EARN_PRE){
+    const when = gap===0 ? "今天" : `${gap} 个交易日后`;
+    return {kind:"pre", days:gap,
+      tip:`财报${when}（${e.d}${slot?" "+slot:""}）：跳空可能直接越过止损，新仓无缓冲 — 不宜开仓/加仓`};
+  }
+  if(gap < 0 && -gap <= EARN_POST){
+    return {kind:"post", days:gap,
+      tip:`财报 ${-gap} 个交易日前已公布（${e.d}）：ATR14 尚未反映跳空，止损偏紧、股数偏大 — 等 1–2 日再考虑`};
+  }
+  return null;
+}
+function earnBadge(st){
+  const f = earnFlag(st);
+  if(!f) return "";
+  return `<span class="earn-badge ${f.kind}" title="${f.tip}">📅</span>`;
+}
+
 function renderFreshness(){
   const el=document.getElementById("freshness"); if(!el) return;
   const withData=DATA.stocks.filter(s=>s.summary&&s.summary.date);
@@ -378,6 +424,7 @@ function renderDetailBody(st){
       <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
+    ${(()=>{const f=earnFlag(st);return f?`<div class="earn-banner">📅 ${f.tip}</div>`:"";})()}
     <div class="hero">
       <div class="hero-left">${gaugeHTML(s)}</div>
       <div class="hero-right"><div class="cards">${cardHTML(keyCards)}</div></div>
