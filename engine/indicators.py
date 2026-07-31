@@ -92,6 +92,15 @@ def compute_stock(ohlcv, bench_ok_by_date, risk=25.0, breakout=0.01):
         dev = (Cl[i] - ma20) / atr14 if (ma20 is not None and atr14) else None
         hc55 = max(Cl[i - 55:i]) if i >= 55 else None
         hc22 = max(Cl[i - 22:i]) if i >= 22 else None
+        # how many trading days ago the 55-day high was set (1 = yesterday).
+        # Distinguishes "brief pause just under a fresh high" from "high set two
+        # months ago that price has been stuck below ever since".
+        hi_age = None
+        if hc55 is not None:
+            win = Cl[i - 55:i]
+            hi = max(win)
+            last = len(win) - 1 - win[::-1].index(hi)   # most recent bar at the high
+            hi_age = 55 - last                          # 1 = yesterday
         mult = None
         if atrpct is not None:
             mult = 3 if atrpct < 0.025 else (3.5 if atrpct < 0.05 else 4)
@@ -126,7 +135,7 @@ def compute_stock(ohlcv, bench_ok_by_date, risk=25.0, breakout=0.01):
         rows.append({
             "date": D[i], "open": O[i], "high": H[i], "low": L[i], "close": Cl[i], "volume": Vol[i],
             "tr": TR[i], "atr14": atr14, "atr50": ATR50[i], "atrpct": atrpct, "selfvol": selfvol,
-            "ma20": ma20, "dev": dev, "hc55": hc55, "hc22": hc22, "mult": mult,
+            "ma20": ma20, "dev": dev, "hc55": hc55, "hc22": hc22, "hi_age": hi_age, "mult": mult,
             "cand": cand, "trail": trail, "final": trail, "mktok": mktok, "buf": buf,
             "minentry": minentry, "maxentry": maxentry, "enter": enter, "r0": r0, "shares": shares,
             "er22": er22, "er55": er55,
@@ -160,6 +169,6 @@ def build_summary(rows):
         "selfvol": r["selfvol"], "dev": r["dev"], "mktok": mktok,
         "stop": cand, "minentry": mine, "maxentry": maxe, "premium": premium,
         "signal": signal, "entry_pct": entry_pct, "er22": r["er22"], "er55": r["er55"],
-        "hc22": r["hc22"], "hc55": r["hc55"],
+        "hc22": r["hc22"], "hc55": r["hc55"], "hi_age": r["hi_age"],
         "r0": r["r0"], "shares": r["shares"], "mult": r["mult"], "buf": r["buf"],
     }
