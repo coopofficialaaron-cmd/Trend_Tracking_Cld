@@ -160,5 +160,6 @@ def build_summary(rows):
         "selfvol": r["selfvol"], "dev": r["dev"], "mktok": mktok,
         "stop": cand, "minentry": mine, "maxentry": maxe, "premium": premium,
         "signal": signal, "entry_pct": entry_pct, "er22": r["er22"], "er55": r["er55"],
+        "hc22": r["hc22"], "hc55": r["hc55"],
         "r0": r["r0"], "shares": r["shares"], "mult": r["mult"], "buf": r["buf"],
     }
