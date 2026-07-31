@@ -39,6 +39,58 @@ function freshCell(v){
     `HC22 比 HC55 低 ${fmt.n1(v)} 个 ATR —— 非 55 日新高，只是反弹；上方仍有前高压制`);
 }
 
+// 回撤%:按价格算的深度,不受 ATR 大小影响(新鲜度用 ATR 归一化,会被高波动摊薄)
+function ddPct(s){
+  if(!s) return null;
+  let hc55=s.hc55, hc22=s.hc22;
+  if(hc55==null || hc22==null){       // 旧数据兜底:用恒等式还原
+    if(!s.atr14 || s.stop==null || s.mult==null || s.minentry==null || s.buf==null) return null;
+    hc55 = s.stop + s.mult*s.atr14; hc22 = s.minentry - s.buf*s.atr14;
+  }
+  if(!hc55) return null;
+  return Math.max(0, (hc55-hc22)/hc55);
+}
+function ddPctRow(r){
+  if(!r || !r.hc55 || r.hc22==null) return null;
+  return Math.max(0, (r.hc55-r.hc22)/r.hc55);
+}
+
+// ---- 结构评级:把"该不该买"的组合判断压成一列 ----
+// ER55 管「55 天里到底有没有净趋势」,是主判据;
+// 回撤% 管「深浅」(按价格,不会被 ATR 骗);距前高天数 管「是短暂停顿还是长期破位」。
+const STRUCT = { erGood:0.20, erBad:0.10, ddBad:0.20, ageBad:35, freshGood:1.0 };
+function structTier(s){
+  if(!s) return null;
+  const er=s.er55, dd=ddPct(s), fr=freshFromSummary(s), age=s.hi_age;
+  const bad=[], warn=[];
+  if(er!=null && er<STRUCT.erBad) bad.push(`ER55 ${fmt.er(er)} < ${STRUCT.erBad}（55 天几乎没有净趋势）`);
+  if(dd!=null && dd>STRUCT.ddBad)  bad.push(`回撤 ${fmt.pct(dd)} > ${STRUCT.ddBad*100}%（深回落，结构是更低高点）`);
+  if(age!=null && age>STRUCT.ageBad) warn.push(`前高在 ${age} 个交易日前（价格已长期压在下方）`);
+  if(er!=null && er>=STRUCT.erBad && er<STRUCT.erGood) warn.push(`ER55 ${fmt.er(er)} 偏低`);
+  if(fr!=null && fr>FRESH_WARN) warn.push(`突破新鲜度 ${fmt.n1(fr)}（非 55 日新高）`);
+  let tier;
+  if(bad.length) tier="weak";
+  else if(!warn.length && er!=null && er>=STRUCT.erGood && fr!=null && fr<=STRUCT.freshGood) tier="strong";
+  else tier="mid";
+  return {tier, bad, warn, er};
+}
+function structCell(s){
+  const t=structTier(s);
+  if(!t || !s || s.signal!=="Enter") return "";
+  const cfg={strong:["强","var(--enter)","var(--enter-bg)"],
+             mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],
+             weak:["弱","#fff","var(--bad)"]}[t.tier];
+  const lines=[...t.bad.map(x=>"✗ "+x), ...t.warn.map(x=>"⚠ "+x)];
+  const tip=`趋势结构 ${cfg[0]}` + (lines.length?`&#10;${lines.join("&#10;")}`:"&#10;✓ 正在创新高，且 55 天确有净趋势");
+  return `<span class="stag" title="${tip}" style="color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
+}
+// 排序值:先按 强/中/弱 分档,同档内按 ER55 —— 一次点击就等于「多列组合排序」
+function structSort(s){
+  const t=structTier(s); if(!t) return null;
+  const rank={strong:2, mid:1, weak:0}[t.tier];
+  return rank*1000 + (t.er!=null ? t.er*100 : 0);
+}
+
 const fmt = {
   n2:(v)=>v==null||v===""?"":Number(v).toFixed(2),
   n1:(v)=>v==null||v===""?"":Number(v).toFixed(1),
@@ -55,11 +107,15 @@ const COLS = [
   {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
-  // ② 结论:能不能买(信号 / 突破是否新鲜 / 大盘)
+  // ② 结论:能不能买(信号 / 趋势结构 / 大盘)
   {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+qtag(s)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
-  {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
+  {k:"struct",  t:"结构", la:true, f:s=>structCell(s), v:s=>structSort(s)},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
-  // ③ 买多少
+  // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
+  {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
+  {k:"ddpct",   t:"回撤%",      la:true, f:s=>{const d=ddPct(s);return d==null?"":flagged(fmt.pct(d), d>STRUCT.ddBad, `自 55 日高点回撤 ${fmt.pct(d)} > ${STRUCT.ddBad*100}%，属深回落`);}, v:s=>ddPct(s)},
+  {k:"hi_age",  t:"距前高",     la:true, f:s=>s.hi_age==null?"":flagged(fmt.n0(s.hi_age), s.hi_age>STRUCT.ageBad, `55 日高点在 ${s.hi_age} 个交易日前`), v:s=>s.hi_age==null?null:-s.hi_age},
+  // ④ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   // ④ 买在哪
   {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
@@ -733,6 +789,8 @@ const HCOLS=[
   // 突破结构(HC22/HC55 相邻,新鲜度紧跟其后)
   ["hc22","HC22","",fmt.n2],["hc55","HC55","",fmt.n2],
   ["__fresh","突破新鲜度","l",(v,r)=>freshCell(freshFromRow(r))],
+  ["__dd","回撤%","l",(v,r)=>{const d=ddPctRow(r);return d==null?"":fmt.pct(d);}],
+  ["hi_age","距前高","l",v=>v==null?"":fmt.n0(v)],
   // 吊灯止损
   ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
   // 入场区间
