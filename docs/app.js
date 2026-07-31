@@ -17,7 +17,10 @@ function hotReasons(s){
 // HC55/HC22 = 前 55/22 天的最高收盘(与原 Excel 模型同一算法,引擎直接算好)
 // 0  = 22 日高点已等于 55 日高点 → 真·55 日新高,头顶没有套牢盘
 // 2+ = 22 日高点比 55 日高点低 2 个 ATR 以上 → 只是反弹到中途,上方还有前高压制
-const FRESH_WARN = 2.0;
+// 回测(831 笔已平仓)分档:<0.5 → PF 2.31 / 0.5~1.5 → 2.11 / 1.5~3.0 → 2.78 / ≥3.0 → 1.18
+// ≥3.0 那档胜率仅 18%、中位 R −0.98(几乎必亏满 1R),且前后半段各自独立成立。
+// 机制:R0/ATR ≈ 倍数+Buf+0.3−新鲜度,新鲜度到 3 时止损只剩约 1 个 ATR,落在日常噪音里。
+const FRESH_WARN = 3.0;
 function freshFromSummary(s){
   if(!s || !s.atr14) return null;
   // 优先用引擎存的原值
@@ -36,7 +39,9 @@ function freshCell(v){
   if(v==null) return "";
   if(v<0) v=0;                       // HC55 ⊇ HC22 的窗口，负值只是浮点误差
   return flagged(fmt.n1(v), v>FRESH_WARN,
-    `HC22 比 HC55 低 ${fmt.n1(v)} 个 ATR —— 非 55 日新高，只是反弹；上方仍有前高压制`);
+    `新鲜度 ${fmt.n1(v)} ≥ 3：回测该档胜率仅 18%、中位 R −0.98、PF 1.18（前后半段均成立）。&#10;`+
+    `原因是机械性的:R0/ATR ≈ 倍数+Buf+0.3−新鲜度，此时止损只剩约 1 个 ATR，落在日常噪音里。&#10;`+
+    `注意 1.5~3.0 那档反而是最好的(PF 2.78)——高新鲜度本身不坏，坏的是止损被压得太窄。`);
 }
 
 // 回撤%:按价格算的深度,不受 ATR 大小影响(新鲜度用 ATR 归一化,会被高波动摊薄)
@@ -55,24 +60,35 @@ function ddPctRow(r){
   return Math.max(0, (r.hc55-r.hc22)/r.hc55);
 }
 
-// ---- 结构评级:把"该不该买"的组合判断压成一列 ----
-// ER55 管「55 天里到底有没有净趋势」,是主判据;
-// 回撤% 管「深浅」(按价格,不会被 ATR 骗);距前高天数 管「是短暂停顿还是长期破位」。
-const STRUCT = { erGood:0.20, erBad:0.10, ddBad:0.20, ageBad:35, freshGood:1.0 };
+// ---- 结构评级:直接照抄回测结论(831 笔已平仓,2025-06 ~ 2026-07)----
+// ER22 单调有效:PF 1.71(<0.15) → 2.24 → 2.48 → 2.55(≥0.35)
+// ER55 反向:PF 2.29(<0.05) / 2.49(0.05~0.10) / 2.28(0.10~0.20) / 1.77(≥0.20)
+// 2×2 交叉:ER22高·ER55低 = PF 2.78(最优);ER22低·ER55高 = 1.84(最差)
+// 机制:ER55 高 = 这 55 天已经走完一大段,你在接后半段;
+//       ER55 低 + ER22 高 = 长期横盘、最近刚启动,也就是箱体突破。
+const STRUCT = { er22Good:0.25, er22Bad:0.15, er55High:0.20, freshBad:3.0 };
+// 回测过但没进评级:回撤%(与新鲜度相关 +0.90,属重复,控制 ER22 后方向还会反转)
+//                  距前高(PF 2.15/1.61/2.30/2.27 非单调,唯一亮点样本仅 31 笔=噪音)
+const INFO = { ddDeep:0.20, ageOld:35 };
 function structTier(s){
   if(!s) return null;
-  const er=s.er55, dd=ddPct(s), fr=freshFromSummary(s), age=s.hi_age;
-  const bad=[], warn=[];
-  if(er!=null && er<STRUCT.erBad) bad.push(`ER55 ${fmt.er(er)} < ${STRUCT.erBad}（55 天几乎没有净趋势）`);
-  if(dd!=null && dd>STRUCT.ddBad)  bad.push(`回撤 ${fmt.pct(dd)} > ${STRUCT.ddBad*100}%（深回落，结构是更低高点）`);
-  if(age!=null && age>STRUCT.ageBad) warn.push(`前高在 ${age} 个交易日前（价格已长期压在下方）`);
-  if(er!=null && er>=STRUCT.erBad && er<STRUCT.erGood) warn.push(`ER55 ${fmt.er(er)} 偏低`);
-  if(fr!=null && fr>FRESH_WARN) warn.push(`突破新鲜度 ${fmt.n1(fr)}（非 55 日新高）`);
+  const e22=s.er22, e55=s.er55, fr=freshFromSummary(s);
+  const good22 = e22!=null && e22>=STRUCT.er22Good;
+  const bad22  = e22!=null && e22<STRUCT.er22Bad;
+  const high55 = e55!=null && e55>=STRUCT.er55High;
+  const badFresh = fr!=null && fr>=STRUCT.freshBad;
+  const notes=[];
+  if(badFresh) notes.push(`✗ 新鲜度 ${fmt.n1(fr)} ≥ ${STRUCT.freshBad}（止损只剩约 1 ATR；回测胜率 18%、中位 R −0.98、PF 1.18）`);
+  if(bad22)  notes.push(`✗ ER22 ${fmt.er(e22)} < ${STRUCT.er22Bad}（近期效率低，回测 PF 仅 1.71）`);
+  else if(!good22) notes.push(`⚠ ER22 ${fmt.er(e22)} 中等`);
+  if(high55) notes.push(`✗ ER55 ${fmt.er(e55)} ≥ ${STRUCT.er55High}（已走完一大段，回测 PF 仅 1.77）`);
+  else if(e55!=null) notes.push(`✓ ER55 ${fmt.er(e55)} 偏低（长期横盘 + 近期启动 = 箱体突破）`);
   let tier;
-  if(bad.length) tier="weak";
-  else if(!warn.length && er!=null && er>=STRUCT.erGood && fr!=null && fr<=STRUCT.freshGood) tier="strong";
-  else tier="mid";
-  return {tier, bad, warn, er};
+  if(badFresh)               tier="weak";     // 独立否决:剔除后最优格 PF 2.76→3.26
+  else if(good22 && !high55) tier="strong";   // 最优格 PF 3.26
+  else if(bad22 && high55)   tier="weak";     // 最差格 PF 1.84
+  else                       tier="mid";
+  return {tier, notes, e22, e55};
 }
 function structCell(s){
   const t=structTier(s);
@@ -80,15 +96,14 @@ function structCell(s){
   const cfg={strong:["强","var(--enter)","var(--enter-bg)"],
              mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],
              weak:["弱","#fff","var(--bad)"]}[t.tier];
-  const lines=[...t.bad.map(x=>"✗ "+x), ...t.warn.map(x=>"⚠ "+x)];
-  const tip=`趋势结构 ${cfg[0]}` + (lines.length?`&#10;${lines.join("&#10;")}`:"&#10;✓ 正在创新高，且 55 天确有净趋势");
+  const tip=`趋势结构 ${cfg[0]}（按 ER22×ER55 回测分格）&#10;${t.notes.join("&#10;")}`;
   return `<span class="stag" title="${tip}" style="color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
 }
-// 排序值:先按 强/中/弱 分档,同档内按 ER55 —— 一次点击就等于「多列组合排序」
+// 排序值:先分档,同档内按 ER22 —— 一次点击 = 「ER22 降序 + ER55 惩罚」的组合排序
 function structSort(s){
   const t=structTier(s); if(!t) return null;
   const rank={strong:2, mid:1, weak:0}[t.tier];
-  return rank*1000 + (t.er!=null ? t.er*100 : 0);
+  return rank*1000 + (t.e22!=null ? t.e22*100 : 0);
 }
 
 const fmt = {
@@ -113,8 +128,8 @@ const COLS = [
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
   {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
-  {k:"ddpct",   t:"回撤%",      la:true, f:s=>{const d=ddPct(s);return d==null?"":flagged(fmt.pct(d), d>STRUCT.ddBad, `自 55 日高点回撤 ${fmt.pct(d)} > ${STRUCT.ddBad*100}%，属深回落`);}, v:s=>ddPct(s)},
-  {k:"hi_age",  t:"距前高",     la:true, f:s=>s.hi_age==null?"":flagged(fmt.n0(s.hi_age), s.hi_age>STRUCT.ageBad, `55 日高点在 ${s.hi_age} 个交易日前`), v:s=>s.hi_age==null?null:-s.hi_age},
+  {k:"ddpct",   t:"回撤%",      la:true, f:s=>{const d=ddPct(s);return d==null?"":flagged(fmt.pct(d), d>INFO.ddDeep, `自 55 日高点回撤 ${fmt.pct(d)}（仅供参考，未经回测验证）`);}, v:s=>ddPct(s)},
+  {k:"hi_age",  t:"距前高",     la:true, f:s=>s.hi_age==null?"":flagged(fmt.n0(s.hi_age), s.hi_age>INFO.ageOld, `55 日高点在 ${s.hi_age} 个交易日前（仅供参考，未经回测验证）`), v:s=>s.hi_age==null?null:-s.hi_age},
   // ④ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   // ④ 买在哪
@@ -172,7 +187,7 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="signals", sort={k:"er55",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
+let DATA=null, view="signals", sort={k:"struct",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
 let ACCOUNT=20000, RISKPCT=1.0;   // 账户总额 / 每笔风险%
 let asOfDate="", ROWS_ALL_LOADED=false, ROWS_LOADING=false;   // 历史回看状态
 
