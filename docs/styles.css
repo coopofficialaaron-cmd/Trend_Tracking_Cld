@@ -350,3 +350,7 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   .controls{width:100%;margin:8px 0 0;flex-wrap:wrap}.controls input{flex:1}
 }
 @media (prefers-reduced-motion:reduce){.drawer{animation:none}}
+
+/* 趋势结构标签(强/中/弱)—— 与入场质量 A/B/C 分开:前者看结构,后者看风险几何 */
+.stag{display:inline-block;padding:2px 8px;border-radius:999px;font-family:var(--mono);
+  font-size:11px;font-weight:600;line-height:1.4;vertical-align:middle;cursor:help}
