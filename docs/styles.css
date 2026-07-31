@@ -252,10 +252,12 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
 .sig.Enter{background:var(--enter-bg);color:var(--enter)}
 .sig.Wait{background:var(--panel-2);color:var(--wait)}
 .sig.TooHigh{background:rgba(180,118,12,.13);color:var(--toohigh)}
-.earn-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:6px;font-size:11px;
-  line-height:1.45;cursor:help;background:rgba(180,118,12,.13);color:var(--toohigh);
+.earn-badge{display:inline-flex;align-items:center;margin-left:6px;padding:2px 5px;border-radius:6px;
+  cursor:help;background:rgba(180,118,12,.13);color:var(--toohigh);
   border:1px solid rgba(180,118,12,.35)}
 .earn-badge.post{background:rgba(180,118,12,.07);border-style:dashed}
+.earn-ico{width:11px;height:11px;display:block}
+.earn-banner .earn-ico{width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:5px}
 .sig.BadMarket{background:rgba(192,57,43,.12);color:var(--bad)}
 .chip{font-size:11px;color:var(--faint)}
 .pos{color:var(--enter)} .neg{color:var(--bad)}
