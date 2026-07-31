@@ -15,7 +15,7 @@ Usage:
   python engine/build.py --seed     # use bundled engine/seed_prices.json (offline)
 """
 import csv, json, os, sys, time, urllib.request
-from datetime import datetime, timezone, time as dtime
+from datetime import datetime, timezone, timedelta, time as dtime
 try:
     from zoneinfo import ZoneInfo
     ET = ZoneInfo("America/New_York")
@@ -229,6 +229,47 @@ def fetch(ticker, retries=2):
     return []
 
 
+def fetch_earnings_window(back_days=8, fwd_days=12):
+    """Map TICKER -> {"d": "YYYY-MM-DD", "t": "pre"|"post"|""} for earnings that fall
+    in a small window around today.
+
+    We only ever warn about earnings a few trading days out (gap risk) or a couple of
+    days past (ATR14 hasn't absorbed the gap yet, so R0/stop are understated), so a
+    short window is enough — that keeps this to ~14 cheap requests instead of one per
+    ticker. Nasdaq's per-date calendar is used because it also covers PAST dates,
+    which the Yahoo "next earnings date" field cannot.
+    """
+    out = {}
+    today = datetime.now(timezone.utc).date()
+    pages = 0
+    for off in range(-back_days, fwd_days + 1):
+        day = today + timedelta(days=off)
+        if day.weekday() >= 5:          # skip weekends
+            continue
+        url = f"https://api.nasdaq.com/api/calendar/earnings?date={day.isoformat()}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA,
+                                                       "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                j = json.loads(r.read().decode("utf-8", "replace"))
+        except Exception as e:
+            sys.stderr.write(f"[earn] {day} failed: {type(e).__name__}\n")
+            continue
+        pages += 1
+        rows = ((j.get("data") or {}) or {}).get("rows") or []
+        for row in rows:
+            sym = (row.get("symbol") or "").strip().upper()
+            if not sym:
+                continue
+            t = (row.get("time") or "")
+            slot = "pre" if "pre" in t else ("post" if ("after" in t or "post" in t) else "")
+            # first occurrence wins; window is small so collisions are rare
+            out.setdefault(sym, {"d": day.isoformat(), "t": slot})
+        time.sleep(0.35)
+    sys.stderr.write(f"[earn] {pages} calendar pages, {len(out)} tickers with earnings in window\n")
+    return out
+
+
 def read_config():
     out, seen = [], set()
     with open(CONFIG, newline="", encoding="utf-8-sig") as f:
@@ -374,6 +415,9 @@ def main():
     gen = datetime.now(timezone.utc).isoformat(timespec="seconds")
     src = "seed" if use_seed else "yahoo/stooq"
 
+    # earnings calendar for the warning window (skipped in offline seed mode)
+    earn = {} if use_seed else fetch_earnings_window()
+
     # 1) small index.json — meta + summary for every stock (NO history rows)
     index = {
         "generated_at": gen, "source": src, "market": rnd(market),
@@ -382,6 +426,7 @@ def main():
             "benchmark": s.get("benchmark", ""), "major": s.get("major", ""),
             "sub": s.get("sub", ""), "risk": s.get("risk"), "breakout": s.get("breakout"),
             "file": safe_name(s["ticker"]) if s.get("rows") else None,
+            "earn": earn.get(s["ticker"].upper()),
             "summary": rnd(s.get("summary", {})),
         } for s in stocks],
     }
