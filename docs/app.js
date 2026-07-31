@@ -699,7 +699,10 @@ const HCOLS=[
   ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
   ["hc22","HC22","",fmt.n2],["mktok","大盘","",v=>v==null?"":(v?"✓":"✕")],
   ["buf","Buf","",fmt.n2],["minentry","最低买入","",fmt.n2],["maxentry","最高买入","",fmt.n2],
-  ["enter","信号","",v=>v||""],["r0","R0","",fmt.n2],["shares","股数","",fmt.n1],
+  ["enter","信号","",v=>v||""],["r0","R0","",fmt.n2],
+  // recompute from R0 with the CURRENT sizing (account × per-trade risk%), so this
+  // matches the cards above instead of the engine's old fixed-$ risk limit
+  ["r0","股数","",v=>{const x=sharesFor(v);return x!=null?fmt.n0(x):"";}],
   ["er22","ER22","",fmt.er],["er55","ER55","",fmt.er],
 ];
 function histTable(st){
