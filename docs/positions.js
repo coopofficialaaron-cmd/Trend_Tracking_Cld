@@ -402,6 +402,11 @@ function freshFromRow(r){
   if(!r || !r.atr14 || r.hc55==null || r.hc22==null) return null;
   return (r.hc55 - r.hc22) / r.atr14;
 }
+// 回撤%:按价格算的深度(新鲜度用 ATR 归一化,高波动时会被摊薄)
+function ddPctRow(r){
+  if(!r || !r.hc55 || r.hc22==null) return null;
+  return Math.max(0, (r.hc55-r.hc22)/r.hc55);
+}
 function freshCell(v){
   if(v==null) return "";
   if(v<0) v=0;                       // HC55 ⊇ HC22 的窗口，负值只是浮点误差
@@ -425,6 +430,8 @@ const HCOLS=[
   // 突破结构(HC22/HC55 相邻,新鲜度紧跟其后)
   ["hc22","HC22","",fmt.n2],["hc55","HC55","",fmt.n2],
   ["__fresh","突破新鲜度","l",(v,r)=>freshCell(freshFromRow(r))],
+  ["__dd","回撤%","l",(v,r)=>{const d=ddPctRow(r);return d==null?"":fmt.pct(d);}],
+  ["hi_age","距前高","l",v=>v==null?"":fmt.n0(v)],
   // 吊灯止损
   ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
   // 入场区间
