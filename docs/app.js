@@ -276,10 +276,9 @@ function nextTradingDay(isoStr){
   }
   return iso(d);
 }
-function dateLabel(isoStr){            // e.g. 周四 30/07  (UK day/month)
+function dateLabel(isoStr){            // e.g. 8月6日 周四 — spelled out so 06/08 can't be misread
   const d=new Date(isoStr+"T00:00:00Z");
-  const dd=String(d.getUTCDate()).padStart(2,"0"), mm=String(d.getUTCMonth()+1).padStart(2,"0");
-  return `${WD[d.getUTCDay()]} ${dd}/${mm}`;
+  return `${d.getUTCMonth()+1}月${d.getUTCDate()}日 ${WD[d.getUTCDay()]}`;
 }
 function tradingDaysBetween(fromISO, toISO){
   // signed count of trading days from fromISO to toISO (0 if same day)
@@ -325,11 +324,6 @@ function earnBadge(st){
   const f = earnFlag(st);
   if(!f) return "";
   return `<span class="earn-badge ${f.kind}" title="${f.tip}">${EARN_ICO}</span>`;
-}
-function earnBadge(st){
-  const f = earnFlag(st);
-  if(!f) return "";
-  return `<span class="earn-badge ${f.kind}" title="${f.tip}">📅</span>`;
 }
 
 function renderFreshness(){
@@ -536,8 +530,8 @@ function renderDetailBody(st){
       : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。":"");
   const asofNote = asOfDate ? (()=>{
     const hs=deriveSummary(rowAsOf(st, asOfDate));
-    return hs ? `<div class="asof-note">📅 历史回看 ${asOfDate}：${sigTag(hs.signal)} · 收盘 ${fmt.n2(hs.close)}（下方卡片与图表仍为完整历史，非仅当天）</div>`
-              : `<div class="asof-note">📅 历史回看 ${asOfDate}：该日期无数据</div>`;
+    return hs ? `<div class="asof-note">${EARN_ICO} 历史回看 ${asOfDate}：${sigTag(hs.signal)} · 收盘 ${fmt.n2(hs.close)}（下方卡片与图表仍为完整历史，非仅当天）</div>`
+              : `<div class="asof-note">${EARN_ICO} 历史回看 ${asOfDate}：该日期无数据</div>`;
   })() : "";
 
   document.getElementById("detail").innerHTML = `
