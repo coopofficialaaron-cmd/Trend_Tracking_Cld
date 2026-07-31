@@ -14,18 +14,19 @@ function hotReasons(s){
 }
 
 // 突破新鲜度 = (HC55 − HC22) / ATR14  ——「这是真突破,还是低点反弹?」
+// HC55/HC22 = 前 55/22 天的最高收盘(与原 Excel 模型同一算法,引擎直接算好)
 // 0  = 22 日高点已等于 55 日高点 → 真·55 日新高,头顶没有套牢盘
 // 2+ = 22 日高点比 55 日高点低 2 个 ATR 以上 → 只是反弹到中途,上方还有前高压制
-// 从 summary 反推(避免改引擎/重建数据):
-//   summary.stop 是吊灯"候选"值 → HC55 = stop + mult×ATR14
-//   minentry = HC22 + buf×ATR14 → HC22 = minentry − buf×ATR14
 const FRESH_WARN = 2.0;
 function freshFromSummary(s){
   if(!s || !s.atr14) return null;
+  // 优先用引擎存的原值
+  if(s.hc55!=null && s.hc22!=null) return (s.hc55 - s.hc22) / s.atr14;
+  // 兜底:旧数据的 summary 里没有 hc22/hc55 时,用恒等式还原
+  //   summary.stop 是吊灯"候选"值 → HC55 = stop + mult×ATR14
+  //   minentry = HC22 + buf×ATR14 → HC22 = minentry − buf×ATR14
   if(s.stop==null || s.mult==null || s.minentry==null || s.buf==null) return null;
-  const hc55 = s.stop + s.mult*s.atr14;
-  const hc22 = s.minentry - s.buf*s.atr14;
-  return (hc55 - hc22) / s.atr14;
+  return ((s.stop + s.mult*s.atr14) - (s.minentry - s.buf*s.atr14)) / s.atr14;
 }
 function freshFromRow(r){
   if(!r || !r.atr14 || r.hc55==null || r.hc22==null) return null;
@@ -33,6 +34,7 @@ function freshFromRow(r){
 }
 function freshCell(v){
   if(v==null) return "";
+  if(v<0) v=0;                       // HC55 ⊇ HC22 的窗口，负值只是浮点误差
   return flagged(fmt.n1(v), v>FRESH_WARN,
     `HC22 比 HC55 低 ${fmt.n1(v)} 个 ATR —— 非 55 日新高，只是反弹；上方仍有前高压制`);
 }
@@ -53,8 +55,9 @@ const COLS = [
   {k:"name",    t:"名称", l:true, s:true, f:(s,st)=>`<span class="nm">${st.name||""}</span>`, v:(s,st)=>st.name||""},
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
-  // ② 结论:能不能买
+  // ② 结论:能不能买(信号 / 突破是否新鲜 / 大盘)
   {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+qtag(s)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
+  {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   // ③ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
@@ -67,17 +70,11 @@ const COLS = [
   // ⑤ 亏多少
   {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
   {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
-  // ⑥ 趋势与突破结构
-  {k:"fresh",   t:"突破新鲜度",  f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
+  // ⑥ 趋势强度
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
-  // ⑦ 波动诊断
-  {k:"atrpct",  t:"ATR%",        f:s=>fmt.pct(s.atrpct), v:s=>s.atrpct},
-  {k:"atr14",   t:"ATR14",       f:s=>fmt.n2(s.atr14), v:s=>s.atr14},
-  {k:"selfvol", t:"ATR自身波动", f:s=>flagged(fmt.pct(s.selfvol), s.selfvol!=null&&s.selfvol>SELFVOL_HOT, "ATR 短期波动 > "+(SELFVOL_HOT*100)+"%，警惕追高"), v:s=>s.selfvol},
-  {k:"dev",     t:"ATR偏离(nR)", f:s=>flagged(fmt.n1(s.dev), s.dev!=null&&s.dev>DEV_HOT, "偏离 MA20 > "+DEV_HOT+"×ATR，警惕高位接盘"), v:s=>s.dev},
-  {k:"mult",    t:"ATR倍数",     f:s=>fmt.n1(s.mult), v:s=>s.mult},
-  {k:"buf",     t:"EntryBuf",    f:s=>fmt.n2(s.buf), v:s=>s.buf},
+  // ATR 一族(ATR14/ATR%/自身波动/偏离/倍数/EntryBuf)只放在详情页;
+  // 过热判定仍在,靠信号列的 ⚠过热 徽标和整行红底提示
 ];
 
 function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title="${tip}">⚠</span>` : txt; }
@@ -735,7 +732,7 @@ const HCOLS=[
   ["er22","ER22","",fmt.er],["er55","ER55","",fmt.er],
   // 突破结构(HC22/HC55 相邻,新鲜度紧跟其后)
   ["hc22","HC22","",fmt.n2],["hc55","HC55","",fmt.n2],
-  ["__fresh","突破新鲜度","",(v,r)=>freshCell(freshFromRow(r))],
+  ["__fresh","突破新鲜度","l",(v,r)=>freshCell(freshFromRow(r))],
   // 吊灯止损
   ["mult","倍数","",fmt.n1],["cand","Chand候选","",fmt.n2],["trail","Chand止损","",fmt.n2],
   // 入场区间
