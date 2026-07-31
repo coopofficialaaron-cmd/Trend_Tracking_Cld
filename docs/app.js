@@ -69,7 +69,9 @@ function ddPctRow(r){
 const STRUCT = { er22Good:0.25, er22Bad:0.15, er55High:0.20, freshBad:3.0 };
 // 回测过但没进评级:回撤%(与新鲜度相关 +0.90,属重复,控制 ER22 后方向还会反转)
 //                  距前高(PF 2.15/1.61/2.30/2.27 非单调,唯一亮点样本仅 31 笔=噪音)
-const INFO = { ddDeep:0.20, ageOld:35 };
+// 表格提示用的阈值。回撤%/距前高 与新鲜度高度重复(+0.90 / +0.74),
+// 已从主表移出、只保留在详情页的历史表里。
+const INFO = { ddDeep:0.20, ageOld:35, atrLow:0.025 };
 function structTier(s){
   if(!s) return null;
   const e22=s.er22, e55=s.er55, fr=freshFromSummary(s);
@@ -126,8 +128,9 @@ const COLS = [
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
   {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
-  {k:"ddpct",   t:"回撤%",      la:true, f:s=>{const d=ddPct(s);return d==null?"":flagged(fmt.pct(d), d>INFO.ddDeep, `自 55 日高点回撤 ${fmt.pct(d)}（仅供参考，未经回测验证）`);}, v:s=>ddPct(s)},
-  {k:"hi_age",  t:"距前高",     la:true, f:s=>s.hi_age==null?"":flagged(fmt.n0(s.hi_age), s.hi_age>INFO.ageOld, `55 日高点在 ${s.hi_age} 个交易日前（仅供参考，未经回测验证）`), v:s=>s.hi_age==null?null:-s.hi_age},
+  // ATR% 与新鲜度/距前高/ER 几乎不相关(+0.09/+0.07/+0.01),是独立维度,必须单独看。
+  // 回测:<2.5% 的 161 笔里涨幅超 60% 的为 0 笔;4~6% 是甜蜜点(平均涨幅 10.9%)。
+  {k:"atrpct",  t:"ATR%",      la:true, f:s=>s.atrpct==null?"":flagged(fmt.pct(s.atrpct), s.atrpct<INFO.atrLow, `ATR% ${fmt.pct(s.atrpct)} 偏低：波动不足，很难走出大幅趋势（回测该档无一笔涨幅超 60%）`), v:s=>s.atrpct},
   // ④ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   // ④ 买在哪
