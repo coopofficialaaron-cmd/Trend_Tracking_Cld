@@ -39,9 +39,8 @@ function freshCell(v){
   if(v==null) return "";
   if(v<0) v=0;                       // HC55 ⊇ HC22 的窗口，负值只是浮点误差
   return flagged(fmt.n1(v), v>FRESH_WARN,
-    `新鲜度 ${fmt.n1(v)} ≥ 3：回测该档胜率仅 18%、中位 R −0.98、PF 1.18（前后半段均成立）。&#10;`+
-    `原因是机械性的:R0/ATR ≈ 倍数+Buf+0.3−新鲜度，此时止损只剩约 1 个 ATR，落在日常噪音里。&#10;`+
-    `注意 1.5~3.0 那档反而是最好的(PF 2.78)——高新鲜度本身不坏，坏的是止损被压得太窄。`);
+    `新鲜度 ${fmt.n1(v)} 偏高（≥${FRESH_WARN}）：止损只剩约 1 个 ATR，落在日常噪音里&#10;`+
+    `回测该档 胜率 18% · 中位 R −0.98 · PF 1.18`);
 }
 
 // 回撤%:按价格算的深度,不受 ATR 大小影响(新鲜度用 ATR 归一化,会被高波动摊薄)
@@ -173,8 +172,8 @@ function stopNarrow(s){ const v=stopPct(s); return v!=null && v<STOPW.narrow; }
 function stopCell(s){
   const v=stopPct(s); if(v==null) return "";
   return flagged(fmt.pct(v), v<STOPW.narrow,
-    `止损距离 ${fmt.pct(v)} 偏窄（&lt;${STOPW.narrow*100}%）：止损落在日常噪音里，容易被随机波动扫掉；&#10;`+
-    `占用资金也会放大到约 ${fmt.n1(1/v)}× 单笔风险额。回测里 <5% 那档是最差的（PF 1.15）。`);
+    `止损距离 ${fmt.pct(v)} 偏窄（&lt;${fmt.pct(STOPW.narrow)}）：易被日常噪音扫掉&#10;`+
+    `占用约 ${fmt.n0(1/v)}× 单笔风险额 · 回测 &lt;5% 档最差（PF 1.15）`);
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
