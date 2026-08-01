@@ -1,0 +1,58 @@
+name: Backtest (manual)
+
+# Manual only — this fetches years of history for every ticker, so it takes a few
+# minutes. It writes ONLY the small result files (docs/data/backtest/*), never the
+# raw bars, so the repo stays small.
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "Years of history to fetch"
+        required: false
+        default: "5"
+      limit:
+        description: "Only first N tickers (0 = all; use e.g. 30 for a smoke test)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run backtest
+        run: |
+          python engine/backtest.py \
+            --years "${{ github.event.inputs.years }}" \
+            --limit "${{ github.event.inputs.limit }}"
+
+      - name: Commit results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/bt && cp -r docs/data/backtest /tmp/bt
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q
+            git reset --hard FETCH_HEAD -q
+            mkdir -p docs/data && rm -rf docs/data/backtest && cp -r /tmp/bt docs/data/backtest
+            git add -A docs/data/backtest
+            if git diff --cached --quiet; then
+              echo "No changes."; exit 0
+            fi
+            git commit -m "backtest: refresh results ($(date -u +%Y-%m-%dT%H:%MZ))" -q
+            if git push; then echo "Pushed."; exit 0; fi
+            echo "Push raced, retrying ($i)…"; sleep 4
+          done
+          echo "Could not push after retries."; exit 0
