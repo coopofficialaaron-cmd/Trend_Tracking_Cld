@@ -71,7 +71,20 @@ const STRUCT = { er22Good:0.25, er22Bad:0.15, er55High:0.20, freshBad:3.0 };
 //                  距前高(PF 2.15/1.61/2.30/2.27 非单调,唯一亮点样本仅 31 笔=噪音)
 // 表格提示用的阈值。回撤%/距前高 与新鲜度高度重复(+0.90 / +0.74),
 // 已从主表移出、只保留在详情页的历史表里。
-const INFO = { ddDeep:0.20, ageOld:35, atrLow:0.025 };
+const INFO = { ddDeep:0.20, ageOld:35, atrLow:0.025, atrHigh:0.06 };
+// 甜蜜点 2.5%~6%:两端都会伤害你,但伤法不同 —— 低端走不动,高端被扫掉。
+function atrCell(v){
+  if(v==null) return "";
+  if(v<INFO.atrLow)
+    return flagged(fmt.pct(v), true,
+      `ATR% ${fmt.pct(v)} 偏低：一天只走 ${fmt.pct(v)}，而趋势通常只走 3~4 个 ATR，`+
+      `换算下来涨幅有限（回测该档 166 笔中位峰值仅 +6%，无一笔涨幅超 60%）`);
+  if(v>=INFO.atrHigh)
+    return flagged(fmt.pct(v), true,
+      `ATR% ${fmt.pct(v)} 过高：止损为 4×ATR ≈ ${fmt.pct(v*4)}，一次正常回调就吃掉大半利润`+
+      `（回测该档中位涨幅 −11.9%、平均 R 仅 0.17，峰值只走 1.5 个 ATR，且占用资金最多）`);
+  return fmt.pct(v);
+}
 function structTier(s){
   if(!s) return null;
   const e22=s.er22, e55=s.er55, fr=freshFromSummary(s);
@@ -129,8 +142,9 @@ const COLS = [
   // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
   {k:"fresh",   t:"突破新鲜度", la:true, f:s=>freshCell(freshFromSummary(s)), v:s=>freshFromSummary(s)},
   // ATR% 与新鲜度/距前高/ER 几乎不相关(+0.09/+0.07/+0.01),是独立维度,必须单独看。
-  // 回测:<2.5% 的 161 笔里涨幅超 60% 的为 0 笔;4~6% 是甜蜜点(平均涨幅 10.9%)。
-  {k:"atrpct",  t:"ATR%",      la:true, f:s=>s.atrpct==null?"":flagged(fmt.pct(s.atrpct), s.atrpct<INFO.atrLow, `ATR% ${fmt.pct(s.atrpct)} 偏低：波动不足，很难走出大幅趋势（回测该档无一笔涨幅超 60%）`), v:s=>s.atrpct},
+  // 趋势在 ATR 单位上长度大体固定(中位约 3~4 个 ATR),所以最终涨幅几乎由 ATR% 决定:
+  // <2.5% 走不出名堂(166 笔零大赢家);>=6% 止损换算成百分比过宽,还没走开就被扫掉。
+  {k:"atrpct",  t:"ATR%",      la:true, f:s=>atrCell(s.atrpct), v:s=>s.atrpct},
   // ④ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   // ④ 买在哪
