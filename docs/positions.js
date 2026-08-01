@@ -14,6 +14,7 @@ const fmt={
   pct:v=>v==null||v===""?"":(v*100).toFixed(1)+"%",
   signedPct:v=>v==null?"":(v>=0?"+":"")+(v*100).toFixed(1)+"%",
   er:v=>v==null||v===""?"":(+v).toFixed(2),
+  n0:v=>v==null||v===""?"":Math.round(+v).toLocaleString("en-US"),
 };
 const num=v=>(v==null||v==="")?null:Number(v);
 function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${f(v)}</span>`; }
@@ -212,7 +213,8 @@ function render(){
         <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   body.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDrawer(+b.dataset.open);}));
-  body.querySelectorAll("tr[data-i]").forEach(tr=>tr.addEventListener("click",()=>openDrawer(+tr.dataset.i)));
+  body.querySelectorAll("tr[data-i]").forEach(tr=>{ tr.style.cursor="pointer";
+    tr.addEventListener("click",()=>openDrawer(+tr.dataset.i)); });
   renderTotals(open);
 }
 
@@ -452,7 +454,17 @@ function histTable(rows){
 
 /* ===== 管理抽屉 ===== */
 let drawerIdx=null;
-async function openDrawer(i){ drawerIdx=i; const h=POS[i]; const c=compute(h); if(!c)return;
+async function openDrawer(i){ try{ await openDrawerInner(i); }
+  catch(err){
+    const d=document.getElementById("detail");
+    if(d) d.innerHTML=`<div class="pdetail"><h3>详情渲染出错</h3>
+      <p class="psub">请把下面这段发给我，便于定位。</p>
+      <pre style="white-space:pre-wrap;font-size:12px;color:var(--bad);background:var(--panel-2);padding:12px;border-radius:8px">${(err&&err.stack||err)}</pre></div>`;
+    document.getElementById("scrim").hidden=false;
+    const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false");
+    console.error("openDrawer failed:",err);
+  } }
+async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(h); if(!c)return;
   const rows=await fetchRows(h.file);
   const adds=h.adds||[];
   const addLog=adds.length?`<div class="addlog">${adds.map((a,k)=>`<div><span>加仓#${k+1} ${a.date}</span><span>${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</span></div>`).join("")}</div>`:"";
