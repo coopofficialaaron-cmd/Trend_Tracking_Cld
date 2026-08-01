@@ -184,7 +184,7 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
-    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ${c.distPct!=null&&c.distPct<0.05?"no":"ok"}">持有</span>`;
+    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ${c.distPct!=null&&c.distPct<0.05?"warn":"ok"}">持有</span>`;
     const addCell=c.canAdd?`<span class="tag ok">可加 ${c.addShares} 股</span>`:`<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
       <td class="l"><b>${h.ticker}</b></td>
