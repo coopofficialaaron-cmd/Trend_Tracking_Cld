@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-08-01T08:54:59+00:00",
+  "years": 5.0,
+  "tickers": 30,
+  "trades": 323,
+  "tier_thresholds": {
+    "er22Good": 0.25,
+    "er22Bad": 0.15,
+    "er55High": 0.2,
+    "freshBad": 3.0
+  }
+}
