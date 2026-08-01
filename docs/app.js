@@ -61,47 +61,42 @@ function ddPctRow(r){
 }
 
 // ---- 结构评级:直接照抄回测结论(831 笔已平仓,2025-06 ~ 2026-07)----
-// ER22 单调有效:PF 1.71(<0.15) → 2.24 → 2.48 → 2.55(≥0.35)
-// ER55 反向:PF 2.29(<0.05) / 2.49(0.05~0.10) / 2.28(0.10~0.20) / 1.77(≥0.20)
-// 2×2 交叉:ER22高·ER55低 = PF 2.78(最优);ER22低·ER55高 = 1.84(最差)
-// 机制:ER55 高 = 这 55 天已经走完一大段,你在接后半段;
-//       ER55 低 + ER22 高 = 长期横盘、最近刚启动,也就是箱体突破。
-const STRUCT = { er22Good:0.25, er22Bad:0.15, er55High:0.20, freshBad:3.0 };
-// 回测过但没进评级:回撤%(与新鲜度相关 +0.90,属重复,控制 ER22 后方向还会反转)
-//                  距前高(PF 2.15/1.61/2.30/2.27 非单调,唯一亮点样本仅 31 笔=噪音)
-// 表格提示用的阈值。回撤%/距前高 与新鲜度高度重复(+0.90 / +0.74),
-// 已从主表移出、只保留在详情页的历史表里。
-const INFO = { ddDeep:0.20, ageOld:35, atrLow:0.025, atrHigh:0.06 };
-// 甜蜜点 2.5%~6%:两端都会伤害你,但伤法不同 —— 低端走不动,高端被扫掉。
+// ---- 趋势结构评级:单因子 ----
+// 5 年回测(4560 笔已平仓,含 2022 熊市)结论:
+//   ATR% 分档 PF 单调递增 —— <2%:1.14  2~2.5%:1.00  2.5~4%:1.43  4~6%:2.10  6~8%:3.04  ≥8%:3.13
+//   机制:一段趋势在 ATR 单位上长度大体固定(中位约 3~4 个 ATR),所以最终涨幅≈ATR%×3~4。
+//        ATR% 太小 → 需要走 30 个 ATR 才能涨 60%,几乎不可能;宽止损同时更省资金。
+//   ATR%<2.5% 的 1587 笔(占 35%)只贡献 4.7% 的总利润 —— 近乎纯噪音。
+// 刻意只留一个因子:ER22 阈值增益太小(加上后强档总 R 从 885 掉到 705),
+// ER55/新鲜度 与 ATR%/止损宽度 高度重复,全部降级为显示列,不参与评级。
+const STRUCT = { atrWeak:0.025, atrStrong:0.04 };
+const INFO = { ddDeep:0.20, ageOld:35 };
 function atrCell(v){
   if(v==null) return "";
-  if(v<INFO.atrLow)
+  if(v<STRUCT.atrWeak)
     return flagged(fmt.pct(v), true,
-      `ATR% ${fmt.pct(v)} 偏低：一天只走 ${fmt.pct(v)}，而趋势通常只走 3~4 个 ATR，`+
-      `换算下来涨幅有限（回测该档 166 笔中位峰值仅 +6%，无一笔涨幅超 60%）`);
-  if(v>=INFO.atrHigh)
-    return flagged(fmt.pct(v), true,
-      `ATR% ${fmt.pct(v)} 过高：止损为 4×ATR ≈ ${fmt.pct(v*4)}，一次正常回调就吃掉大半利润`+
-      `（回测该档中位涨幅 −11.9%、平均 R 仅 0.17，峰值只走 1.5 个 ATR，且占用资金最多）`);
+      `ATR% ${fmt.pct(v)} 偏低：趋势通常只走 3~4 个 ATR，换算下来涨幅有限；`+
+      `回测该档占 35% 的交易，却只贡献 4.7% 的利润（PF 1.07）`);
   return fmt.pct(v);
+}
+// 止损距离(占价格%)= R0/收盘。既是同档内的排序依据,也直接决定占用资金:
+// 占用 ≈ 单笔可亏 ÷ 止损距离%,所以越宽越省钱,而回测里越宽也越赚。
+function stopPct(s){
+  if(!s || !s.close || s.r0==null || s.r0<=0) return null;
+  return s.r0 / s.close;
 }
 function structTier(s){
   if(!s) return null;
-  const e22=s.er22, e55=s.er55, fr=freshFromSummary(s);
-  const good22 = e22!=null && e22>=STRUCT.er22Good;
-  const bad22  = e22!=null && e22<STRUCT.er22Bad;
-  const high55 = e55!=null && e55>=STRUCT.er55High;
-  const badFresh = fr!=null && fr>=STRUCT.freshBad;
+  const a=s.atrpct, sp=stopPct(s);
+  let tier="mid";
+  if(a!=null && a<STRUCT.atrWeak)        tier="weak";
+  else if(a!=null && a>=STRUCT.atrStrong) tier="strong";
   const notes=[];
-  notes.push(`ER22 ${fmt.er(e22)} · ${good22?"近期效率高":(bad22?"近期效率低":"中等")}`);
-  if(e55!=null) notes.push(`ER55 ${fmt.er(e55)} · ${high55?"已走完一大段":"长期横盘（箱体突破）"}`);
-  if(fr!=null)  notes.push(`新鲜度 ${fmt.n1(fr)} · ${badFresh?"止损仅约 1 ATR，过窄":(fr<1.5?"紧贴新高":"箱体内，止损尚宽")}`);
-  let tier;
-  if(badFresh)               tier="weak";     // 独立否决:剔除后最优格 PF 2.76→3.26
-  else if(good22 && !high55) tier="strong";   // 最优格 PF 3.26
-  else if(bad22 && high55)   tier="weak";     // 最差格 PF 1.84
-  else                       tier="mid";
-  return {tier, notes, e22, e55};
+  if(a!=null) notes.push(`ATR% ${fmt.pct(a)} · ${
+    a<STRUCT.atrWeak?"波动不足，走不出幅度":(a>=STRUCT.atrStrong?"波动充足":"中等")}`);
+  if(sp!=null) notes.push(`止损距离 ${fmt.pct(sp)} · 占用约 ${fmt.n1(1/sp)}× 单笔风险额`);
+  if(s.er55!=null) notes.push(`ER55 ${fmt.er(s.er55)}（参考：越低越好，强档内单调）`);
+  return {tier, notes, sp};
 }
 function structCell(s){
   const t=structTier(s);
@@ -112,11 +107,12 @@ function structCell(s){
   const tip=`趋势结构 ${cfg[0]}&#10;${t.notes.join("&#10;")}`;
   return `<span class="stag" title="${tip}" style="color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
 }
-// 排序值:先分档,同档内按 ER22 —— 一次点击 = 「ER22 降序 + ER55 惩罚」的组合排序
+// 排序值:先分档,同档内按「止损距离%」降序 —— 一次点击就等于回测里最优的那个组合
+// (资金约束模拟:剔除弱档 + 按止损距离排序 = 累计 291R、账户回撤 8.1%,为各方案最佳)
 function structSort(s){
   const t=structTier(s); if(!t) return null;
   const rank={strong:2, mid:1, weak:0}[t.tier];
-  return rank*1000 + (t.e22!=null ? t.e22*100 : 0);
+  return rank*1000 + (t.sp!=null ? t.sp*100 : 0);
 }
 
 const fmt = {
@@ -156,6 +152,7 @@ const COLS = [
   // ⑤ 亏多少
   {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
   {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
+  {k:"stoppct", t:"止损%",     la:true, f:s=>{const v=stopPct(s);return v==null?"":fmt.pct(v);}, v:s=>stopPct(s)},
   // ⑥ 趋势强度
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
