@@ -132,7 +132,7 @@ const COLS = [
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
   // ② 结论:能不能买(信号 / 趋势结构 / 大盘)
-  {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+qtag(s)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
+  {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
   {k:"struct",  t:"结构", la:true, f:s=>structCell(s), v:s=>structSort(s)},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
@@ -141,18 +141,18 @@ const COLS = [
   // 趋势在 ATR 单位上长度大体固定(中位约 3~4 个 ATR),所以最终涨幅几乎由 ATR% 决定:
   // <2.5% 走不出名堂(166 笔零大赢家);>=6% 止损换算成百分比过宽,还没走开就被扫掉。
   {k:"atrpct",  t:"ATR%",      la:true, f:s=>atrCell(s.atrpct), v:s=>s.atrpct},
+  // 止损距离% 前移:它是同档内的排序依据,也直接决定占用资金(占用 ≈ 单笔可亏 ÷ 止损%),
+  // 且原「入场质量」角标删除后,这里是唯一能一眼看到止损宽窄的地方。<3.5% 打告警。
+  {k:"stoppct", t:"止损%",     la:true, f:s=>stopCell(s), v:s=>stopPct(s)},
   // ④ 买多少
   {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
   // ④ 买在哪
   {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
   {k:"maxentry",t:"最高买入",    f:s=>fmt.n2(s.maxentry), v:s=>s.maxentry},
-  {k:"entry_pct",t:"入场分位",   f:s=>fmt.pct(s.entry_pct), v:s=>s.entry_pct==null?-1:s.entry_pct},
-  {k:"premium", t:"溢价",        f:s=>colSigned(s.premium), v:s=>s.premium},
   // ⑤ 亏多少
   {k:"stop",    t:"止损",        f:s=>fmt.n2(s.stop), v:s=>s.stop},
   {k:"r0",      t:"R0",          f:s=>fmt.n2(s.r0), v:s=>s.r0},
-  {k:"stoppct", t:"止损%",     la:true, f:s=>{const v=stopPct(s);return v==null?"":fmt.pct(v);}, v:s=>stopPct(s)},
   // ⑥ 趋势强度
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
@@ -164,23 +164,17 @@ function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title
 function sigTag(s){ return s?`<span class="sig ${SIG_CLASS[s]||"Wait"}">${s}</span>`:""; }
 function hotBadge(s){ const r=hotReasons(s); return r.length?`<span class="hot-badge" title="过热风险，需谨慎：&#10;· ${r.join("&#10;· ")}">⚠ 过热</span>`:""; }
 
-/* 入场质量角标：只对 Enter 信号显示。判定看 R0%(止损距离) 和 ATR%(波动)；
-   selfvol 仅作提示、不参与评分。改这四个阈值即可调松紧。 */
-const QUALITY = { r0Good:0.05, r0Bad:0.035, atrGood:0.015, atrBad:0.010 };
-function entryQuality(s){
-  const r0p=(s.r0!=null&&s.close)?s.r0/s.close:null, atr=s.atrpct;
-  let tier;
-  if((r0p!=null&&r0p<QUALITY.r0Bad)||(atr!=null&&atr<QUALITY.atrBad)) tier="bad";
-  else if((r0p==null||r0p>=QUALITY.r0Good)&&(atr==null||atr>=QUALITY.atrGood)) tier="good";
-  else tier="mid";
-  return {tier,r0p,atr,selfvol:s.selfvol};
-}
-function qtag(s){
-  if(!s||s.signal!=="Enter") return "";
-  const {tier,r0p,atr,selfvol}=entryQuality(s);
-  const cfg={good:["A","优","var(--enter)","var(--enter-bg)"],mid:["B","中","var(--toohigh)","rgba(180,118,12,.12)"],bad:["C","差","#fff","var(--bad)"]}[tier];
-  const tip=`入场质量 ${cfg[0]}（${cfg[1]}）&#10;R0/价 ${r0p!=null?(r0p*100).toFixed(1)+"%":"—"}（止损距离，越大越稳）&#10;ATR% ${atr!=null?(atr*100).toFixed(1)+"%":"—"}（波动水平）&#10;selfvol ${selfvol!=null?(selfvol*100).toFixed(0)+"%":"—"}（仅参考）`;
-  return `<span class="qtag" title="${tip}" style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;line-height:1.4;vertical-align:middle;color:${cfg[2]};background:${cfg[3]}">${cfg[0]}</span>`;
+/* 止损过窄告警:R0/价 < 3.5% 时止损落在日常噪音里(R0/ATR ≈ 倍数+Buf+0.3−新鲜度,
+   新鲜度高时会被压到只剩约 1 个 ATR)。4.6 年样本:止损% <5% 是最差一档(PF 1.15),
+   ≥18% 最好(2.86)。原「入场质量 A/B/C」角标已删除 —— 它和结构徽标读同一组变量、
+   阈值却是旧 14 个月回测留下的,会出现「A + 弱」这类自相矛盾的显示。 */
+const STOPW = { narrow:0.035 };
+function stopNarrow(s){ const v=stopPct(s); return v!=null && v<STOPW.narrow; }
+function stopCell(s){
+  const v=stopPct(s); if(v==null) return "";
+  return flagged(fmt.pct(v), v<STOPW.narrow,
+    `止损距离 ${fmt.pct(v)} 偏窄（&lt;${STOPW.narrow*100}%）：止损落在日常噪音里，容易被随机波动扫掉；&#10;`+
+    `占用资金也会放大到约 ${fmt.n1(1/v)}× 单笔风险额。回测里 <5% 那档是最差的（PF 1.15）。`);
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
@@ -571,7 +565,7 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
     const s=curSummary(st);
-    const badTier = s.signal==="Enter" && entryQuality(s).tier==="bad";   // C 级入场质量
+    const badTier = s.signal==="Enter" && stopNarrow(s);   // 止损过窄(原 C 级入场质量)
     const hot = (view==="signals") && (hotReasons(s).length>0 || badTier);
     const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
@@ -654,7 +648,7 @@ function renderDetailBody(st){
       ${st.sub?`<span class="type-tag">${st.sub}</span>`:""}
     </div>
     <div class="signal-row">
-      ${sigTag(s.signal)}${qtag(s)}
+      ${sigTag(s.signal)}
       <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
     ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
