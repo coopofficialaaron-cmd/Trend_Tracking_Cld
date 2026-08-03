@@ -501,8 +501,8 @@ function renderMarket(){
     const cfg={bull:["牛","ok"], neutral:["中性","warn"], bear:["熊","no"]}[t];
     const div=document.createElement("div");
     div.className="pill breadth "+cfg[1];
-    div.innerHTML=`<b>宽度</b> ${fmt.pct(bd.pct)} <span class="arrow">${cfg[0]}</span>`;
-    div.title=`大盘宽度 ${fmt.pct(bd.pct)}（${bd.ok}/${bd.n} 个标的的基准 ETF 向上）&#10;`+
+    div.innerHTML=`<b>宽度</b> ${Math.round(bd.pct*100)}% <span class="arrow">${cfg[0]}</span>`;
+    div.title=`大盘宽度 ${Math.round(bd.pct*100)}%（${bd.ok}/${bd.n} 个标的的基准 ETF 向上）&#10;`+
       `≥60% 牛 / 45~60% 中性 / <45% 熊&#10;`+
       `中性档是回测里唯一亏钱的区间（PF 0.91）&#10;`+
       `熊市档 ATR% 阶梯反转：2.5~4% 最好，强档失效`;
