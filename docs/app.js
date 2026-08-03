@@ -474,8 +474,40 @@ const ETF_PIN={SPY:0,QQQ:1};
 function etfRank(b){ const i=ETF_SIZE.indexOf(b); return i<0?999:i; }
 function etfLabel(b){ return ETF_NAME[b]?`${b} · ${ETF_NAME[b]}`:b; }
 
+// 大盘宽度 = 全宇宙里 mktok=true 的比例(按标的加权,与回测 breadth.csv 同定义)。
+// 回测(4560 笔,含 2022)按 breadth 分档:
+//   >=0.60 牛市(占 60% 交易日, 2021/2023-2026): PF 1.69, ATR% 阶梯单调 1.13/1.45/2.48/3.58
+//   0.45~0.60 中性(占 12%): PF 0.91 —— 唯一亏钱的区间, 各 ATR% 档全部 <=1.25
+//   <0.45 熊市(占 27%, 主要是 2022): PF 1.30, 但 ATR% 阶梯反转, 2.5~4% 档最好(1.89)
+// 胜率在三档几乎不变(38.9/33.5/37.2) —— 大盘环境不改变突破真假, 只改变赢家跑多远。
+const BREADTH={bear:0.45, bull:0.60};
+function breadthNow(){
+  if(!DATA||!DATA.stocks) return null;
+  let ok=0,n=0;
+  for(const st of DATA.stocks){
+    const s=curSummary(st);
+    if(!s||s.mktok==null) continue;
+    n++; if(s.mktok) ok++;
+  }
+  return n?{pct:ok/n, ok, n}:null;
+}
+function breadthTier(p){ return p<BREADTH.bear?"bear":(p<BREADTH.bull?"neutral":"bull"); }
+
 function renderMarket(){
   const el=document.getElementById("market"); el.innerHTML="";
+  const bd=breadthNow();
+  if(bd){
+    const t=breadthTier(bd.pct);
+    const cfg={bull:["牛","ok"], neutral:["中性","warn"], bear:["熊","no"]}[t];
+    const div=document.createElement("div");
+    div.className="pill breadth "+cfg[1];
+    div.innerHTML=`<b>宽度</b> ${fmt.pct(bd.pct)} <span class="arrow">${cfg[0]}</span>`;
+    div.title=`大盘宽度 ${fmt.pct(bd.pct)}（${bd.ok}/${bd.n} 个标的的基准 ETF 向上）&#10;`+
+      `≥60% 牛 / 45~60% 中性 / <45% 熊&#10;`+
+      `中性档是回测里唯一亏钱的区间（PF 0.91）&#10;`+
+      `熊市档 ATR% 阶梯反转：2.5~4% 最好，强档失效`;
+    el.appendChild(div);
+  }
   const keys=Object.keys(DATA.market||{}).filter(b=>DATA.market[b]);
   keys.sort((a,b)=>{
     const pa=ETF_PIN[a]??99, pb=ETF_PIN[b]??99;
