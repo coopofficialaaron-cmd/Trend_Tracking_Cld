@@ -53,6 +53,15 @@ code{font-family:var(--mono);font-size:.85em;background:var(--panel-2);padding:1
 .pill .arrow{font-weight:700;font-size:15px;line-height:1}
 .pill.ok .arrow{color:var(--enter)}
 .pill.no .arrow{color:var(--bad)}
+.pill.warn .arrow{color:var(--toohigh)}
+/* 大盘宽度：置于 ETF 条最前，加粗描边与右侧分隔以示它是汇总而非单个 ETF */
+.pill.breadth{font-variant-numeric:tabular-nums;border-width:2px;margin-right:8px;
+  position:relative;font-weight:600}
+.pill.breadth.ok{border-color:rgba(26,138,74,.55)}
+.pill.breadth.warn{border-color:rgba(180,118,12,.55)}
+.pill.breadth.no{border-color:rgba(192,57,43,.55)}
+.pill.breadth::after{content:"";position:absolute;right:-8px;top:20%;bottom:20%;
+  width:1px;background:var(--line)}
 .meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--muted);font-size:11px;
   font-family:var(--mono)}
 .meta .src{color:var(--faint)}
