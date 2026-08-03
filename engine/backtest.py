@@ -30,6 +30,10 @@ READ THE CAVEATS BEFORE TRUSTING ANY NUMBER
     * Entry at the signal close assumes you could actually fill there.
     * Earnings gaps: a real fill can be far below the stop, so realised losses are
       worse than the 1R this script assumes.
+    * EXIT FILL: trades.csv exits at the SAME close that broke the stop. You only
+      learn that at the close, so this needs a market-on-close order and is
+      optimistic without one. The EXECUTION-MODE COMPARISON printed at the end of
+      a run prices that assumption against fills you can actually get.
 
 USAGE
     python engine/backtest.py                 # default 5 years
@@ -111,8 +115,28 @@ def tier_of(er22, er55, fresh):
     return "mid"
 
 
-def replay(ticker, rows):
-    """Yield one dict per trade taken on this ticker."""
+# --------------------------------------------------------- execution modes
+# Each mode answers "what could I ACTUALLY have got?", not "what does the
+# ideal model say?".
+#   trigger  'close'    exit judged on the daily close
+#            'low'      exit judged on the intraday low (a resting broker stop)
+#   fill     'close'    fill at the triggering day's close   <- needs an MOC order
+#            'nextopen' fill at the NEXT session's open      <- decide tonight, sell at the open
+#            'stop'     fill at the stop price, or the open if it gapped straight through
+#   stop_ref 'same'     compare against the stop AFTER today's ratchet  <- model
+#            'prev'     compare against the stop the app published LAST night  <- reality
+MODES = {
+    "A_close_close":        ("close", "close",    "same"),
+    "B_close_nextopen":     ("close", "nextopen", "same"),
+    "C_close_nextopen_prev": ("close", "nextopen", "prev"),
+    "D_intraday_stop":      ("low",   "stop",     "prev"),
+    "E_close_close_prev":   ("close", "close",    "prev"),
+}
+BASELINE = "A_close_close"
+
+
+def replay(ticker, rows, trigger="close", fill="close", stop_ref="same"):
+    """Yield one dict per trade taken on this ticker, under one execution mode."""
     closes = [r["close"] for r in rows]
     n = len(rows)
     i = 0
@@ -134,18 +158,38 @@ def replay(ticker, rows):
               if (r.get("hc55") and r.get("hc22") is not None) else None)
 
         j, ex, peak = i + 1, None, entry
+        hit_stop = None                           # stop level that produced the exit
         while j < n:
+            stop_prev = stop                      # what the app published last night
             c = rows[j].get("cand")
             if c is not None and c > stop:
                 stop = c                          # ratchet, anchored at entry
             peak = max(peak, rows[j]["close"])
-            if rows[j]["close"] < stop:
-                ex = j
+
+            level = stop_prev if stop_ref == "prev" else stop
+            px = rows[j]["low"] if trigger == "low" else rows[j]["close"]
+            if px < level:
+                ex, hit_stop = j, level
                 break
             j += 1
 
         closed = ex is not None
-        exit_px = rows[ex]["close"] if closed else rows[-1]["close"]
+        if not closed:
+            exit_px = rows[-1]["close"]
+        elif fill == "nextopen":
+            # decided on tonight's close, sold at tomorrow's open. If the
+            # trigger is the very last bar there is no next open yet, so the
+            # trade stays open rather than inventing a fill.
+            if ex + 1 < n:
+                exit_px = rows[ex + 1]["open"]
+            else:
+                closed, ex, exit_px = False, None, rows[-1]["close"]
+        elif fill == "stop":
+            # a resting stop becomes a market order: you get the stop price
+            # unless the session already opened below it.
+            exit_px = min(hit_stop, rows[ex]["open"])
+        else:
+            exit_px = rows[ex]["close"]
         yield {
             "ticker": ticker,
             "signal_date": r["date"],
@@ -206,6 +250,45 @@ def table(title, trades, key, edges, fmt="{:.2f}"):
         else:
             print(f"{lab:<14}{(s['n'] if s else 0):>6}   (too few)")
         lo = e
+
+
+def compare_modes(by_mode):
+    """The point of this table: how much of the modelled edge survives execution."""
+    print("\n" + "=" * 84)
+    print("EXECUTION-MODE COMPARISON  (same signals, same stops, different fills)")
+    print("=" * 84)
+    print(f"{'mode':<24}{'closed':>7}{'win%':>8}{'avgR':>8}{'medR':>8}"
+          f"{'PF':>7}{'totalR':>9}{'avg held':>10}")
+    base = None
+    for name in MODES:
+        ts = [t for t in by_mode[name] if t["closed"]]
+        s = stats([t["R"] for t in ts])
+        if not s:
+            continue
+        tot = sum(t["R"] for t in ts)
+        held = sum(t["held"] for t in ts) / len(ts)
+        print(f"{name:<24}{s['n']:>7}{s['win']:>7.1f}%{s['avg']:>8.2f}"
+              f"{s['med']:>8.2f}{s['pf']:>7.2f}{tot:>9.0f}{held:>10.1f}")
+        if name == BASELINE:
+            base = (s["pf"], tot, s["n"])
+    if base:
+        print("-" * 84)
+        print(f"{'vs baseline ' + BASELINE:<24}{'dPF':>15}{'dTotalR':>12}{'dExits':>10}")
+        for name in MODES:
+            if name == BASELINE:
+                continue
+            ts = [t for t in by_mode[name] if t["closed"]]
+            s = stats([t["R"] for t in ts])
+            if not s:
+                continue
+            tot = sum(t["R"] for t in ts)
+            print(f"{name:<24}{s['pf'] - base[0]:>+15.2f}"
+                  f"{tot - base[1]:>+12.0f}{s['n'] - base[2]:>+10d}")
+    print("\nHow to read it:")
+    print("  C vs A = what your real workflow costs against the modelled number.")
+    print("  D vs C = intraday broker stop vs decide-on-close, sell-at-open.")
+    print("  E vs A = the effect of using LAST NIGHT's published stop, on its own.")
+    print("=" * 84)
 
 
 def report(trades):
@@ -279,8 +362,9 @@ def main():
         time.sleep(args.sleep)
     print(f"benchmarks ok: {len(bench_ok)}/{len(bms)}")
 
-    # 2) stocks
-    trades, breadth_hits, done, nodata = [], {}, 0, 0
+    # 2) stocks — one download, replayed under every execution mode
+    by_mode = {name: [] for name in MODES}
+    breadth_hits, done, nodata = {}, 0, 0
     for c in cfg:
         ohlcv = fetch_long(c["ticker"], args.years)
         time.sleep(args.sleep)
@@ -289,15 +373,18 @@ def main():
             continue
         rows, _ = compute_stock(ohlcv, bench_ok.get(c["benchmark"], {}),
                                 risk=c["risk"], breakout=c["breakout"])
-        for t in replay(c["ticker"], rows):
-            trades.append(t)
+        for name, (trig, fill, sref) in MODES.items():
+            for t in replay(c["ticker"], rows, trig, fill, sref):
+                by_mode[name].append(t)
         for r in rows:                        # daily breadth = share of mktok True
             if r.get("mktok") is not None:
                 a, b = breadth_hits.setdefault(r["date"], [0, 0])
                 breadth_hits[r["date"]] = [a + (1 if r["mktok"] else 0), b + 1]
         done += 1
         if done % 50 == 0:
-            print(f"  ...{done}/{len(cfg)} tickers, {len(trades)} trades so far")
+            print(f"  ...{done}/{len(cfg)} tickers, "
+                  f"{len(by_mode[BASELINE])} trades so far")
+    trades = by_mode[BASELINE]        # baseline is what gets committed, as before
     print(f"processed {done} tickers ({nodata} without usable data), {len(trades)} trades")
 
     # 3) write compact outputs
@@ -320,12 +407,17 @@ def main():
             w.writerow([d, ok, tot, round(ok / tot, 4) if tot else ""])
     meta = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "years": args.years, "tickers": done, "trades": len(trades),
-            "tier_thresholds": TIER}
+            "tier_thresholds": TIER,
+            "exec_mode": BASELINE,
+            "exec_mode_note": "trades.csv fills at the triggering day's close, "
+                              "which needs a market-on-close order. See the "
+                              "EXECUTION-MODE COMPARISON in the run log."}
     with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print(f"wrote {tp} ({os.path.getsize(tp)//1024} KB), "
           f"{bp} ({os.path.getsize(bp)//1024} KB)")
 
+    compare_modes(by_mode)
     report(trades)
     print("\nNOTE: config.csv is today's universe, so these numbers carry "
           "survivorship/selection bias. Compare buckets to each other, not to 1.0.")
