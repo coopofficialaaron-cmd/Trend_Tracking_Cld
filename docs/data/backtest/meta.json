@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-01T09:06:55+00:00",
+  "generated_at": "2026-08-03T17:19:20+00:00",
   "years": 5.0,
   "tickers": 468,
   "trades": 4647,
@@ -8,5 +8,7 @@
     "er22Bad": 0.15,
     "er55High": 0.2,
     "freshBad": 3.0
-  }
+  },
+  "exec_mode": "A_close_close",
+  "exec_mode_note": "trades.csv fills at the triggering day's close, which needs a market-on-close order. See the EXECUTION-MODE COMPARISON in the run log."
 }
