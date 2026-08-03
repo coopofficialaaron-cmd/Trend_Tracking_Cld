@@ -495,18 +495,23 @@ function breadthTier(p){ return p<BREADTH.bear?"bear":(p<BREADTH.bull?"neutral":
 
 function renderMarket(){
   const el=document.getElementById("market"); el.innerHTML="";
-  const bd=breadthNow();
-  if(bd){
-    const t=breadthTier(bd.pct);
-    const cfg={bull:["牛","ok"], neutral:["中性","warn"], bear:["熊","no"]}[t];
-    const div=document.createElement("div");
-    div.className="pill breadth "+cfg[1];
-    div.innerHTML=`<b>宽度</b> ${Math.round(bd.pct*100)}% <span class="arrow">${cfg[0]}</span>`;
-    div.title=`大盘宽度 ${Math.round(bd.pct*100)}%（${bd.ok}/${bd.n} 个标的的基准 ETF 向上）&#10;`+
-      `≥60% 牛 / 45~60% 中性 / <45% 熊&#10;`+
-      `中性档是回测里唯一亏钱的区间（PF 0.91）&#10;`+
-      `熊市档 ATR% 阶梯反转：2.5~4% 最好，强档失效`;
-    el.appendChild(div);
+  const slot=document.getElementById("breadthSlot");
+  if(slot){
+    slot.innerHTML="";
+    const bd=breadthNow();
+    slot.hidden=!bd;
+    if(bd){
+      const t=breadthTier(bd.pct);
+      const cfg={bull:["牛","ok"], neutral:["中性","warn"], bear:["熊","no"]}[t];
+      const div=document.createElement("div");
+      div.className="pill breadth "+cfg[1];
+      div.innerHTML=`<b>宽度</b> ${Math.round(bd.pct*100)}% <span class="arrow">${cfg[0]}</span>`;
+      div.title=`大盘宽度 ${Math.round(bd.pct*100)}%（${bd.ok}/${bd.n} 个标的的基准 ETF 向上）&#10;`+
+        `≥60% 牛 / 45~60% 中性 / <45% 熊&#10;`+
+        `中性档是回测里唯一亏钱的区间（PF 0.91）&#10;`+
+        `熊市档 ATR% 阶梯反转：2.5~4% 最好，强档失效`;
+      slot.appendChild(div);
+    }
   }
   const keys=Object.keys(DATA.market||{}).filter(b=>DATA.market[b]);
   keys.sort((a,b)=>{
