@@ -15,6 +15,8 @@ const fmt={
   signedPct:v=>v==null?"":(v>=0?"+":"")+(v*100).toFixed(1)+"%",
   er:v=>v==null||v===""?"":(+v).toFixed(2),
   n0:v=>v==null||v===""?"":Math.round(+v).toLocaleString("en-US"),
+  pct0:v=>v==null||v===""?"":(v*100).toFixed(0)+"%",
+  signedPct0:v=>v==null?"":(v>=0?"+":"")+(v*100).toFixed(0)+"%",
 };
 const num=v=>(v==null||v==="")?null:Number(v);
 function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${f(v)}</span>`; }
@@ -195,9 +197,9 @@ function render(){
       <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日 +"+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 需去券商改单"):(c.stopFresh?"新建仓，需首次挂止损":"与上一交易日相同，无需改单")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
       <td>${sig}</td>
       <td>${signed(c.pnl,fmt.money)}</td>
-      <td>${signed(c.pnlPct,fmt.signedPct)}</td>
-      <td>${c.R==null?"":signed(c.R,v=>v.toFixed(2)+"R")}</td>
-      <td>${c.distPct==null?"":fmt.pct(c.distPct)}</td>
+      <td>${signed(c.pnlPct,fmt.signedPct0)}</td>
+      <td>${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
+      <td>${c.distPct==null?"":fmt.pct0(c.distPct)}</td>
       <td>${signed(c.lockedIfStop,fmt.money)}</td>
       <td>${addCell}</td>
       <td><button class="mini" data-open="${i}">管理</button></td>
