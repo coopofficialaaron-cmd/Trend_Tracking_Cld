@@ -1,6 +1,9 @@
 "use strict";
 
-const SIG_CLASS = {"Enter":"Enter","Wait":"Wait","Too High":"TooHigh","Bad Market":"BadMarket"};
+const SIG_CLASS = {"Enter":"Enter","Enter?":"EnterQ","Wait":"Wait","Too High":"TooHigh",
+  "Bad Market":"BadMarket","No Bench":"NoBench"};
+// Enter? = 技术面已到入场位但大盘过滤未通过；信号页一并显示，由人自行判断。
+function isEnterish(s){ return s==="Enter" || s==="Enter?"; }
 // "avoid chasing the top" thresholds — a stock is flagged 过热 if ANY holds.
 // Only volatility/extension matter here; ER measures trend strength, not heat.
 const DEV_HOT = 2.5;      // ATR偏离(nR) > 2.5
@@ -209,13 +212,16 @@ function worstLossFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*s.r0 : 
 function deriveSummary(row){
   if(!row) return null;
   const premium = (row.minentry!=null) ? row.close - row.minentry : null;
+  // 与 engine/indicators.py build_summary 保持完全一致：mktok 三态分开处理。
+  const techEnter = premium!=null && premium>0 && row.maxentry!=null && row.close<row.maxentry
+                    && row.cand!=null && row.cand<row.minentry;
+  const techHigh  = premium!=null && premium>0 && row.maxentry!=null && row.close>row.maxentry;
   let signal;
-  if(row.mktok===false || row.mktok==null) signal="Bad Market";
-  else if(premium!=null && premium>0 && row.maxentry!=null && row.close<row.maxentry
-           && row.cand!=null && row.cand<row.minentry) signal="Enter";
-  else if(premium!=null && premium>0 && row.maxentry!=null && row.close>row.maxentry) signal="Too High";
-  else signal="Wait";
-  const entry_pct = (signal==="Enter" && row.maxentry!=null && row.minentry!=null && row.maxentry!==row.minentry)
+  if(row.mktok===true) signal = techEnter ? "Enter" : (techHigh ? "Too High" : "Wait");
+  else if(techEnter)   signal = "Enter?";          // 技术面到位，仅大盘过滤未通过
+  else if(row.mktok==null) signal = "No Bench";    // 对标无数据，不等于看空
+  else signal = "Bad Market";
+  const entry_pct = (isEnterish(signal) && row.maxentry!=null && row.minentry!=null && row.maxentry!==row.minentry)
     ? (row.close-row.minentry)/(row.maxentry-row.minentry) : null;
   return {
     date:row.date, close:row.close, atr14:row.atr14, atr50:row.atr50, atrpct:row.atrpct,
@@ -234,6 +240,8 @@ function rowAsOf(st, dateStr){
 }
 function curSummary(st){ return asOfDate ? deriveSummary(rowAsOf(st, asOfDate)) : st.summary; }
 function countEnter(){ return DATA.stocks.filter(st=>{const s=curSummary(st); return s&&s.signal==="Enter";}).length; }
+function countEnterQ(){ return DATA.stocks.filter(st=>{const s=curSummary(st); return s&&s.signal==="Enter?";}).length; }
+function sigCountText(){ const q=countEnterQ(); return countEnter() + (q?` (+${q}?)`:""); }
 
 async function loadAllRowsOnce(){
   if(ROWS_ALL_LOADED || ROWS_LOADING) return;
@@ -269,7 +277,7 @@ function updateHistoryUI(){
 async function afterDateChange(){
   updateHistoryUI();
   buildFilters();
-  document.getElementById("sigCount").textContent=countEnter();
+  document.getElementById("sigCount").textContent=sigCountText();
   render();
 }
 
@@ -308,7 +316,7 @@ async function load(){
   renderMeta();
   buildFilters();
   // default sort comes from the `sort` global (ER55 descending)
-  document.getElementById("sigCount").textContent = countEnter();
+  document.getElementById("sigCount").textContent = sigCountText();
   render();
 }
 
@@ -510,22 +518,37 @@ function renderMarket(){
       slot.appendChild(div);
     }
   }
-  const keys=Object.keys(DATA.market||{}).filter(b=>DATA.market[b]);
+  // 不过滤无数据的对标：抓取失败时它会整条消失，页面上看不出异常，
+  // 而挂靠其下的股票会全部静默判为 No Bench。改为渲染成警示 pill 并排在最前。
+  const keys=Object.keys(DATA.market||{});
+  const nStk={};
+  for(const st of (DATA.stocks||[])) if(st.benchmark) nStk[st.benchmark]=(nStk[st.benchmark]||0)+1;
   keys.sort((a,b)=>{
+    const ma=DATA.market[a], mb=DATA.market[b];
+    if(!!ma!==!!mb) return ma?1:-1;                       // 无数据的排最前，一眼可见
     const pa=ETF_PIN[a]??99, pb=ETF_PIN[b]??99;
     if(pa!==pb && (pa<99||pb<99)) return pa-pb;          // SPY, QQQ pinned first
-    const oa=DATA.market[a].ok?0:1, ob=DATA.market[b].ok?0:1;
-    if(oa!==ob) return oa-ob;                             // 向上 before 回避
+    if(ma&&mb){
+      const oa=ma.ok?0:1, ob=mb.ok?0:1;
+      if(oa!==ob) return oa-ob;                           // 向上 before 回避
+    }
     return etfRank(a)-etfRank(b);                         // then by size
   });
   keys.forEach(b=>{
     const m=DATA.market[b]; const ok=m&&m.ok;
     const div=document.createElement("div");
-    div.className="pill "+(ok?"ok":(m?"no":""));
+    div.className="pill "+(m?(ok?"ok":"no"):"dead");
     const nm=ETF_NAME[b]?`(${ETF_NAME[b]})`:"";
-    div.innerHTML=`<b>${b}</b>${nm} <span class="arrow">${ok?"↑":"↓"}</span>`;
-    div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") + (ok?"向上（可入场）":"回避") +
-      (m ? ` · 收盘 ${fmt.n2(m.close)} · SMA100 ${fmt.n2(m.sma100)} · 10日 ${fmt.pct(m.dd10)}` : "");
+    if(m){
+      div.innerHTML=`<b>${b}</b>${nm} <span class="arrow">${ok?"↑":"↓"}</span>`;
+      div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") + (ok?"向上（可入场）":"回避") +
+        ` · 收盘 ${fmt.n2(m.close)} · SMA100 ${fmt.n2(m.sma100)} · 10日 ${fmt.pct(m.dd10)}`;
+    }else{
+      div.innerHTML=`<b>${b}</b>${nm} <span class="arrow">⚠</span>`;
+      div.title = (ETF_NAME[b]?ETF_NAME[b]+" · ":"") +
+        `无行情数据 · 挂靠其下的 ${nStk[b]||0} 只股票信号不可信（会全部判为 Bad Market）` +
+        ` · 请检查 Actions 日志与 config.csv 中的代码是否有效`;
+    }
     el.appendChild(div);
   });
 }
@@ -538,7 +561,7 @@ function buildFilters(){
 function hasData(st){ const s=curSummary(st); return !!(s && s.date); }
 function renderMajorTiles(){
   // Counts follow the current view: overview = all stocks, signals = ENTER only.
-  const pool=DATA.stocks.filter(s=>hasData(s) && (view!=="signals" || s.summary.signal==="Enter"));
+  const pool=DATA.stocks.filter(s=>hasData(s) && (view!=="signals" || isEnterish(s.summary.signal)));
   const counts={};
   pool.forEach(s=>{ if(s.major) counts[s.major]=(counts[s.major]||0)+1; });
   let majors=Object.keys(counts).sort((a,b)=>counts[b]-counts[a] || a.localeCompare(b));
@@ -567,13 +590,13 @@ function refreshSubOptions(){
 
 function rows(){
   let list = DATA.stocks.filter(st=>{ const s=curSummary(st); return s && s.date; });  // hide no-data tickers
-  if(view==="signals") list = list.filter(st=>curSummary(st).signal==="Enter");
+  if(view==="signals") list = list.filter(st=>isEnterish(curSummary(st).signal));
   if(fMajor) list = list.filter(st=>st.major===fMajor);
   if(fSub) list = list.filter(st=>st.sub===fSub);
   if(q){ const Q=q.toLowerCase();
     list = list.filter(st=>st.ticker.toLowerCase().includes(Q)||(st.name||"").toLowerCase().includes(Q)); }
   const col = COLS.find(c=>c.k===sort.k);
-  const sigRank={"Enter":0,"Too High":1,"Wait":2,"Bad Market":3};
+  const sigRank={"Enter":0,"Enter?":1,"Too High":2,"Wait":3,"Bad Market":4,"No Bench":5};
   list.sort((a,b)=>{
     const sa=curSummary(a), sb=curSummary(b);
     let va,vb;
@@ -598,9 +621,9 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
     const s=curSummary(st);
-    const badTier = s.signal==="Enter" && stopNarrow(s);   // 止损过窄(原 C 级入场质量)
+    const badTier = isEnterish(s.signal) && stopNarrow(s);   // 止损过窄(原 C 级入场质量)
     const hot = (view==="signals") && (hotReasons(s).length>0 || badTier);
-    const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
+    const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : (s.signal==="Enter?" ? "enterq" : ""));
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
       COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
@@ -666,7 +689,9 @@ function renderDetailBody(st){
   const flags=hotReasons(s);
   const note = flags.length
       ? `⚠ 过热风险，需谨慎：${flags.join("；")}`
-      : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。":"");
+      : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。"
+      : s.signal==="Enter?"?"收盘已在买入区间内、止损低于入场价，但对标 ETF 未通过大盘过滤（回避或无数据）——需自行判断是否越过过滤器。"
+      : s.signal==="No Bench"?"对标 ETF 无行情数据，大盘状态未知（并非看空）。请检查 config.csv 中的对标代码。":"");
   const asofNote = asOfDate ? (()=>{
     const hs=deriveSummary(rowAsOf(st, asOfDate));
     return hs ? `<div class="asof-note">${EARN_ICO} 历史回看 ${asOfDate}：${sigTag(hs.signal)} · 收盘 ${fmt.n2(hs.close)}（下方卡片与图表仍为完整历史，非仅当天）</div>`
