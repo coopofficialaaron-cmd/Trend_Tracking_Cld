@@ -162,5 +162,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1785852044499
+  },
+  {
+    "ticker": "HPE",
+    "file": "HPE",
+    "name": "Hewlett Packard Enterprise Comp",
+    "major": "科技硬件",
+    "entryDate": "2026-08-03",
+    "entryPrice": 50.75,
+    "initialStop": 44.34,
+    "r0": 6.409999999999997,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785853986302
   }
 ]
