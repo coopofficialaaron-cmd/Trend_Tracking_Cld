@@ -78,5 +78,75 @@
     "adds": [],
     "status": "open",
     "createdAt": 1785333950475
+  },
+  {
+    "ticker": "INSW",
+    "file": "INSW",
+    "name": "International Seaways, Inc.",
+    "major": "油气",
+    "entryDate": "2026-07-29",
+    "entryPrice": 93.42,
+    "initialStop": 79.43,
+    "r0": 13.989999999999995,
+    "shares": 3,
+    "adds": [
+      {
+        "date": "2026-08-03",
+        "price": 96.37,
+        "shares": 2
+      }
+    ],
+    "status": "open",
+    "createdAt": 1785334127136
+  },
+  {
+    "ticker": "CTVA",
+    "file": "CTVA",
+    "name": "Corteva, Inc.",
+    "major": "化工",
+    "entryDate": "2026-07-29",
+    "entryPrice": 90,
+    "initialStop": 83.33,
+    "r0": 6.670000000000002,
+    "shares": 2,
+    "adds": [],
+    "status": "closed",
+    "createdAt": 1785418680498,
+    "exit": {
+      "date": "2026-07-31",
+      "price": 82.5
+    }
+  },
+  {
+    "ticker": "NBIX",
+    "file": "NBIX",
+    "name": "Neurocrine Biosciences, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-07-30",
+    "entryPrice": 185.85,
+    "initialStop": 164.65,
+    "r0": 21.19999999999999,
+    "shares": 2,
+    "adds": [],
+    "status": "closed",
+    "createdAt": 1785504871590,
+    "exit": {
+      "date": "2026-07-31",
+      "price": 164.52
+    }
+  },
+  {
+    "ticker": "MSFT",
+    "file": "MSFT",
+    "name": "Microsoft Corporation",
+    "major": "软件",
+    "entryDate": "2026-08-03",
+    "entryPrice": 443,
+    "initialStop": 442.9,
+    "r0": 0.10000000000002274,
+    "shares": 9.1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785831068422
   }
 ]
