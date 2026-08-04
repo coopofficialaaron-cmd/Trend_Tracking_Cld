@@ -276,10 +276,6 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
 .earn-ico{width:11px;height:11px;display:block}
 .earn-banner .earn-ico{width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:5px}
 .sig.BadMarket{background:rgba(192,57,43,.12);color:var(--bad)}
-/* Enter? = 技术面到位但大盘过滤未通过；No Bench = 对标无数据（≠看空） */
-.sig.EnterQ{background:rgba(180,118,12,.16);color:var(--toohigh);box-shadow:inset 0 0 0 1px rgba(180,118,12,.45)}
-.sig.NoBench{background:rgba(192,57,43,.10);color:var(--bad);border:1px dashed var(--bad)}
-tr.enterq{background:rgba(180,118,12,.05)}
 .chip{font-size:11px;color:var(--faint)}
 .pos{color:var(--enter)} .neg{color:var(--bad)}
 .warn-flag{color:var(--warn);cursor:help;margin-left:5px}
