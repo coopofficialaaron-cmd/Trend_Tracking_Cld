@@ -142,11 +142,25 @@
     "major": "软件",
     "entryDate": "2026-08-03",
     "entryPrice": 443,
-    "initialStop": 442.9,
-    "r0": 0.10000000000002274,
-    "shares": 9.1,
+    "initialStop": 405.94,
+    "r0": 37.06,
+    "shares": 9,
     "adds": [],
     "status": "open",
-    "createdAt": 1785831068422
+    "createdAt": 1785831903694
+  },
+  {
+    "ticker": "TNK",
+    "file": "TNK",
+    "name": "Teekay Tankers Ltd.",
+    "major": "航运",
+    "entryDate": "2026-08-03",
+    "entryPrice": 78.86,
+    "initialStop": 69.24,
+    "r0": 9.620000000000005,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785852044499
   }
 ]
