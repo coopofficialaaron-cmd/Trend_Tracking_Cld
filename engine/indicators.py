@@ -153,24 +153,17 @@ def build_summary(rows):
     close = r["close"]; mine = r["minentry"]; maxe = r["maxentry"]
     cand = r["cand"]; mktok = r["mktok"]
     premium = (close - mine) if mine is not None else None
-    # 技术面判定（不含大盘过滤）
-    tech_enter = (premium is not None and premium > 0 and maxe is not None and close < maxe
-                  and cand is not None and cand < mine)
-    tech_high = (premium is not None and premium > 0 and maxe is not None and close > maxe)
-    # mktok 三态必须区分：
-    #   True  -> 正常判定
-    #   False -> 大盘确实看空。但若技术面已到入场位，标成 Enter? 而不是并入 Bad Market，
-    #            否则真实突破会被埋在上百个 Bad Market 里，人看不见也无法自己判断。
-    #   None  -> 对标无行情数据，属"不知道"，不能冒充看空结论，单独标 No Bench 便于排查。
-    if mktok is True:
-        signal = "Enter" if tech_enter else ("Too High" if tech_high else "Wait")
-    elif tech_enter:
-        signal = "Enter?"
-    elif mktok is None:
-        signal = "No Bench"
-    else:
+    # SWITCH(TRUE(), mktok=FALSE->Bad Market, mktok&prem>0&close<max&cand<min->Enter,
+    #        mktok&prem>0&close>max->Too High, ->Wait)
+    if mktok is False or mktok is None:
         signal = "Bad Market"
-    entry_pct = ((close - mine) / (maxe - mine)) if (signal in ("Enter", "Enter?") and maxe and mine is not None and maxe != mine) else None
+    elif premium is not None and premium > 0 and maxe is not None and close < maxe and cand is not None and cand < mine:
+        signal = "Enter"
+    elif premium is not None and premium > 0 and maxe is not None and close > maxe:
+        signal = "Too High"
+    else:
+        signal = "Wait"
+    entry_pct = ((close - mine) / (maxe - mine)) if (signal == "Enter" and maxe and mine is not None and maxe != mine) else None
     return {
         "date": r["date"], "close": close, "atr14": r["atr14"], "atr50": r["atr50"], "atrpct": r["atrpct"],
         "selfvol": r["selfvol"], "dev": r["dev"], "mktok": mktok,
