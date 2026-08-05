@@ -176,5 +176,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1785853986302
+  },
+  {
+    "ticker": "PANW",
+    "file": "PANW",
+    "name": "Palo Alto Networks, Inc.",
+    "major": "软件",
+    "entryDate": "2026-08-05",
+    "entryPrice": 366,
+    "initialStop": 311.32,
+    "r0": 54.68000000000001,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785965997455
+  },
+  {
+    "ticker": "PLTR",
+    "file": "PLTR",
+    "name": "Palantir Technologies Inc.",
+    "major": "软件",
+    "entryDate": "2026-08-05",
+    "entryPrice": 159.8,
+    "initialStop": 128.32,
+    "r0": 31.480000000000018,
+    "shares": 8.6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785966052849
+  },
+  {
+    "ticker": "CRDO",
+    "file": "CRDO",
+    "name": "Credo Technology Group Holding ",
+    "major": "半导体",
+    "entryDate": "2026-06-01",
+    "entryPrice": 193.97,
+    "initialStop": 167.56,
+    "r0": 26.409999999999997,
+    "shares": 9,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1785966289951
   }
 ]
