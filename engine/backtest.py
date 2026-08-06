@@ -40,16 +40,28 @@ USAGE
     python engine/backtest.py --years 3
     python engine/backtest.py --years 5 --limit 50     # quick smoke test
     python engine/backtest.py --stop-grid     # + every stop-rule variant
+    python engine/backtest.py --stop-grid --boot 1500   # tighter intervals, slower
 
 OUTPUTS
     trades.csv  full trade list for the production rule (now also carries MAE,
                 peak_R and the breadth regime at the signal)
     breadth.csv daily share of tickers whose benchmark was OK
     modes.csv   the execution-mode table, which used to exist only in the log
-    stops.csv   the stop-rule table (--stop-grid only)
+    stops.csv   the stop-rule table with bootstrap 95% intervals on PF and
+                R-per-slot-day (--stop-grid only)
+
+READING THE STOP GRID
+    Two things went wrong on the previous run and both are now guarded:
+    * PF was compared as a point estimate. A 393-trade bucket whose PF moves
+      from 0.66 to 4.75 on a 0.5 change in k was read as a finding when it was
+      ~10 trades. Every PF now ships with a block-bootstrap interval, and cells
+      whose interval is wider than 1.0 are marked ! because they cannot be read.
+    * PF was treated as the objective. It is not: the scarce resource is the
+      ~22 position slots, so the objective is R per slot-day. A rule can win on
+      PF and still lose money per unit of capital-time. Both are printed.
     meta.json
 """
-import argparse, csv, json, os, sys, time, urllib.request
+import argparse, csv, json, os, random, sys, time, urllib.request
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -125,37 +137,58 @@ def tier_of(er22, er55, fresh):
 
 
 # ------------------------------------------------------------- stop rules
-# A stop rule is (anchor, k):
-#   anchor  'hc55'   hang the chandelier from the rolling 55-day highest close
-#                    (production behaviour: the anchor keeps moving with the
-#                    window, so it can be a high set weeks before you entered)
-#           'entry'  hang it from the highest close SINCE ENTRY, LeBeau's
-#                    original formulation. On the signal day the anchor IS the
-#                    entry close, so the initial gap is exactly k*ATR.
-#   k       float    fixed multiple, the industry default
-#           'step'   production's 3 / 3.5 / 4 ladder on ATR%
-#           'interp' the same ladder made continuous (no 0.5*ATR jump at the
-#                    2.5% and 5% boundaries)
+# A stop rule is (anchor, k_trail, k_init):
+#   anchor   'hc55'   hang the trailing chandelier from the rolling 55-day
+#                     highest close (production). The anchor keeps moving with
+#                     the window, so it can be a high set weeks before entry,
+#                     which means the same k buys a DIFFERENT buffer on every
+#                     trade.
+#            'entry'  hang it from the highest close SINCE ENTRY, LeBeau's
+#                     original. On the signal day the anchor IS the entry
+#                     close, so the buffer is exactly k*ATR on every trade.
+#   k_trail  float    fixed multiple
+#            'step'   production's 3 / 3.5 / 4 ladder on ATR%
+#            'interp' the same ladder made continuous
+#   k_init   None     initial stop = the trailing formula on the signal day
+#                     (this is what every rule did before)
+#            float    initial stop = entry - k_init*ATR, held until the trail
+#                     ratchets above it. Lets a TIGHT initial stop (small r0,
+#                     high capital efficiency, justified by the MAE of winners)
+#                     coexist with a WIDE trail (low give-back). One k cannot
+#                     do both jobs; these two numbers answer different
+#                     questions and the old grid forced them to be equal.
 #
 # Every rule is scored on the SAME signal set (production's ENTER days) so the
-# only thing changing is the exit. That means the `cand < minentry` veto still
-# uses the production stop even for entry-anchored rules — deliberate, so the
-# comparison isolates one variable.
+# only thing changing is the exit. The `cand < minentry` veto still uses the
+# production stop even for entry-anchored rules — deliberate, so the comparison
+# isolates one variable.
 STOP_RULES = {
-    "0_prod_hc55_step":  ("hc55",  "step"),
-    "1_hc55_interp":     ("hc55",  "interp"),
-    "2_hc55_k3.0":       ("hc55",  3.0),
-    "3_hc55_k3.5":       ("hc55",  3.5),
-    "4_hc55_k4.0":       ("hc55",  4.0),
-    "5_hc55_k4.5":       ("hc55",  4.5),
-    "6_entry_k2.0":      ("entry", 2.0),
-    "7_entry_k2.5":      ("entry", 2.5),
-    "8_entry_k3.0":      ("entry", 3.0),
-    "9_entry_k3.5":      ("entry", 3.5),
-    "A_entry_k4.0":      ("entry", 4.0),
-    "B_entry_k5.0":      ("entry", 5.0),
+    "0_prod":            ("hc55",  "step",  None),
+    # --- the two hc55 points that looked best last run, kept as controls
+    "1_hc55_k4.0":       ("hc55",  4.0,     None),
+    "2_hc55_k4.5":       ("hc55",  4.5,     None),
+    # --- fine sweep around the unexplained k=3.5 hole. If PF is jagged at
+    #     0.1 resolution the whole hc55 family is noise and no point on it
+    #     can be trusted, including production's.
+    "3_hc55_k3.4":       ("hc55",  3.4,     None),
+    "4_hc55_k3.5":       ("hc55",  3.5,     None),
+    "5_hc55_k3.6":       ("hc55",  3.6,     None),
+    # --- single-k entry anchor, the monotone family, as controls
+    "6_entry_k3.0":      ("entry", 3.0,     None),
+    "7_entry_k4.0":      ("entry", 4.0,     None),
+    "8_entry_k5.0":      ("entry", 5.0,     None),
+    # --- the actual hypothesis: tight initial stop + wide trail
+    "9_split_2.0_4.0":   ("entry", 4.0,     2.0),
+    "A_split_2.2_4.0":   ("entry", 4.0,     2.2),
+    "B_split_2.2_5.0":   ("entry", 5.0,     2.2),
+    "C_split_2.5_4.0":   ("entry", 4.0,     2.5),
+    "D_split_2.5_5.0":   ("entry", 5.0,     2.5),
+    "E_split_3.0_5.0":   ("entry", 5.0,     3.0),
+    # --- same split but trailing on hc55, to separate "tight initial stop"
+    #     from "entry anchor" as two independent effects
+    "F_split_2.2_hc55_4": ("hc55", 4.0,     2.2),
 }
-PROD_RULE = "0_prod_hc55_step"
+PROD_RULE = "0_prod"
 
 # breadth regimes, mirrored from the UI pill
 def regime_of(b):
@@ -199,7 +232,7 @@ BASELINE = "A_close_close"
 def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
            stop_rule=PROD_RULE):
     """Yield one dict per trade taken on this ticker, under one execution mode."""
-    anchor_mode, kspec = STOP_RULES[stop_rule]
+    anchor_mode, kspec, k_init = STOP_RULES[stop_rule]
     closes = [r["close"] for r in rows]
     n = len(rows)
     i = 0
@@ -211,7 +244,7 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
             continue
 
         def cand_of(row, anchor):
-            """Chandelier candidate for this rule on one bar."""
+            """Trailing chandelier candidate for this rule on one bar."""
             if stop_rule == PROD_RULE:
                 return row.get("cand")     # reuse indicators' own value verbatim
             a14 = row.get("atr14")
@@ -222,9 +255,14 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
 
         entry = r["close"]
         run_hi = entry                     # highest close since entry, inclusive
-        anchor0 = r.get("hc55") if anchor_mode == "hc55" else run_hi
-        stop = cand_of(r, anchor0)
+        atr = r.get("atr14")
         maxe = r.get("maxentry")
+        if k_init is not None:
+            # separate initial stop; the trail takes over once it ratchets past
+            stop = (entry - k_init * atr) if atr is not None else None
+        else:
+            anchor0 = r.get("hc55") if anchor_mode == "hc55" else run_hi
+            stop = cand_of(r, anchor0)
         if stop_rule == PROD_RULE:
             r0 = r["r0"]
         else:
@@ -232,7 +270,6 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
         if stop is None or not r0 or r0 <= 0:
             i += 1
             continue
-        atr = r.get("atr14")
         fresh = ((r["hc55"] - r["hc22"]) / atr
                  if (atr and r.get("hc55") is not None and r.get("hc22") is not None)
                  else None)
@@ -348,17 +385,66 @@ def table(title, trades, key, edges, fmt="{:.2f}"):
         lo = e
 
 
-def agg(ts):
+BOOT_N = 600          # bootstrap resamples; --boot overrides
+
+
+def pf_ci(ts, n=BOOT_N, seed=0):
+    """
+    95% interval for PF by BLOCK bootstrap over tickers.
+
+    Resampling individual trades would be wrong here: trades on the same ticker
+    share a trend, a sector and a regime, so they are not independent draws and
+    a per-trade bootstrap reports an interval that is far too tight. Resampling
+    whole tickers keeps that clustering intact. It is also ~10x cheaper.
+
+    Returns (lo, hi), or (None, None) if there is not enough to resample.
+    """
+    per = {}
+    for t in ts:
+        if t.get("R") is None:
+            continue
+        w, l = per.setdefault(t["ticker"], [0.0, 0.0])
+        if t["R"] > 0:
+            per[t["ticker"]][0] = w + t["R"]
+        else:
+            per[t["ticker"]][1] = l - t["R"]
+    blocks = list(per.values())
+    m = len(blocks)
+    if m < 20:
+        return (None, None)
+    rnd = random.Random(seed)
+    out = []
+    for _ in range(n):
+        W = L = 0.0
+        for _ in range(m):
+            w, l = blocks[rnd.randrange(m)]
+            W += w
+            L += l
+        out.append((W / L) if L > 0 else 99.0)
+    out.sort()
+    return out[int(0.025 * n)], out[int(0.975 * n)]
+
+
+def agg(ts, boot=True):
     """One summary row for a list of closed trades."""
     s = stats([t["R"] for t in ts])
     if not s:
         return None
     tot = sum(t["R"] for t in ts)
     pk = sum(t["peak_R"] for t in ts if t.get("peak_R") is not None)
+    held = sum(t["held"] for t in ts) / len(ts)
+    lo, hi = pf_ci(ts) if boot else (None, None)
     return {"n": s["n"], "win_pct": round(s["win"], 1), "avgR": round(s["avg"], 3),
             "medR": round(s["med"], 3), "pf": round(s["pf"], 3), "totalR": round(tot, 1),
-            "avg_held": round(sum(t["held"] for t in ts) / len(ts), 1),
+            "pf_lo": round(lo, 3) if lo is not None else None,
+            "pf_hi": round(hi, 3) if hi is not None else None,
+            "pf_ci_width": round(hi - lo, 3) if lo is not None else None,
+            "avg_held": round(held, 1),
             "avg_r0_pct": round(sum(t["r0_pct"] for t in ts) / len(ts), 2),
+            # THE metric under a fixed number of position slots: a rule that
+            # earns 0.4R in 60 days is worse than one earning 0.25R in 25 days,
+            # because the slot is the scarce resource, not the trade.
+            "R_per_1000_slot_days": round(s["avg"] / held * 1000, 2) if held else None,
             "peakR": round(pk, 1),
             "give_back_pct": round((pk - tot) / pk * 100, 1) if pk > 0 else None}
 
@@ -414,23 +500,41 @@ def compare_modes(by_mode):
 def compare_stops(by_rule):
     """Anchor and k, scored on identical signals under one execution mode."""
     out = []
-    print("\n" + "=" * 100)
+    print("\n" + "=" * 108)
     print("STOP-RULE COMPARISON  (same ENTER days, same fills, different stop)")
-    print("=" * 100)
-    hdr = (f"{'rule':<20}{'closed':>7}{'win%':>7}{'avgR':>7}{'medR':>7}{'PF':>7}"
-           f"{'totalR':>9}{'held':>7}{'R0%':>7}{'giveback':>10}")
+    print("A PF with a wide 95% interval is not a measurement. Compare intervals,")
+    print("not point estimates: if two rules' intervals overlap, they are tied.")
+    print("R/1000sd = R per 1000 slot-days = avgR/held. THIS is the objective")
+    print("under a fixed number of position slots. PF is not.")
+    print("=" * 108)
+    hdr = (f"{'rule':<20}{'closed':>7}{'win%':>7}{'avgR':>7}{'PF':>6}"
+           f"{'95% CI':>15}{'R/1000sd':>10}{'held':>6}{'R0%':>6}{'giveback':>10}")
+
+    def num(x):
+        return ">99" if (x is None or x > 99) else f"{x:.2f}"
+
+    def line(name, a):
+        ci = (f"[{num(a['pf_lo'])},{num(a['pf_hi'])}]"
+              if a["pf_lo"] is not None else "-")
+        return (f"{name:<20}{a['n']:>7}{a['win_pct']:>6.1f}%{a['avgR']:>7.2f}"
+                f"{num(a['pf']):>6}{ci:>15}"
+                f"{(a['R_per_1000_slot_days'] or 0):>10.2f}"
+                f"{a['avg_held']:>6.0f}{a['avg_r0_pct']:>6.1f}"
+                f"{(a['give_back_pct'] or 0):>9.1f}%")
+
+    def spec(name):
+        an, kt, ki = STOP_RULES[name]
+        return dict(rule=name, anchor=an, k_trail=kt,
+                    k_init=("=trail" if ki is None else ki))
+
     print(hdr)
     for name in STOP_RULES:
         ts = [t for t in by_rule[name] if t["closed"]]
         a = agg(ts)
         if not a:
             continue
-        out.append(dict(rule=name, anchor=STOP_RULES[name][0],
-                        k=STOP_RULES[name][1], regime="all", **a))
-        print(f"{name:<20}{a['n']:>7}{a['win_pct']:>6.1f}%{a['avgR']:>7.2f}"
-              f"{a['medR']:>7.2f}{a['pf']:>7.2f}{a['totalR']:>9.0f}"
-              f"{a['avg_held']:>7.0f}{a['avg_r0_pct']:>7.1f}"
-              f"{(a['give_back_pct'] or 0):>9.1f}%")
+        out.append(dict(**spec(name), regime="all", **a))
+        print(line(name, a))
 
     # the same table split by breadth regime — the only split that has ever
     # reversed a conclusion in this project, so it is not optional
@@ -442,26 +546,84 @@ def compare_stops(by_rule):
             a = agg(ts)
             if not a:
                 continue
-            out.append(dict(rule=name, anchor=STOP_RULES[name][0],
-                            k=STOP_RULES[name][1], regime=reg, **a))
-            flag = "" if a["n"] >= 50 else "  (thin)"
-            print(f"{name:<20}{a['n']:>7}{a['win_pct']:>6.1f}%{a['avgR']:>7.2f}"
-                  f"{a['medR']:>7.2f}{a['pf']:>7.2f}{a['totalR']:>9.0f}"
-                  f"{a['avg_held']:>7.0f}{a['avg_r0_pct']:>7.1f}"
-                  f"{(a['give_back_pct'] or 0):>9.1f}%{flag}")
+            out.append(dict(**spec(name), regime=reg, **a))
+            print(line(name, a))
 
-    # and by ATR% tier, because that is where the step function was supposed to help
-    print("\n--- ATR% at signal: does a fixed k lose anything the ladder gained? ---")
-    print(f"{'rule':<20}{'<2.5 PF':>10}{'2.5-4 PF':>10}{'4-6 PF':>10}{'>=6 PF':>10}")
+    # ATR% cross-table. Last run this table hid the whole story: the k=3.5
+    # collapse lived entirely in the >=6% bucket, where ~10 trades decide the
+    # result. So print the interval width and mark cells that cannot be read.
+    print("\n--- ATR% at signal: PF (95% CI width).  ! = width > 1.0, unreadable ---")
+    print(f"{'rule':<20}" + "".join(f"{h:>18}"
+          for h in ("<2.5", "2.5-4", "4-6", ">=6")))
     for name in STOP_RULES:
         ts = [t for t in by_rule[name] if t["closed"] and t["atr_pct"] is not None]
         cells = []
         for lo, hi in ((0, 2.5), (2.5, 4), (4, 6), (6, 1e9)):
-            s = stats([t["R"] for t in ts if lo <= t["atr_pct"] < hi])
-            cells.append(f"{s['pf']:.2f}" if s and s["n"] >= 30 else "-")
-        print(f"{name:<20}" + "".join(f"{c:>10}" for c in cells))
-    print("=" * 100)
+            sel = [t for t in ts if lo <= t["atr_pct"] < hi]
+            a = agg(sel)
+            if not a or a["n"] < 30:
+                cells.append("-")
+                continue
+            w = a["pf_ci_width"]
+            mark = "!" if (w is not None and w > 1.0) else " "
+            cells.append(f"{num(a['pf'])} ({w:.2f}){mark}" if w is not None
+                         else num(a["pf"]))
+            out.append(dict(**spec(name), regime=f"atr_{lo}-{hi if hi < 1e9 else 'inf'}",
+                            **a))
+        print(f"{name:<20}" + "".join(f"{c:>18}" for c in cells))
+    print("=" * 108)
     return out
+
+
+def paired_vs_prod(by_rule):
+    """
+    Every rule is scored on the SAME signals, so the rules are paired samples.
+    A paired test is much more sensitive than comparing two overlapping CIs:
+    the question is not "is rule X's PF interval above production's" but
+    "when both rules trade the same ticker, does X win more often than it
+    loses". Sign test over tickers, plus a bootstrap on the paired difference.
+    """
+    print("\n" + "=" * 92)
+    print("PAIRED COMPARISON vs PRODUCTION  (same signals, per-ticker differences)")
+    print("=" * 92)
+    print(f"{'rule':<22}{'tickers':>8}{'X better':>10}{'prod better':>12}"
+          f"{'dTotalR':>10}{'d R/1000sd':>12}{'95% CI on dR':>18}")
+
+    def by_ticker(name, field="R"):
+        acc = {}
+        for t in by_rule[name]:
+            if t["closed"]:
+                acc[t["ticker"]] = acc.get(t["ticker"], 0.0) + t[field]
+        return acc
+
+    base = by_ticker(PROD_RULE)
+    a0 = agg([t for t in by_rule[PROD_RULE] if t["closed"]], boot=False)
+    for name in STOP_RULES:
+        if name == PROD_RULE:
+            continue
+        cur = by_ticker(name)
+        keys = sorted(set(base) | set(cur))
+        diffs = [cur.get(k, 0.0) - base.get(k, 0.0) for k in keys]
+        up = sum(1 for d in diffs if d > 0)
+        dn = sum(1 for d in diffs if d < 0)
+        rnd = random.Random(1)
+        m = len(diffs)
+        boots = []
+        for _ in range(BOOT_N):
+            boots.append(sum(diffs[rnd.randrange(m)] for _ in range(m)))
+        boots.sort()
+        lo, hi = boots[int(0.025 * BOOT_N)], boots[int(0.975 * BOOT_N)]
+        a = agg([t for t in by_rule[name] if t["closed"]], boot=False)
+        dslot = ((a["R_per_1000_slot_days"] or 0)
+                 - (a0["R_per_1000_slot_days"] or 0))
+        sig = "" if lo <= 0 <= hi else "  <- CI excludes 0"
+        print(f"{name:<22}{m:>8}{up:>10}{dn:>12}{sum(diffs):>+10.0f}"
+              f"{dslot:>+12.2f}{f'[{lo:+.0f},{hi:+.0f}]':>18}{sig}")
+    print("\nA rule only earns a change if dR/1000sd is positive AND the CI on")
+    print("dTotalR excludes zero. Anything else is a tie, and a tie means keep")
+    print("production — the incumbent wins ties, because switching has costs")
+    print("this backtest does not model.")
+    print("=" * 92)
 
 
 def mae_report(trades):
@@ -541,10 +703,13 @@ def report(trades):
 
 # ---------------------------------------------------------------- main
 def main():
+    global BOOT_N
     ap = argparse.ArgumentParser()
     ap.add_argument("--years", type=float, default=5.0)
     ap.add_argument("--limit", type=int, default=0, help="only N tickers (smoke test)")
     ap.add_argument("--sleep", type=float, default=0.12)
+    ap.add_argument("--boot", type=int, default=BOOT_N,
+                    help="bootstrap resamples for the confidence intervals")
     ap.add_argument("--stop-grid", action="store_true",
                     help="also replay every STOP_RULES variant and write stops.csv")
     ap.add_argument("--grid-mode", default="C_close_nextopen_prev",
@@ -552,6 +717,7 @@ def main():
                     help="execution mode used to score the stop grid "
                          "(default C = your actual evening workflow)")
     args = ap.parse_args()
+    BOOT_N = args.boot
 
     cfg = B.read_config()
     if args.limit:
@@ -650,13 +816,13 @@ def main():
     # so the comparison could not be reread without a full re-run.
     mrows = []
     for name in MODES:
-        a = agg([t for t in by_mode[name] if t["closed"]])
+        a = agg([t for t in by_mode[name] if t["closed"]], boot=False)
         if a:
             mrows.append(dict(mode=name, trigger=MODES[name][0], fill=MODES[name][1],
                               stop_ref=MODES[name][2], regime="all", **a))
         for reg in ("bull", "neutral", "bear"):
             a = agg([t for t in by_mode[name]
-                     if t["closed"] and t.get("regime") == reg])
+                      if t["closed"] and t.get("regime") == reg], boot=False)
             if a:
                 mrows.append(dict(mode=name, trigger=MODES[name][0],
                                   fill=MODES[name][1], stop_ref=MODES[name][2],
@@ -664,16 +830,19 @@ def main():
     write_rows(os.path.join(OUT_DIR, "modes.csv"), mrows,
                ["mode", "trigger", "fill", "stop_ref", "regime", "n", "win_pct",
                 "avgR", "medR", "pf", "totalR", "avg_held", "avg_r0_pct",
-                "peakR", "give_back_pct"])
+                "R_per_1000_slot_days", "peakR", "give_back_pct"])
 
     compare_modes(by_mode)
     if by_rule is not None:
         srows = compare_stops(by_rule)
         write_rows(os.path.join(OUT_DIR, "stops.csv"), srows,
-                   ["rule", "anchor", "k", "regime", "n", "win_pct", "avgR",
-                    "medR", "pf", "totalR", "avg_held", "avg_r0_pct", "peakR",
-                    "give_back_pct"])
-        print(f"(stop grid scored under execution mode {args.grid_mode})")
+                   ["rule", "anchor", "k_trail", "k_init", "regime", "n",
+                    "win_pct", "avgR", "medR", "pf", "pf_lo", "pf_hi",
+                    "pf_ci_width", "totalR", "avg_held", "avg_r0_pct",
+                    "R_per_1000_slot_days", "peakR", "give_back_pct"])
+        print(f"(stop grid scored under execution mode {args.grid_mode}, "
+              f"{BOOT_N} bootstrap resamples)")
+        paired_vs_prod(by_rule)
     mae_report(trades)
     report(trades)
     print("\nNOTE: config.csv is today's universe, so these numbers carry "
