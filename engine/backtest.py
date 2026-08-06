@@ -44,7 +44,8 @@ USAGE
 
 OUTPUTS
     trades.csv  full trade list for the production rule (now also carries MAE,
-                peak_R and the breadth regime at the signal)
+                peak_R, the breadth regime, and `tier` matching docs/app.js
+                plus `tier_er` for the retired ER-based rule)
     breadth.csv daily share of tickers whose benchmark was OK
     modes.csv   the execution-mode table, which used to exist only in the log
     stops.csv   the stop-rule table with bootstrap 95% intervals on PF and
@@ -123,7 +124,29 @@ def hi_age_at(closes, i, window=55):
     return window - last
 
 
-def tier_of(er22, er55, fresh):
+# docs/app.js: const STRUCT = { atrWeak:0.025, atrStrong:0.04 };
+# The site rates a signal on ATR% alone. This module used to grade on an
+# ER22/ER55/freshness rule that was deleted from the site long ago, so the
+# "by structure tier" and split-half tables were scoring a rule that no longer
+# exists — the two labellings turn out to be almost independent. `tier` now
+# means what the site means. The old rule is kept as `tier_er` so nothing is
+# lost and the two can still be compared.
+ATR_WEAK, ATR_STRONG = 2.5, 4.0          # in PERCENT, matching trades.csv
+
+
+def tier_of(atr_pct):
+    """Structure tier exactly as docs/app.js shows it. atr_pct is in percent."""
+    if atr_pct is None:
+        return "mid"                      # app.js also falls through to mid
+    if atr_pct < ATR_WEAK:
+        return "weak"
+    if atr_pct >= ATR_STRONG:
+        return "strong"
+    return "mid"
+
+
+def tier_er_of(er22, er55, fresh):
+    """The retired ER-based rule, kept only so the old tables stay comparable."""
     if fresh is not None and fresh >= TIER["freshBad"]:
         return "weak"
     good22 = er22 is not None and er22 >= TIER["er22Good"]
@@ -163,30 +186,37 @@ def tier_of(er22, er55, fresh):
 # production stop even for entry-anchored rules — deliberate, so the comparison
 # isolates one variable.
 STOP_RULES = {
-    "0_prod":            ("hc55",  "step",  None),
-    # --- the two hc55 points that looked best last run, kept as controls
-    "1_hc55_k4.0":       ("hc55",  4.0,     None),
-    "2_hc55_k4.5":       ("hc55",  4.5,     None),
-    # --- fine sweep around the unexplained k=3.5 hole. If PF is jagged at
-    #     0.1 resolution the whole hc55 family is noise and no point on it
-    #     can be trusted, including production's.
-    "3_hc55_k3.4":       ("hc55",  3.4,     None),
-    "4_hc55_k3.5":       ("hc55",  3.5,     None),
-    "5_hc55_k3.6":       ("hc55",  3.6,     None),
-    # --- single-k entry anchor, the monotone family, as controls
-    "6_entry_k3.0":      ("entry", 3.0,     None),
-    "7_entry_k4.0":      ("entry", 4.0,     None),
-    "8_entry_k5.0":      ("entry", 5.0,     None),
-    # --- the actual hypothesis: tight initial stop + wide trail
-    "9_split_2.0_4.0":   ("entry", 4.0,     2.0),
-    "A_split_2.2_4.0":   ("entry", 4.0,     2.2),
-    "B_split_2.2_5.0":   ("entry", 5.0,     2.2),
-    "C_split_2.5_4.0":   ("entry", 4.0,     2.5),
-    "D_split_2.5_5.0":   ("entry", 5.0,     2.5),
-    "E_split_3.0_5.0":   ("entry", 5.0,     3.0),
-    # --- same split but trailing on hc55, to separate "tight initial stop"
-    #     from "entry anchor" as two independent effects
-    "F_split_2.2_hc55_4": ("hc55", 4.0,     2.2),
+    "0_prod":              ("hc55",  "step", None),
+    # last run's winner, carried forward as the reference point
+    "1_ref_2.2_5.0":       ("entry", 5.0,   2.2),
+    # --- initial-stop sweep at trail 5.0. Last run put the winner at the
+    #     TIGHTEST initial tested, i.e. on the edge of the grid, which is
+    #     exactly where an optimum that does not really exist likes to sit.
+    "2_init1.6_5.0":       ("entry", 5.0,   1.6),
+    "3_init1.8_5.0":       ("entry", 5.0,   1.8),
+    "4_init2.0_5.0":       ("entry", 5.0,   2.0),
+    # --- trail sweep at initial 2.2. 5.0 was also the WIDEST trail tested,
+    #     so the same edge problem applies. If PF keeps climbing to 9.0 the
+    #     "wide trail" finding is really "no trail at all", see F below.
+    "5_init2.2_5.5":       ("entry", 5.5,   2.2),
+    "6_init2.2_6.0":       ("entry", 6.0,   2.2),
+    "7_init2.2_7.0":       ("entry", 7.0,   2.2),
+    "8_init2.2_9.0":       ("entry", 9.0,   2.2),
+    # --- interior candidates, in case the corner was an artefact
+    "9_init1.8_6.0":       ("entry", 6.0,   1.8),
+    "A_init2.0_6.0":       ("entry", 6.0,   2.0),
+    "B_init2.0_7.0":       ("entry", 7.0,   2.0),
+    # --- same split with the trail on hc55, to re-ask the anchor question now
+    #     that the initial stop is no longer doing the anchor's job
+    "C_init2.0_hc55_5.0":  ("hc55",  5.0,   2.0),
+    "D_init2.2_hc55_6.0":  ("hc55",  6.0,   2.2),
+    # --- THE CONTROL. Trail so wide it can never ratchet past the initial
+    #     stop, so this is a FIXED stop at entry - 2.2*ATR with no trailing at
+    #     all. If it matches the best trailing rule, the trail is decoration
+    #     and the whole chandelier can go. Expect fewer closed trades, because
+    #     positions that never break the fixed stop stay open to the last bar.
+    "E_init2.2_notrail":   ("entry", 50.0,  2.2),
+    "F_init1.8_notrail":   ("entry", 50.0,  1.8),
 }
 PROD_RULE = "0_prod"
 
@@ -342,7 +372,9 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
             "hi_age": hi_age_at(closes, i),
             "atr_pct": round(r["atrpct"] * 100, 3) if r.get("atrpct") is not None else None,
             "dev": r.get("dev"), "selfvol": r.get("selfvol"),
-            "tier": tier_of(r.get("er22"), r.get("er55"), fresh),
+            "tier": tier_of(round(r["atrpct"] * 100, 3)
+                            if r.get("atrpct") is not None else None),
+            "tier_er": tier_er_of(r.get("er22"), r.get("er55"), fresh),
         }
         i = (ex + 1) if closed else n
 
@@ -670,14 +702,23 @@ def report(trades):
               f"medR {s['med']:.2f}  PF {s['pf']:.2f}  totalR {sum(t['R'] for t in closed):.0f}")
     print("=" * 66)
 
-    print("\n--- by structure tier ---")
-    print(f"{'tier':<14}{'n':>6}{'win%':>8}{'avgR':>8}{'medR':>8}{'PF':>7}{'totalR':>9}")
-    for k in ("strong", "mid", "weak"):
-        sel = [t for t in closed if t["tier"] == k]
-        s = stats([t["R"] for t in sel])
-        if s:
-            print(f"{k:<14}{s['n']:>6}{s['win']:>7.1f}%{s['avg']:>8.2f}"
-                  f"{s['med']:>8.2f}{s['pf']:>7.2f}{sum(t['R'] for t in sel):>9.0f}")
+    for key, lab in (("tier", "structure tier — ATR%, as docs/app.js shows it"),
+                     ("tier_er", "retired ER-based tier (for comparison only)")):
+        print(f"\n--- {lab} ---")
+        print(f"{'tier':<10}{'n':>6}{'win%':>7}{'avgR':>7}{'PF':>6}{'95% CI':>15}"
+              f"{'R/1000sd':>10}{'totalR':>9}{'%profit':>9}")
+        gross = sum(t["R"] for t in closed) or 1.0
+        for k in ("strong", "mid", "weak"):
+            sel = [t for t in closed if t.get(key) == k]
+            a = agg(sel)
+            if not a:
+                continue
+            ci = (f"[{a['pf_lo']:.2f},{a['pf_hi']:.2f}]"
+                  if a["pf_lo"] is not None else "-")
+            print(f"{k:<10}{a['n']:>6}{a['win_pct']:>6.1f}%{a['avgR']:>7.2f}"
+                  f"{a['pf']:>6.2f}{ci:>15}"
+                  f"{(a['R_per_1000_slot_days'] or 0):>10.2f}"
+                  f"{a['totalR']:>9.0f}{a['totalR'] / gross * 100:>8.1f}%")
 
     table("ER22 at signal", closed, "er22", [0.15, 0.25, 0.35])
     table("ER55 at signal", closed, "er55", [0.05, 0.10, 0.20])
@@ -693,8 +734,10 @@ def report(trades):
         print(f"\n--- split-half stability (cut at {mid}) ---")
         print(f"{'tier':<14}{'first n':>9}{'first PF':>10}{'second n':>10}{'second PF':>11}")
         for k in ("strong", "mid", "weak"):
-            a = stats([t["R"] for t in closed if t["tier"] == k and t["signal_date"] < mid])
-            b = stats([t["R"] for t in closed if t["tier"] == k and t["signal_date"] >= mid])
+            a = stats([t["R"] for t in closed
+                       if t["tier"] == k and t["signal_date"] < mid])
+            b = stats([t["R"] for t in closed
+                       if t["tier"] == k and t["signal_date"] >= mid])
             fa = f"{a['pf']:.2f}" if a and a["n"] >= 20 else "-"
             fb = f"{b['pf']:.2f}" if b and b["n"] >= 20 else "-"
             print(f"{k:<14}{(a['n'] if a else 0):>9}{fa:>10}"
@@ -785,7 +828,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     cols = ["ticker", "signal_date", "exit_date", "closed", "entry", "exit", "r0", "R",
             "move_pct", "peak_pct", "peak_R", "held", "r0_pct", "er22", "er55", "fresh",
-            "dd_pct", "hi_age", "atr_pct", "dev", "selfvol", "tier",
+            "dd_pct", "hi_age", "atr_pct", "dev", "selfvol", "tier", "tier_er",
             "mae_R", "mae_low_R", "mae_atr", "mae_low_atr", "breadth", "regime"]
     tp = os.path.join(OUT_DIR, "trades.csv")
     with open(tp, "w", newline="", encoding="utf-8") as f:
