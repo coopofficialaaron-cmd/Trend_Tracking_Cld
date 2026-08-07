@@ -948,9 +948,20 @@ def main():
             "move_pct", "peak_pct", "peak_R", "held", "r0_pct", "er22", "er55", "fresh",
             "dd_pct", "hi_age", "atr_pct", "dev", "selfvol", "tier", "tier_er",
             "mae_R", "mae_low_R", "mae_atr", "mae_low_atr", "breadth", "regime"]
+    # internal-only keys that must never be written out
+    INTERNAL = {"path"}
+    extra = ({k for t in trades[:50] for k in t} - set(cols)) - INTERNAL
+    if extra:
+        print(f"WARNING: trade records carry undeclared fields {sorted(extra)}; "
+              f"add them to cols or to INTERNAL")
+
     tp = os.path.join(OUT_DIR, "trades.csv")
     with open(tp, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
+        # extrasaction="ignore": trade records carry internal-only keys such as
+        # `path` (the daily unrealised-R series used for the portfolio
+        # drawdown). Those must never reach the csv, and DictWriter raises on
+        # ANY unlisted key even when its value is None.
+        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
         w.writeheader()
         for t in sorted(trades, key=lambda x: (x["signal_date"], x["ticker"])):
             w.writerow(t)
