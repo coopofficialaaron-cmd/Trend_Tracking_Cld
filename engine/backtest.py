@@ -50,6 +50,9 @@ OUTPUTS
     modes.csv   the execution-mode table, which used to exist only in the log
     stops.csv   the stop-rule table with bootstrap 95% intervals on PF and
                 R-per-slot-day (--stop-grid only)
+    portfolio.csv  the same rules run through a 22-slot portfolio: total R
+                after the slot constraint, worst drawdown marked to market,
+                and R per unit of drawdown (--stop-grid, unless --no-dd)
 
 READING THE STOP GRID
     Two things went wrong on the previous run and both are now guarded:
@@ -187,36 +190,17 @@ def tier_er_of(er22, er55, fresh):
 # isolates one variable.
 STOP_RULES = {
     "0_prod":              ("hc55",  "step", None),
-    # last run's winner, carried forward as the reference point
-    "1_ref_2.2_5.0":       ("entry", 5.0,   2.2),
-    # --- initial-stop sweep at trail 5.0. Last run put the winner at the
-    #     TIGHTEST initial tested, i.e. on the edge of the grid, which is
-    #     exactly where an optimum that does not really exist likes to sit.
-    "2_init1.6_5.0":       ("entry", 5.0,   1.6),
-    "3_init1.8_5.0":       ("entry", 5.0,   1.8),
-    "4_init2.0_5.0":       ("entry", 5.0,   2.0),
-    # --- trail sweep at initial 2.2. 5.0 was also the WIDEST trail tested,
-    #     so the same edge problem applies. If PF keeps climbing to 9.0 the
-    #     "wide trail" finding is really "no trail at all", see F below.
-    "5_init2.2_5.5":       ("entry", 5.5,   2.2),
-    "6_init2.2_6.0":       ("entry", 6.0,   2.2),
-    "7_init2.2_7.0":       ("entry", 7.0,   2.2),
-    "8_init2.2_9.0":       ("entry", 9.0,   2.2),
-    # --- interior candidates, in case the corner was an artefact
-    "9_init1.8_6.0":       ("entry", 6.0,   1.8),
-    "A_init2.0_6.0":       ("entry", 6.0,   2.0),
-    "B_init2.0_7.0":       ("entry", 7.0,   2.0),
-    # --- same split with the trail on hc55, to re-ask the anchor question now
-    #     that the initial stop is no longer doing the anchor's job
-    "C_init2.0_hc55_5.0":  ("hc55",  5.0,   2.0),
-    "D_init2.2_hc55_6.0":  ("hc55",  6.0,   2.2),
-    # --- THE CONTROL. Trail so wide it can never ratchet past the initial
-    #     stop, so this is a FIXED stop at entry - 2.2*ATR with no trailing at
-    #     all. If it matches the best trailing rule, the trail is decoration
-    #     and the whole chandelier can go. Expect fewer closed trades, because
-    #     positions that never break the fixed stop stay open to the last bar.
-    "E_init2.2_notrail":   ("entry", 50.0,  2.2),
-    "F_init1.8_notrail":   ("entry", 50.0,  1.8),
+    # the candidate and its immediate neighbours. The boundary sweep already
+    # showed trail 5.0 is an interior optimum and that the trail anchor barely
+    # matters, so this run is not exploring — it is measuring drawdown on a
+    # decision that is otherwise made.
+    "1_cand_2.0_hc55_5.0": ("hc55",  5.0,   2.0),
+    "2_init1.8_hc55_5.0":  ("hc55",  5.0,   1.8),
+    "3_init2.2_hc55_5.0":  ("hc55",  5.0,   2.2),
+    "4_cand_2.0_entry_5.0": ("entry", 5.0,  2.0),
+    # best single-k rule, as a control: it wins on PF and loses on slot
+    # efficiency, so its drawdown is worth seeing too.
+    "5_hc55_k4.5":         ("hc55",  4.5,   None),
 }
 PROD_RULE = "0_prod"
 
@@ -260,8 +244,13 @@ BASELINE = "A_close_close"
 
 
 def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
-           stop_rule=PROD_RULE):
-    """Yield one dict per trade taken on this ticker, under one execution mode."""
+           stop_rule=PROD_RULE, want_path=False):
+    """Yield one dict per trade taken on this ticker, under one execution mode.
+
+    want_path adds t["path"], the day-by-day unrealised R while the position is
+    open. Needed for portfolio drawdown: a drawdown computed only from realised
+    exits is not a drawdown, it just hides open losses until they are booked.
+    """
     anchor_mode, kspec, k_init = STOP_RULES[stop_rule]
     closes = [r["close"] for r in rows]
     n = len(rows)
@@ -311,6 +300,7 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
         j, ex, peak = i + 1, None, entry
         mae_c, mae_l = entry, entry               # worst close / worst low while held
         hit_stop = None                           # stop level that produced the exit
+        path = []                                 # (date, unrealised R) per held bar
         while j < n:
             stop_prev = stop                      # what the app published last night
             run_hi = max(run_hi, rows[j]["close"])
@@ -321,6 +311,8 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
             peak = max(peak, rows[j]["close"])
             mae_c = min(mae_c, rows[j]["close"])
             mae_l = min(mae_l, rows[j]["low"])
+            if want_path:
+                path.append((rows[j]["date"], (rows[j]["close"] - entry) / r0))
 
             level = stop_prev if stop_ref == "prev" else stop
             px = rows[j]["low"] if trigger == "low" else rows[j]["close"]
@@ -360,6 +352,7 @@ def replay(ticker, rows, trigger="close", fill="close", stop_ref="same",
             "held": (ex if closed else n - 1) - i,
             "r0_pct": round(r0 / entry * 100, 3),
             "peak_R": round((peak - entry) / r0, 3),
+            "path": path if want_path else None,
             # Maximum Adverse Excursion: how far the trade went against you
             # before it worked. In R and in ATR-at-entry units.
             "mae_R": round((mae_c - entry) / r0, 3),
@@ -607,6 +600,127 @@ def compare_stops(by_rule):
     return out
 
 
+def simulate_portfolio(trades, slots=22, tier_floor=None, r0_floor=None):
+    """
+    Replay the trade list through a portfolio that can only hold `slots`
+    positions at once, then measure the equity curve and its drawdown.
+
+    Everything before this function assumed unlimited capital: it scored every
+    signal the rules produced. That is not the system being run. With ~22 slots
+    against ~170 live signals the binding question is which signals you get to
+    take, and a rule that earns more per trade can still lose if it holds each
+    slot longer. This is also the only place drawdown can be measured at all,
+    because drawdown is a property of the portfolio, not of a trade.
+
+    Selection when more signals arrive than there are free slots follows what
+    the site actually does: strong tier first, then widest stop distance.
+
+    Equity is kept in R units, marked to market daily (open positions included),
+    with constant risk per trade. At 0.25% of the account per trade, a drawdown
+    of D in R units is about D * 0.25% of the account.
+    """
+    rank = {"strong": 2, "mid": 1, "weak": 0}
+    cand = [t for t in trades if t.get("path") is not None]
+    if tier_floor is not None:
+        cand = [t for t in cand if rank.get(t.get("tier"), 1) >= tier_floor]
+    if r0_floor is not None:
+        cand = [t for t in cand if t["r0_pct"] >= r0_floor]
+    if not cand:
+        return None
+
+    by_day = {}
+    for t in cand:
+        by_day.setdefault(t["signal_date"], []).append(t)
+
+    # --- slot simulation
+    open_pos, taken, max_open = [], [], 0
+    for day in sorted(by_day):
+        open_pos = [p for p in open_pos if not p["exit_date"] or p["exit_date"] > day]
+        room = slots - len(open_pos)
+        if room > 0:
+            picks = sorted(by_day[day],
+                           key=lambda t: (-rank.get(t.get("tier"), 1), -t["r0_pct"]))
+            for t in picks[:room]:
+                open_pos.append(t)
+                taken.append(t)
+        max_open = max(max_open, len(open_pos))
+    if not taken:
+        return None
+
+    # --- daily equity in R: realised so far, plus mark-to-market on the open
+    realised, unreal = {}, {}
+    for t in taken:
+        if t["closed"] and t["exit_date"]:
+            realised[t["exit_date"]] = realised.get(t["exit_date"], 0.0) + t["R"]
+            hold = t["path"][:-1] if t["path"] else []
+        else:
+            hold = t["path"] or []
+        for d, r in hold:
+            unreal[d] = unreal.get(d, 0.0) + r
+
+    days = sorted(set(realised) | set(unreal))
+    eq, run, peak, dd, dd_date = [], 0.0, 0.0, 0.0, ""
+    for d in days:
+        run += realised.get(d, 0.0)
+        e = run + unreal.get(d, 0.0)
+        eq.append(e)
+        if e > peak:
+            peak = e
+        if peak - e > dd:
+            dd, dd_date = peak - e, d
+
+    # --- worst run of consecutive losers, in order of exit
+    streak = worst = 0
+    for t in sorted((x for x in taken if x["closed"]), key=lambda x: x["exit_date"]):
+        streak = streak + 1 if t["R"] <= 0 else 0
+        worst = max(worst, streak)
+
+    tot = sum(t["R"] for t in taken if t["closed"])
+    return {"signals": len(cand), "taken": len(taken),
+            "take_pct": round(len(taken) / len(cand) * 100, 1),
+            "totalR": round(tot, 1), "maxDD_R": round(dd, 1),
+            "dd_date": dd_date,
+            "R_per_DD": round(tot / dd, 2) if dd > 0 else None,
+            "maxDD_pct_at_025": round(dd * 0.25, 1),
+            "max_open": max_open,
+            "worst_loss_streak": worst,
+            "avg_held": round(sum(t["held"] for t in taken) / len(taken), 1)}
+
+
+def portfolio_report(by_rule, slots):
+    """Drawdown under the slot constraint, with and without the two rules
+    Aaron applies by hand (strong tier only; skip stop distance under 8%)."""
+    out = []
+    print("\n" + "=" * 104)
+    print(f"PORTFOLIO WITH {slots} SLOTS  —  drawdown, marked to market daily")
+    print("Every earlier table assumed unlimited capital. This one does not.")
+    print("R/DD is the number that decides: total R earned per R of worst")
+    print("drawdown. A rule that lifts totalR but lifts drawdown more is worse.")
+    print("=" * 104)
+    hdr = (f"{'rule':<22}{'filter':<14}{'signals':>8}{'taken':>7}{'take%':>7}"
+           f"{'totalR':>8}{'maxDD':>7}{'R/DD':>7}{'DD@0.25%':>10}{'streak':>8}"
+           f"{'held':>6}")
+    print(hdr)
+    filters = (("none", None, None),
+               ("strong", 2, None),
+               ("strong+R0>=8", 2, 8.0))
+    for name in STOP_RULES:
+        for lab, tf, rf in filters:
+            p = simulate_portfolio(by_rule[name], slots, tf, rf)
+            if not p:
+                continue
+            out.append(dict(rule=name, filter=lab, slots=slots, **p))
+            print(f"{name:<22}{lab:<14}{p['signals']:>8}{p['taken']:>7}"
+                  f"{p['take_pct']:>6.1f}%{p['totalR']:>8.0f}{p['maxDD_R']:>7.1f}"
+                  f"{(p['R_per_DD'] or 0):>7.2f}{p['maxDD_pct_at_025']:>9.1f}%"
+                  f"{p['worst_loss_streak']:>8}{p['avg_held']:>6.0f}")
+        print()
+    print("take% is the slot constraint made visible: the share of signals the")
+    print("portfolio actually had room for. Rules that hold longer take fewer.")
+    print("=" * 104)
+    return out
+
+
 def paired_vs_prod(by_rule):
     """
     Every rule is scored on the SAME signals, so the rules are paired samples.
@@ -751,6 +865,10 @@ def main():
     ap.add_argument("--years", type=float, default=5.0)
     ap.add_argument("--limit", type=int, default=0, help="only N tickers (smoke test)")
     ap.add_argument("--sleep", type=float, default=0.12)
+    ap.add_argument("--slots", type=int, default=22,
+                    help="position slots for the portfolio drawdown simulation")
+    ap.add_argument("--no-dd", action="store_true",
+                    help="skip the portfolio simulation (saves memory)")
     ap.add_argument("--boot", type=int, default=BOOT_N,
                     help="bootstrap resamples for the confidence intervals")
     ap.add_argument("--stop-grid", action="store_true",
@@ -800,7 +918,7 @@ def main():
         if by_rule is not None:
             for name in STOP_RULES:
                 for t in replay(c["ticker"], rows, gtrig, gfill, gsref,
-                                stop_rule=name):
+                                stop_rule=name, want_path=not args.no_dd):
                     by_rule[name].append(t)
         for r in rows:                        # daily breadth = share of mktok True
             if r.get("mktok") is not None:
@@ -886,6 +1004,13 @@ def main():
         print(f"(stop grid scored under execution mode {args.grid_mode}, "
               f"{BOOT_N} bootstrap resamples)")
         paired_vs_prod(by_rule)
+        if not args.no_dd:
+            prows = portfolio_report(by_rule, args.slots)
+            write_rows(os.path.join(OUT_DIR, "portfolio.csv"), prows,
+                       ["rule", "filter", "slots", "signals", "taken",
+                        "take_pct", "totalR", "maxDD_R", "R_per_DD",
+                        "maxDD_pct_at_025", "dd_date", "max_open",
+                        "worst_loss_streak", "avg_held"])
     mae_report(trades)
     report(trades)
     print("\nNOTE: config.csv is today's universe, so these numbers carry "
