@@ -431,7 +431,7 @@ SKHY,NASDAQ,SOXX,半导体,半导体
 GSK,NYSE,XLV,医疗健康,制药
 UL,NYSE,XLP,消费,消费必需品
 KO,NYSE,XLP,消费,消费必需品
-FTNT,NASDAQ,IGV,软件,软件/网络安全
+FTNT,NASDAQ,IGV,软件,网络安全
 CORT,NASDAQ,XBI,医疗健康,生物制药
 LRCX,NASDAQ,SOXX,半导体,半导体设备
 AVTR,NYSE,XLV,医疗健康,生命科学工具
@@ -503,3 +503,8 @@ HWM,NYSE,ITA,航空国防,航空航天国防
 CAKE,NASDAQ,XLY,消费,餐饮
 VSXY,NYSE,XLY,消费,服饰零售
 DEO,NYSE,XLP,消费,消费必需品
+ACMR,NASDAQ,SOXX,半导体,半导体设备
+AMBQ,NYSE,SOXX,半导体,半导体
+APPS,NASDAQ,IGV,软件,软件
+BLZE,NASDAQ,IGV,软件,软件
+FSLY,NYSE,IGV,软件,软件
