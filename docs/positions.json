@@ -252,5 +252,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1786437833924
+  },
+  {
+    "ticker": "CGON",
+    "file": "CGON",
+    "name": "CG Oncology, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-08-10",
+    "entryPrice": 76.13,
+    "initialStop": 62.56,
+    "r0": 13.569999999999993,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786458076718
   }
 ]
