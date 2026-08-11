@@ -173,7 +173,7 @@ function stopCell(s){
   const v=stopPct(s); if(v==null) return "";
   return flagged(fmt.pct(v), v<STOPW.narrow,
     `止损距离 ${fmt.pct(v)} 偏窄（&lt;${fmt.pct(STOPW.narrow)}）：易被日常噪音扫掉&#10;`+
-    `占用约 ${fmt.n0(1/v)}× 单笔风险额 · 回测 &lt;5% 档最差（PF 1.15）`);
+    `占用约 ${fmt.n0(1/v)}× 单笔风险额 · 回测里止损越宽越赚`);
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
