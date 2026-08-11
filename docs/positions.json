@@ -173,7 +173,13 @@
     "initialStop": 44.34,
     "r0": 6.409999999999997,
     "shares": 5,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-08-11",
+        "price": 54.24,
+        "shares": 4
+      }
+    ],
     "status": "open",
     "createdAt": 1785853986302
   },
@@ -218,5 +224,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1785966289951
+  },
+  {
+    "ticker": "ANDG",
+    "file": "ANDG",
+    "name": "Andersen Group Inc.",
+    "major": "金融地产",
+    "entryDate": "2026-08-05",
+    "entryPrice": 49.79,
+    "initialStop": 40.11,
+    "r0": 9.68,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786046792931
+  },
+  {
+    "ticker": "CRWD",
+    "file": "CRWD",
+    "name": "CrowdStrike Holdings, Inc.",
+    "major": "软件",
+    "entryDate": "2026-08-10",
+    "entryPrice": 214.5,
+    "initialStop": 180.32,
+    "r0": 34.18000000000001,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786437833924
   }
 ]
