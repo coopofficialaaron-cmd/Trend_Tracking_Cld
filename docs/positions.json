@@ -266,5 +266,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1786458076718
+  },
+  {
+    "ticker": "CDE",
+    "file": "CDE",
+    "name": "Coeur Mining, Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-12",
+    "entryPrice": 18.75,
+    "initialStop": 15.13,
+    "r0": 3.619999999999999,
+    "shares": 12,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786575204892
   }
 ]
