@@ -1,17 +1,11 @@
 "use strict";
 
 const SIG_CLASS = {"Enter":"Enter","Wait":"Wait","Too High":"TooHigh","Bad Market":"BadMarket"};
-// "avoid chasing the top" thresholds — a stock is flagged 过热 if ANY holds.
-// Only volatility/extension matter here; ER measures trend strength, not heat.
-const DEV_HOT = 2.5;      // ATR偏离(nR) > 2.5
-const SELFVOL_HOT = 0.30; // ATR自身波动 > 30%
-
-function hotReasons(s){
-  const r=[];
-  if(s.dev!=null && s.dev>DEV_HOT) r.push(`ATR偏离 ${fmt.n1(s.dev)} > ${DEV_HOT}`);
-  if(s.selfvol!=null && s.selfvol>SELFVOL_HOT) r.push(`ATR自身波动 ${fmt.pct(s.selfvol)} > ${SELFVOL_HOT*100}%`);
-  return r;
-}
+// 过热判定已移除：5 年回测（4836 笔）显示 ATR偏离对结果没有信息量
+// （dev>2.5 的 PF 1.56 vs dev<=2.5 的 1.57，分档亦非单调），而原先的四条件复合
+// 定义在 99.3% 的信号上都会触发（ER55<0.3 一项几乎恒真），等同于噪音。
+// 另外它对数据抖动极敏感：dev 骑在阈值上时，同日不同 build 会来回翻标签。
+// dev / selfvol 保留为中性数据列，仅作读数，不再参与任何判定或提示。
 
 // 突破新鲜度 = (HC55 − HC22) / ATR14  ——「这是真突破,还是低点反弹?」
 // HC55/HC22 = 前 55/22 天的最高收盘(与原 Excel 模型同一算法,引擎直接算好)
@@ -131,7 +125,7 @@ const COLS = [
   {k:"major",   t:"大类", l:true, s:true, f:(s,st)=>st.major?`<span class="type-tag major">${st.major}</span>`:"", v:(s,st)=>st.major||""},
   {k:"sub",     t:"小类", l:true, s:true, f:(s,st)=>st.sub?`<span class="type-tag">${st.sub}</span>`:"", v:(s,st)=>st.sub||""},
   // ② 结论:能不能买(信号 / 趋势结构 / 大盘)
-  {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+earnBadge(st)+hotBadge(s), v:s=>s.signal},
+  {k:"signal",  t:"信号", la:true, f:(s,st)=>sigTag(s.signal)+earnBadge(st), v:s=>s.signal},
   {k:"struct",  t:"结构", la:true, f:s=>structCell(s), v:s=>structSort(s)},
   {k:"mktok",   t:"大盘", la:true, f:s=>s.mktok==null?"":(s.mktok?`<span class="pos">✓</span>`:`<span class="neg">✕</span>`), v:s=>s.mktok?1:0},
   // ③ 结构明细(结构列就是这三项 + ER55 的汇总)
@@ -156,12 +150,10 @@ const COLS = [
   {k:"er22",    t:"ER22",        f:s=>fmt.er(s.er22), v:s=>s.er22},
   {k:"er55",    t:"ER55",        f:s=>fmt.er(s.er55), v:s=>s.er55},
   // ATR 一族(ATR14/ATR%/自身波动/偏离/倍数/EntryBuf)只放在详情页;
-  // 过热判定仍在,靠信号列的 ⚠过热 徽标和整行红底提示
 ];
 
 function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title="${tip}">⚠</span>` : txt; }
 function sigTag(s){ return s?`<span class="sig ${SIG_CLASS[s]||"Wait"}">${s}</span>`:""; }
-function hotBadge(s){ const r=hotReasons(s); return r.length?`<span class="hot-badge" title="过热风险，需谨慎：&#10;· ${r.join("&#10;· ")}">⚠ 过热</span>`:""; }
 
 /* 止损过窄告警:R0/价 < 3.5% 时止损落在日常噪音里(R0/ATR ≈ 倍数+Buf+0.3−新鲜度,
    新鲜度高时会被压到只剩约 1 个 ATR)。4.6 年样本:止损% <5% 是最差一档(PF 1.15),
@@ -614,8 +606,7 @@ function render(){
   body.innerHTML = list.map(st=>{
     const s=curSummary(st);
     const badTier = s.signal==="Enter" && stopNarrow(s);   // 止损过窄(原 C 级入场质量)
-    const hot = (view==="signals") && (hotReasons(s).length>0 || badTier);
-    const cls = hot ? "hot" : (s.signal==="Enter" ? "enter" : "");
+    const cls = ((view==="signals") && badTier) ? "hot" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
       COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
@@ -678,9 +669,9 @@ function renderDetailBody(st){
     ["ATR倍数",fmt.n1(s.mult)],["EntryBuffer",fmt.n2(s.buf)],
   ];
   const cardHTML=(arr)=>arr.map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
-  const flags=hotReasons(s);
-  const note = flags.length
-      ? `⚠ 过热风险，需谨慎：${flags.join("；")}`
+  const narrow = s.signal==="Enter" && stopNarrow(s);
+  const note = narrow
+      ? "⚠ 止损过窄：距止损不足约 1 个 ATR，容易被日常噪音打掉。"
       : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。":"")
   const asofNote = asOfDate ? (()=>{
     const hs=deriveSummary(rowAsOf(st, asOfDate));
@@ -699,7 +690,7 @@ function renderDetailBody(st){
       ${sigTag(s.signal)}
       <span class="note">对标 ${st.benchmark}（${DATA.market[st.benchmark]&&DATA.market[st.benchmark].ok?"向上":"回避"}）· 账户 $${fmt.n0(ACCOUNT)} × 每笔 ${RISKPCT}% = 单笔可亏 $${fmt.n0(perTradeRisk())} · 突破确认 +${fmt.pct(st.breakout)}</span>
     </div>
-    ${note?`<div class="${flags.length?"hot-banner":"calm-note"}">${note}</div>`:""}
+    ${note?`<div class="${narrow?"hot-banner":"calm-note"}">${note}</div>`:""}
     ${asofNote}
     ${(()=>{const f=earnFlag(st);return f?`<div class="earn-banner">${EARN_ICO} ${f.tip}</div>`:"";})()}
     <div class="hero">
