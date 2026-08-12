@@ -33,8 +33,10 @@ function freshCell(v){
   if(v==null) return "";
   if(v<0) v=0;                       // HC55 ⊇ HC22 的窗口，负值只是浮点误差
   return flagged(fmt.n1(v), v>FRESH_WARN,
-    `新鲜度 ${fmt.n1(v)} 偏高（≥${FRESH_WARN}）：止损只剩约 1 个 ATR，落在日常噪音里&#10;`+
-    `回测该档 胜率 18% · 中位 R −0.98 · PF 1.18`);
+    `新鲜度 ${fmt.n1(v)} 偏高（≥${FRESH_WARN}）&#10;`+
+    `这不是真突破：股价只反弹到半途，上方还压着前期高点。&#10;`+
+    `买入价离止损太近，一天的正常波动就可能把你扫出场。&#10;`+
+    `回测里这类买点十次约八次亏损，而且亏的时候基本亏满设定的可亏金额。`);
 }
 
 // 回撤%:按价格算的深度,不受 ATR 大小影响(新鲜度用 ATR 归一化,会被高波动摊薄)
@@ -68,8 +70,10 @@ function atrCell(v){
   if(v==null) return "";
   if(v<STRUCT.atrWeak)
     return flagged(fmt.pct(v), true,
-      `ATR% ${fmt.pct(v)} 偏低：趋势通常只走 3~4 个 ATR，换算下来涨幅有限；`+
-      `回测该档占 35% 的交易，却只贡献 4.7% 的利润（PF 1.07）`);
+      `ATR% ${fmt.pct(v)} 偏低&#10;`+
+      `这只股票日常波动太小，涨不出幅度：一段趋势通常只走 3~4 倍的日均波动，`+
+      `波动小意味着涨幅上限也小。&#10;`+
+      `回测里这一档占了三分之一的交易，却只贡献不到 5% 的利润。`);
   return fmt.pct(v);
 }
 // 止损距离(占价格%)= R0/收盘。既是同档内的排序依据,也直接决定占用资金:
@@ -87,8 +91,8 @@ function structTier(s){
   const notes=[];
   if(a!=null) notes.push(`ATR% ${fmt.pct(a)} · ${
     a<STRUCT.atrWeak?"波动不足，走不出幅度":(a>=STRUCT.atrStrong?"波动充足":"中等")}`);
-  if(sp!=null) notes.push(`止损距离 ${fmt.pct(sp)} · 占用约 ${fmt.n1(1/sp)}× 单笔风险额`);
-  if(s.er55!=null) notes.push(`ER55 ${fmt.er(s.er55)}（参考：越低越好，强档内单调）`);
+  if(sp!=null) notes.push(`止损距离 ${fmt.pct(sp)} · 买入市值约为可亏金额的 ${fmt.n0(1/sp)} 倍`);
+  if(s.er55!=null) notes.push(`ER55 ${fmt.er(s.er55)} · 越低越好（长期横盘后启动优于已走完一大段）`);
   return {tier, notes, sp};
 }
 function structCell(s){
@@ -164,8 +168,10 @@ function stopNarrow(s){ const v=stopPct(s); return v!=null && v<STOPW.narrow; }
 function stopCell(s){
   const v=stopPct(s); if(v==null) return "";
   return flagged(fmt.pct(v), v<STOPW.narrow,
-    `止损距离 ${fmt.pct(v)} 偏窄（&lt;${fmt.pct(STOPW.narrow)}）：易被日常噪音扫掉&#10;`+
-    `占用约 ${fmt.n0(1/v)}× 单笔风险额 · 回测里止损越宽越赚`);
+    `止损距离 ${fmt.pct(v)} 偏窄（不足 ${fmt.pct(STOPW.narrow)}）&#10;`+
+    `止损离买入价太近，容易被日常波动扫掉。&#10;`+
+    `而且占用资金多：要承担同样的可亏金额，得买入约 ${fmt.n0(1/v)} 倍的市值。&#10;`+
+    `回测里止损越宽赚得越多。`);
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
@@ -605,8 +611,11 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
     const s=curSummary(st);
-    const badTier = s.signal==="Enter" && stopNarrow(s);   // 止损过窄(原 C 级入场质量)
-    const cls = ((view==="signals") && badTier) ? "hot" : (s.signal==="Enter" ? "enter" : "");
+    // 信号页不用行级底色：每行都是 Enter，涂色不携带信息；而各类警示已在
+    // 它描述的那一列里表达（ATR% 与 止损% 各有 ⚠，结构列另有 强/中/弱 徽标），
+    // 再叠一层整行红底既重复，又会让「止损过窄」显得比 ATR% 分档更重要 —— 而后者
+    // 才是逐年 5/5 成立的那条。总览页保留绿底，那里它确实区分 Enter 与其他信号。
+    const cls = (view==="signals") ? "" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
       COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
