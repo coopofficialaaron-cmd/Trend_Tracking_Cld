@@ -100,6 +100,7 @@ def append_history_log(stocks):
 RISK_DEFAULT = 25.0          # 可亏限额 $
 BREAKOUT_DEFAULT = 0.01      # 突破确认 +1%
 LOOKBACK_DAYS = 290          # ~400 calendar days, matching the original sheet window
+DATA_GAPS = {}               # 重试后仍有缺口的股票 -> 缺失日期，供收尾汇总
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
@@ -391,23 +392,66 @@ def main():
     # Self-heal: some tickers fall a day behind when their first fetch fell back to
     # Stooq (slower EOD). Re-fetch the stragglers via Yahoo to pull them level with
     # the freshest date the rest of the universe reached.
+    #
+    # 同样重要的是"中间缺口"：偶发的抓取会漏掉几根中间的 K 线，而末尾日期仍是最新，
+    # 所以只查末端发现不了。又因为输出被截断成固定 290 行，缺几天就会往前多补几天老数据，
+    # 行数永远正常 —— 完全无法从文件本身看出异常。但 MA20/ATR14 是窗口和递归指标，
+    # 缺几天会算出不同的 atr14 → 止损价和 R0 都跟着偏（实测差过 5%）。
     if not use_seed:
         cfg_by = {c["ticker"]: c for c in cfg}
         dated = [s for s in stocks if s.get("rows")]
         if dated:
             target = max(s["rows"][-1]["date"] for s in dated)
-            lagging = [s for s in stocks if s.get("rows") and s["rows"][-1]["date"] < target]
-            if lagging:
-                sys.stderr.write(f"[heal] retrying {len(lagging)} tickers behind {target}\n")
-            for s in lagging[:150]:
+
+            # 交易日历：优先用 SPY（本就常驻抓取），否则退回所有对标日期的并集
+            cal_src = bench_ok.get("SPY") or {}
+            if not cal_src:
+                cal_src = {d: True for v in bench_ok.values() for d in v}
+            cal = sorted(cal_src)
+            recent = set(cal[-60:])
+
+            def missing(s):
+                """该股最近 60 个交易日里缺了哪些（只算它自己已覆盖到的日期之前）"""
+                if not recent or not s.get("rows"):
+                    return []
+                last = s["rows"][-1]["date"]
+                have = {r["date"] for r in s["rows"]}
+                return sorted(d for d in recent if d <= last and d not in have)
+
+            lag = {s["ticker"] for s in stocks if s.get("rows") and s["rows"][-1]["date"] < target}
+            gap = {s["ticker"]: missing(s) for s in stocks
+                   if s.get("rows") and s["ticker"] not in lag and missing(s)}
+
+            if lag:
+                sys.stderr.write(f"[heal] retrying {len(lag)} tickers behind {target}\n")
+            if gap:
+                sample = ", ".join(f"{t}(缺{len(v)}天)" for t, v in list(gap.items())[:8])
+                sys.stderr.write(f"[heal] retrying {len(gap)} tickers with mid-series gaps: {sample}\n")
+
+            suspect = [s for s in stocks if s["ticker"] in lag or s["ticker"] in gap]
+            for s in suspect[:150]:
                 t = s["ticker"]
                 rows2 = fetch_yahoo(t)
                 time.sleep(0.15)
-                if rows2 and rows2[-1][0] > s["rows"][-1]["date"]:
+                if not rows2:
+                    continue
+                # 接受新序列的条件：末端更新，或对最近 60 个交易日的覆盖更完整
+                have_old = len(recent & {r["date"] for r in s["rows"]})
+                have_new = len(recent & {r[0] for r in rows2})
+                if rows2[-1][0] > s["rows"][-1]["date"] or have_new > have_old:
                     c = cfg_by[t]
                     r2, sm2 = compute_stock(rows2, bench_ok.get(c["benchmark"], {}),
                                             risk=c["risk"], breakout=c["breakout"])
                     s["rows"], s["summary"] = r2, sm2
+
+            # 重试后仍有缺口的，明确报出来 —— 这些股票的止损价与股数不可信
+            still = {s["ticker"]: missing(s) for s in stocks if missing(s)}
+            if still:
+                sys.stderr.write(
+                    f"[WARN] {len(still)} tickers still have gaps after retry "
+                    f"(止损价/R0 可能偏差): "
+                    + ", ".join(f"{t}{v}" for t, v in list(still.items())[:10]) + "\n")
+            DATA_GAPS.update(still)
 
     have = sum(1 for s in stocks if s.get("rows"))
     if have == 0 and not use_seed:
@@ -463,6 +507,12 @@ def main():
           f"{have}/{len(stocks)} with data, {enter} ENTER, source={src}")
 
     # 对标健康度汇总：放在最后一行，Actions 日志里最显眼
+    if DATA_GAPS:
+        print(f"!! DATA GAPS: {len(DATA_GAPS)} tickers incomplete after retry "
+              f"-> {', '.join(sorted(DATA_GAPS))}")
+    else:
+        print("data gaps: none")
+
     print(f"benchmarks: {len(benches)} total, "
           f"{len(benches) - len(bench_dead)} ok, {len(bench_dead)} dead, {len(bench_stale)} stale")
     if bench_dead:
