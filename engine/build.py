@@ -327,7 +327,10 @@ def main():
         sys.stderr.write("[FATAL] 已中止，未抓取任何行情。请修正 config.csv 后重跑。\n")
         sys.exit(1)
 
-    benches = sorted({c["benchmark"] for c in cfg if c["benchmark"]})
+    # SPY / QQQ 作为全市场与科技大盘的参照，始终抓取并显示在大盘条上，
+    # 即使没有任何股票以它们为对标（benches 原本只从 config 现算，会导致它们消失）。
+    ALWAYS_ON = {"SPY", "QQQ"}
+    benches = sorted({c["benchmark"] for c in cfg if c["benchmark"]} | ALWAYS_ON)
 
     if use_seed:
         seed = json.load(open(SEED, encoding="utf-8"))
