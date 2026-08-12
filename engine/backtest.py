@@ -803,6 +803,59 @@ def mae_report(trades):
     print("=" * 66)
 
 
+def _sel(ts, key, lo, hi):
+    """lo 含、hi 不含；None 表示不设界"""
+    return [t for t in ts if t.get(key) is not None
+            and (lo is None or t[key] >= lo) and (hi is None or t[key] < hi)]
+
+
+# (标签, 字段, A组范围, B组范围) —— 假设都写成「A 应当优于 B」
+CONSISTENCY_SPECS = [
+    ("ATR%    A:>=4    B:<2.5",   "atr_pct", (4.0, None),  (None, 2.5)),
+    ("R0/px%  A:>=12   B:<5",     "r0_pct",  (12,  None),  (None, 5)),
+    ("ER22    A:>=0.35 B:<0.15",  "er22",    (0.35, None), (None, 0.15)),
+    ("ER55    A:>=0.20 B:<0.05",  "er55",    (0.20, None), (None, 0.05)),
+    ("dev     A:>=2.5  B:<2.5",   "dev",     (2.5, None),  (None, 2.5)),
+    ("selfvol A:<-0.1  B:>0.1",   "selfvol", (None, -0.1), (0.1, None)),
+    ("fresh   A:<0.5   B:>=3.0",  "fresh",   (None, 0.5),  (3.0, None)),
+]
+
+
+def year_consistency(closed, specs=CONSISTENCY_SPECS, min_n=25):
+    """逐年方向一致性 —— 判断一个因子是真规律还是牛市 artifact 的最快检验。
+
+    全样本 PF 和前后半段都可能被少数强势年份带偏：2024-2026 的多头行情足以
+    把一个只在牛市成立的因子推成漂亮的单调曲线。逐年看次序有没有翻转要严得多。
+
+    历史对照（5 年 / 4836 笔）：ATR% 强>弱 5/5 成立，已定案为规则；
+    selfvol 收缩>扩张只有 3/5（2022、2023 方向相反），全样本的单调性纯属
+    牛市年份贡献 —— 这正是「过热」指标当年翻车的同一个模式。
+    """
+    years = sorted({t["signal_date"][:4] for t in closed})
+    if not years:
+        return
+    print("\n--- year-by-year direction consistency ---")
+    print(f"每组样本 <{min_n} 笔显示 '-' 且不计入判定；最后一列是 A 优于 B 的年份数")
+    print(f"\n{'factor':<26}" + "".join(f"{y:>8}" for y in years) + f"{'A>B':>8}")
+    for lab, key, a_rng, b_rng in specs:
+        rows, ok, tot = {"A": [], "B": []}, 0, 0
+        for y in years:
+            ty = [t for t in closed if t["signal_date"][:4] == y]
+            sa = stats([t["R"] for t in _sel(ty, key, *a_rng)])
+            sb = stats([t["R"] for t in _sel(ty, key, *b_rng)])
+            good = sa and sb and sa["n"] >= min_n and sb["n"] >= min_n
+            if good:
+                tot += 1
+                ok += sa["pf"] > sb["pf"]
+            for tag, s in (("A", sa), ("B", sb)):
+                rows[tag].append(f"{s['pf']:.2f}" if s and s["n"] >= min_n else "-")
+        verdict = f"{ok}/{tot}" if tot else "-"
+        mark = "  <<" if tot and ok == tot else ""
+        print(f"{lab:<26}" + "".join(f"{v:>8}" for v in rows["A"]) + f"{verdict:>8}{mark}")
+        print(f"{'  (B组)':<26}" + "".join(f"{v:>8}" for v in rows["B"]))
+    print("\n标 << 的是逐年方向从不翻转的因子；其余的全样本表现很可能来自特定行情。")
+
+
 def report(trades):
     closed = [t for t in trades if t["closed"]]
     print("\n" + "=" * 66)
@@ -856,6 +909,8 @@ def report(trades):
             fb = f"{b['pf']:.2f}" if b and b["n"] >= 20 else "-"
             print(f"{k:<14}{(a['n'] if a else 0):>9}{fa:>10}"
                   f"{(b['n'] if b else 0):>10}{fb:>11}")
+
+    year_consistency(closed)
 
 
 # ---------------------------------------------------------------- main
