@@ -1,6 +1,6 @@
 /* 持仓管理 — 与信号引擎同源、同收盘价口径、同 ATR 自适应止损
    初始止损 = 入场当日吊灯候选 cand（定 R0）
-   今日止损 = 入场锚定：从入场日起对每日 cand 取棘轮最大（只升不降，去券商挂这个）
+   今日止损 = 入场锚定：从入场日起对每日 cand 取棘轮最大（只升不降；每晚拿收盘价与它比较，跌破则次日开盘市价卖出）
              入场日晚于最后一根数据时（当晚建仓、入场日填次日）→ 不棘轮，直接用初始止损
    持仓存 localStorage；可同步到仓库 positions.json 跨设备查看。 */
 "use strict";
@@ -215,7 +215,7 @@ function render(){
       <td>${fmt.n2(c.avgCost)}</td>
       <td>${fmt.n1(c.shares)}</td>
       <td>${fmt.n2(c.close)}</td>
-      <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日 +"+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 需去券商改单"):(c.stopFresh?"新建仓，需首次挂止损":"与上一交易日相同，无需改单")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
+      <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日抬高 "+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 今晚用新值比收盘"):(c.stopFresh?"新建仓，今晚起用这个比收盘":"与上一交易日相同")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
       <td>${sig}</td>
       <td>${signed(c.pnl,fmt.money)}</td>
       <td>${signed(c.pnlPct,fmt.signedPct0)}</td>
@@ -252,13 +252,15 @@ function renderTotals(open){
   const ifstopPct=ACCOUNT>0?ifstop/ACCOUNT:0;
   const chips=Object.entries(bySec).sort((a,b)=>b[1]-a[1]).map(([m,v])=>{
     const p=mkt>0?v/mkt:0; return `<span class="chip ${p>0.4?"hot":""}">${m} <b>${(p*100).toFixed(0)}%</b></span>`; }).join("");
-  const nChg=open.filter(({c})=>c.stopChanged||c.stopFresh).length;
+  const nSell=open.filter(({c})=>c.exitNow).length;
+  const nBuy=open.filter(({c})=>c.canAdd).length;
   el.innerHTML=`
     <span class="stat big">持仓 <b>${open.length}</b> 笔</span>
     <span class="stat">市值 <b>${fmt.money(mkt)}</b></span>
     <span class="stat">浮盈 ${signed(pnl,fmt.money)} <span style="color:var(--faint)">(${cost>0?fmt.signedPct(pnl/cost):""})</span></span>
     <span class="stat" title="假设此刻所有持仓都被各自的止损打掉，相对成本的总盈亏">若全部止损 ${signed(ifstop,fmt.money)} <span style="color:var(--faint)">(${fmt.signedPct(ifstopPct)})</span></span>
-    <span class="stat sep" title="止损较上一交易日抬高、或新建仓需首次挂单的笔数">今日需改单 <b style="color:${nChg?"var(--accent)":"var(--faint)"}">${nChg}</b> 笔</span>
+    <span class="stat sep" title="收盘已跌破止损、需次日开盘市价卖出的笔数">明早卖出 <b style="color:${nSell?"var(--bad)":"var(--faint)"}">${nSell}</b> 笔</span>
+    <span class="stat" title="四道闸门全过、可在次日开盘加仓的笔数">明早加仓 <b style="color:${nBuy?"var(--enter)":"var(--faint)"}">${nBuy}</b> 笔</span>
     <span class="expo"><span style="color:var(--faint);font-size:11.5px">板块敞口</span>${chips}</span>`;
 }
 
@@ -510,7 +512,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
       <p class="psub">${c.s.name||""} · ${c.s.major||""} / ${c.s.sub||""}</p>
       ${stopChartSVG(rows,h,c)}
       <dl class="kv">
-        <dt>今日止损（去券商改这个）</dt><dd class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" style="font-size:15px">${fmt.n2(c.stop)}${c.stopChanged?`<span style="font-size:11px;color:var(--enter)"> ↑ +${fmt.n2(c.stopDelta)}</span>`:(c.stopFresh?'<span style="font-size:11px;color:var(--muted)"> 首次</span>':'<span style="font-size:11px;color:var(--faint)"> 未变</span>')}</dd>
+        <dt>今日止损（收盘跌破 → 次日开盘卖出）</dt><dd class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" style="font-size:15px">${fmt.n2(c.stop)}${c.stopChanged?`<span style="font-size:11px;color:var(--enter)"> ↑ +${fmt.n2(c.stopDelta)}</span>`:(c.stopFresh?'<span style="font-size:11px;color:var(--muted)"> 首次</span>':'<span style="font-size:11px;color:var(--faint)"> 未变</span>')}</dd>
         <dt>现价 / 距止损</dt><dd>${fmt.n2(c.close)} / ${c.distPct==null?"":fmt.pct(c.distPct)}${c.distATR==null?"":'<span style="color:var(--faint)"> · '+c.distATR.toFixed(1)+' ATR</span>'}</dd>
         <dt>均价成本 / 股数</dt><dd>${fmt.n2(c.avgCost)} / ${fmt.n1(c.shares)}</dd>
         <dt>初始止损 / R0</dt><dd>${fmt.n2(h.initialStop)} / ${fmt.n2(h.r0)}</dd>
