@@ -280,5 +280,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1786575204892
+  },
+  {
+    "ticker": "AUGO",
+    "file": "AUGO",
+    "name": "Aura Minerals Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-13",
+    "entryPrice": 77.16,
+    "initialStop": 60.52,
+    "r0": 16.639999999999993,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786624475161
+  },
+  {
+    "ticker": "DIOD",
+    "file": "DIOD",
+    "name": "Diodes Incorporated",
+    "major": "半导体",
+    "entryDate": "2026-08-13",
+    "entryPrice": 103,
+    "initialStop": 95.5,
+    "r0": 7.5,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1786624504147
   }
 ]
