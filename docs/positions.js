@@ -180,6 +180,17 @@ function compute(h){
 
 /* ===== 表格 ===== */
 const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","距止损(ATR)","若止损","加仓",""];
+/* 距止损 ATR 倍数：<2 打 ⚠（与信号页各列自己告警的做法一致，不再给「持有」标签染色）
+   含义是"一两天的正常波动就够碰到止损"，不是"这笔不好"——回测里 1.5~2.5 ATR 档 PF 1.76，
+   高于 >=3.75 档的 1.59。阈值 2.0 是启发式，不是回测标定出来的。 */
+const ATR_NEAR=2.0;
+function atrDistCell(c){
+  if(c.distATR==null) return "";
+  const t=c.distATR.toFixed(1);
+  return c.distATR<ATR_NEAR
+    ? `${t}<span class="warn-flag" title="距止损只有 ${t} 个日均波动（ATR）&#10;一两天的正常波动就够碰到止损，这笔很可能很快就要做决定。&#10;不代表这笔不好，只代表它不是能放很久的仓位。">⚠</span>`
+    : t;
+}
 /* 排序：需要动作的在上面 —— 离场（明早挂单卖出） → 可加仓（明早挂单买入） → 其余按距止损 ATR 升序
    （最可能明天被打掉的浮上来，跑得最顺的沉到底部，那些不需要你动手） */
 function actionRank(c){ return c.exitNow?0:(c.canAdd?1:2); }
@@ -206,8 +217,7 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
-    const near=(c.distATR!=null)?(c.distATR<2):(c.distPct!=null&&c.distPct<0.05);
-    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ${near?"warn":"ok"}">持有</span>`;
+    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ok">持有</span>`;
     const addCell=c.canAdd?`<span class="tag ok">可加 ${c.addShares} 股</span>`:`<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
       <td class="l"><b>${h.ticker}</b></td>
@@ -221,7 +231,7 @@ function render(){
       <td>${signed(c.pnlPct,fmt.signedPct0)}</td>
       <td>${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
       <td>${c.distPct==null?"":fmt.pct0(c.distPct)}</td>
-      <td title="还需几个典型日波幅（ATR）才会打到止损；&lt;2 表示一两天的正常波动就够">${c.distATR==null?"":c.distATR.toFixed(1)}</td>
+      <td title="还需几个典型日波幅（ATR）才会打到止损">${atrDistCell(c)}</td>
       <td>${signed(c.lockedIfStop,fmt.money)}</td>
       <td>${addCell}</td>
       <td><button class="mini" data-open="${i}">管理</button></td>
@@ -329,6 +339,20 @@ function saveNewPosition(){
   POS.push({ticker:tk,file:SUM[tk].file,name:SUM[tk].name,major:SUM[tk].major,
     entryDate:date,entryPrice:price,initialStop:stop,r0:r.r0,shares:r.shares,adds:[],status:"open",createdAt:Date.now()});
   setLiveFromRows(tk); savePositions(); closeAdd(); render();
+}
+
+/* 加仓框里显示信号表当前状态。只是让你看见自己在追高/接回调，不做硬性拦截：
+   加仓机制本身不在回测里（replay 在持仓期间跳过重复信号），而买入区间跟着 22 日高点走，
+   一笔已经跑出利润的仓位收盘几乎不可能落回那个窄带，所以把 Enter 设成闸门等于取消加仓。 */
+function signalNote(c){
+  const s=c.s||{}, sig=s.signal||"—", cl=num(c.close), mx=num(s.maxentry), mn=num(s.minentry);
+  let extra="";
+  if(cl!=null&&mx!=null&&cl>mx) extra=`收盘高于买入上限 ${fmt.n2(mx)}，相当于追高 ${fmt.signedPct((cl-mx)/mx)}`;
+  else if(cl!=null&&mn!=null&&cl<mn) extra=`收盘低于买入下限 ${fmt.n2(mn)}，相当于接回调 ${fmt.signedPct((cl-mn)/mn)}`;
+  else if(cl!=null&&mn!=null&&mx!=null) extra=`收盘落在买入区间 ${fmt.n2(mn)}–${fmt.n2(mx)} 内`;
+  if(s.mktok===false) extra=(extra?extra+"；":"")+"大盘不允许新仓";
+  return `<div class="why" style="margin-top:6px;border-top:1px solid var(--line);padding-top:6px">
+    信号表现在是 <b>${sig}</b>${extra?" · "+extra:""}</div>`;
 }
 
 /* ===== 止损 vs 股价 走势图（信号页同款样式） ===== */
@@ -503,8 +527,9 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
   const addLog=adds.length?`<div class="addlog">${adds.map((a,k)=>`<div><span>加仓#${k+1} ${a.date}</span><span>${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</span></div>`).join("")}</div>`:"";
   const addBox=c.canAdd
     ? `<div class="addbox ok"><b>可以加仓 ✓</b> 建议买入 <b>${c.addShares}</b> 股
-        <div class="why">用整仓已锁定盈利 ${fmt.money((c.stop-c.avgCost)*c.shares)} 作缓冲，按当前每股风险 ${fmt.n2(c.riskNow)} × ${ADD_FACTOR} 算出，越加越少。</div></div>`
-    : `<div class="addbox"><b>暂不加仓</b><div class="why">${c.addWhy||"—"}</div></div>`;
+        <div class="why">用整仓已锁定盈利 ${fmt.money((c.stop-c.avgCost)*c.shares)} 作缓冲，按当前每股风险 ${fmt.n2(c.riskNow)} × ${ADD_FACTOR} 算出，越加越少。</div>
+        ${signalNote(c)}</div>`
+    : `<div class="addbox"><b>暂不加仓</b><div class="why">${c.addWhy||"—"}</div>${signalNote(c)}</div>`;
   const closed=h.status==="closed";
   document.getElementById("detail").innerHTML=`
     <div class="pdetail">
