@@ -1,6 +1,7 @@
 /* 持仓管理 — 与信号引擎同源、同收盘价口径、同 ATR 自适应止损
    初始止损 = 入场当日吊灯候选 cand（定 R0）
-   今日止损 = 每只票最新行的 final/trail（棘轮、只升不降，去券商挂这个）
+   今日止损 = 入场锚定：从入场日起对每日 cand 取棘轮最大（只升不降，去券商挂这个）
+             入场日晚于最后一根数据时（当晚建仓、入场日填次日）→ 不棘轮，直接用初始止损
    持仓存 localStorage；可同步到仓库 positions.json 跨设备查看。 */
 "use strict";
 
@@ -113,7 +114,7 @@ function fillTickerList(){
 async function fetchRows(file){ if(ROWS[file])return ROWS[file];
   try{ const r=await fetch(`data/stocks/${file}.json`,{cache:"no-store"}); const j=await r.json(); ROWS[file]=j.rows||[]; }catch(e){ ROWS[file]=[]; } return ROWS[file]; }
 function setLiveFromRows(tk){ const s=SUM[tk]; if(!s)return; const rows=ROWS[s.file]||[];
-  for(let i=rows.length-1;i>=0;i--){ if(rows[i].close!=null){ LIVE[tk]={close:rows[i].close,stop:stopOf(rows[i]),date:rows[i].date}; return; } } }
+  for(let i=rows.length-1;i>=0;i--){ if(rows[i].close!=null){ LIVE[tk]={close:rows[i].close,stop:stopOf(rows[i]),date:rows[i].date,atrpct:rows[i].atrpct}; return; } } }
 async function buildLive(){
   const tks=[...new Set(POS.map(h=>h.ticker))].filter(t=>SUM[t]);
   await Promise.all(tks.map(async t=>{ await fetchRows(SUM[t].file); setLiveFromRows(t); }));
@@ -125,7 +126,10 @@ function liveStop(tk){ return LIVE[tk]?.stop ?? (SUM[tk]?.stop); }
 function holdingStopInfo(h){
   const f=SUM[h.ticker]?.file; const rows=ROWS[f]||[];
   if(!rows.length) return {stop:h.initialStop??null,prev:null,changed:false,fresh:true,delta:null};
-  let ei=rows.findIndex(r=>r.date>=h.entryDate); if(ei<0) ei=0;
+  let ei=rows.findIndex(r=>r.date>=h.entryDate);
+  // 入场日晚于最后一根数据（当晚建仓、入场日填次日）：还没有任何一天可棘轮，
+  // 直接用初始止损。绝不能回退到 ei=0，那会从全历史取 cand 峰值，造成"一入场就离场"。
+  if(ei<0) return {stop:h.initialStop??null,prev:null,changed:false,fresh:true,delta:null};
   let tr=(h.initialStop!=null)?h.initialStop:(rows[ei].cand??rows[ei].final??null);
   const ser=[];
   for(let k=ei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(tr==null||cd>tr)) tr=cd;
@@ -160,6 +164,9 @@ function compute(h){
   const R=(r0&&r0>0&&close!=null)?(close-avgCost)/r0:null;
   const lockedIfStop=(stop!=null)?(stop-avgCost)*shares:null;
   const distPct=(close!=null&&stop!=null&&close)?(close-stop)/close:null;
+  // 距止损的 ATR 倍数 = 还需要几个"典型日波幅"才会打到止损（跨波动率可比）
+  const atrp=num(LIVE[h.ticker]?.atrpct ?? s.atrpct);
+  const distATR=(distPct!=null&&atrp!=null&&atrp>0)?distPct/atrp:null;
   let addWhy="";
   if(!g3) addWhy=`已加满 ${ADD_MAX} 次`;
   else if(exitNow) addWhy="已触发止损，应离场而非加仓";
@@ -167,17 +174,30 @@ function compute(h){
   else if(!g2) addWhy=`距上次加仓仅 ${milestone==null?"—":milestone.toFixed(2)}R（需 ≥${MILESTONE}R）`;
   else if(!g4) addWhy="按风险算出的加仓股数不足 1 股";
   return {s,close,stop,shares,avgCost,r0,lastAdd,riskNow,milestone,addShares,exitNow,
-    canAdd,addWhy,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,addsCount:adds.length,
+    canAdd,addWhy,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,distATR,addsCount:adds.length,
     stopPrev:si.prev,stopChanged:si.changed,stopFresh:si.fresh,stopDelta:si.delta};
 }
 
 /* ===== 表格 ===== */
-const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","若止损","加仓",""];
+const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","距止损(ATR)","若止损","加仓",""];
+/* 排序：需要动作的在上面 —— 离场（明早挂单卖出） → 可加仓（明早挂单买入） → 其余按距止损 ATR 升序
+   （最可能明天被打掉的浮上来，跑得最顺的沉到底部，那些不需要你动手） */
+function actionRank(c){ return c.exitNow?0:(c.canAdd?1:2); }
+function sortForReview(list){
+  return list.slice().sort((a,b)=>{
+    const ra=actionRank(a.c), rb=actionRank(b.c);
+    if(ra!==rb) return ra-rb;
+    const va=a.c.distATR??a.c.distPct??Infinity, vb=b.c.distATR??b.c.distPct??Infinity;
+    if(va!==vb) return va-vb;
+    return a.h.ticker.localeCompare(b.h.ticker);
+  });
+}
 function render(){
   const open=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.c&&o.h.status!=="closed");
   const closed=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.h.status==="closed");
   let list=open;
   if(q) list=list.filter(o=>o.h.ticker.includes(q)||(o.c.s.name||"").toUpperCase().includes(q));
+  list=sortForReview(list);
   const empty=document.getElementById("empty"), wrap=document.getElementById("tableWrap");
   if(!POS.length){ wrap.hidden=true; empty.hidden=false;
     empty.innerHTML='还没有持仓。点右上角 <b>＋ 添加持仓</b> 记录你的第一笔。'; renderTotals(open); return; }
@@ -186,7 +206,8 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
-    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ${c.distPct!=null&&c.distPct<0.05?"warn":"ok"}">持有</span>`;
+    const near=(c.distATR!=null)?(c.distATR<2):(c.distPct!=null&&c.distPct<0.05);
+    const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ${near?"warn":"ok"}">持有</span>`;
     const addCell=c.canAdd?`<span class="tag ok">可加 ${c.addShares} 股</span>`:`<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
       <td class="l"><b>${h.ticker}</b></td>
@@ -200,18 +221,19 @@ function render(){
       <td>${signed(c.pnlPct,fmt.signedPct0)}</td>
       <td>${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
       <td>${c.distPct==null?"":fmt.pct0(c.distPct)}</td>
+      <td title="还需几个典型日波幅（ATR）才会打到止损；&lt;2 表示一两天的正常波动就够">${c.distATR==null?"":c.distATR.toFixed(1)}</td>
       <td>${signed(c.lockedIfStop,fmt.money)}</td>
       <td>${addCell}</td>
       <td><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
-  }).join("")+(closed.length?`<tr><td colspan="14" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔</td></tr>`+
+  }).join("")+(closed.length?`<tr><td colspan="15" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔</td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
       return `<tr data-i="${i}" style="opacity:.6">
         <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
         <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td colspan="5"></td>
+        <td>${signed(rpnl,fmt.money)}</td><td colspan="6"></td>
         <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   body.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDrawer(+b.dataset.open);}));
@@ -313,9 +335,16 @@ function stopChartSVG(rows,h,c){
   if(data.length<2) return "";
   const N=Math.min(data.length,180), d=data.slice(-N);
   // entry-anchored trailing stop (ratchet cand from entry, NOT full-window)
-  let tei=rows.findIndex(r=>r.date>=h.entryDate); if(tei<0) tei=0;
-  let ttr=(h.initialStop!=null)?h.initialStop:(rows[tei]?.cand); const trailMap={};
-  for(let k=tei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(ttr==null||cd>ttr)) ttr=cd; if(ttr!=null) trailMap[rows[k].date]=ttr; }
+  let tei=rows.findIndex(r=>r.date>=h.entryDate);
+  const trailMap={};
+  if(tei<0){
+    // 入场日晚于最后一根数据：只在最后一根上标出初始止损，不画历史止损线
+    const lastRow=data[data.length-1];
+    if(h.initialStop!=null&&lastRow) trailMap[lastRow.date]=h.initialStop;
+  }else{
+    let ttr=(h.initialStop!=null)?h.initialStop:(rows[tei]?.cand);
+    for(let k=tei;k<rows.length;k++){ const cd=rows[k].cand; if(cd!=null&&(ttr==null||cd>ttr)) ttr=cd; if(ttr!=null) trailMap[rows[k].date]=ttr; }
+  }
   const trailAt=p=>trailMap[p.date];
   const W=820,H=250,padL=46,padR=54,padT=12,padB=26;
   const xs=d.map((_,i)=>padL+(i/(d.length-1))*(W-padL-padR));
@@ -482,7 +511,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
       ${stopChartSVG(rows,h,c)}
       <dl class="kv">
         <dt>今日止损（去券商改这个）</dt><dd class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" style="font-size:15px">${fmt.n2(c.stop)}${c.stopChanged?`<span style="font-size:11px;color:var(--enter)"> ↑ +${fmt.n2(c.stopDelta)}</span>`:(c.stopFresh?'<span style="font-size:11px;color:var(--muted)"> 首次</span>':'<span style="font-size:11px;color:var(--faint)"> 未变</span>')}</dd>
-        <dt>现价 / 距止损</dt><dd>${fmt.n2(c.close)} / ${c.distPct==null?"":fmt.pct(c.distPct)}</dd>
+        <dt>现价 / 距止损</dt><dd>${fmt.n2(c.close)} / ${c.distPct==null?"":fmt.pct(c.distPct)}${c.distATR==null?"":'<span style="color:var(--faint)"> · '+c.distATR.toFixed(1)+' ATR</span>'}</dd>
         <dt>均价成本 / 股数</dt><dd>${fmt.n2(c.avgCost)} / ${fmt.n1(c.shares)}</dd>
         <dt>初始止损 / R0</dt><dd>${fmt.n2(h.initialStop)} / ${fmt.n2(h.r0)}</dd>
         <dt>浮动盈亏</dt><dd>${signed(c.pnl,fmt.money2)} (${c.pnlPct==null?"":fmt.signedPct(c.pnlPct)})</dd>
