@@ -159,19 +159,21 @@ const COLS = [
 function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title="${tip}">⚠</span>` : txt; }
 function sigTag(s){ return s?`<span class="sig ${SIG_CLASS[s]||"Wait"}">${s}</span>`:""; }
 
-/* 止损过窄告警:R0/价 < 3.5% 时止损落在日常噪音里(R0/ATR ≈ 倍数+Buf+0.3−新鲜度,
-   新鲜度高时会被压到只剩约 1 个 ATR)。4.6 年样本:止损% <5% 是最差一档(PF 1.15),
-   ≥18% 最好(2.86)。原「入场质量 A/B/C」角标已删除 —— 它和结构徽标读同一组变量、
-   阈值却是旧 14 个月回测留下的,会出现「A + 弱」这类自相矛盾的显示。 */
-const STOPW = { narrow:0.035 };
+/* 止损过窄告警:阈值 = 执行层门槛 8%(强档内止损距离 <8% 跳过)。
+   4.6 年样本、强档 1279 笔按止损距离分档 —— 平均涨跌 / 亏损笔中 R<-1.2 的占比:
+     0~3.5%  +1.3% / 59%      3.5~8%  +1.8% / 37%      >=8%  +14.2% / 6%
+   两个窄档的报酬都接近白干、且亏损常常超出计划的 1R,而应对动作完全相同(不买),
+   所以不分级,合并成单一阈值 8%。旧的 3.5% 只标出更极端的一小撮(53 笔),
+   把 3.5~8% 这 141 笔(强档信号的 11%)漏在没有提示的空档里。 */
+const STOPW = { narrow:0.08 };
 function stopNarrow(s){ const v=stopPct(s); return v!=null && v<STOPW.narrow; }
 function stopCell(s){
   const v=stopPct(s); if(v==null) return "";
   return flagged(fmt.pct(v), v<STOPW.narrow,
-    `止损距离 ${fmt.pct(v)} 偏窄（不足 ${fmt.pct(STOPW.narrow)}）&#10;`+
+    `止损距离 ${fmt.pct(v)} 不足 ${fmt.pct(STOPW.narrow)} 门槛：跳过&#10;`+
     `止损离买入价太近，容易被日常波动扫掉。&#10;`+
     `而且占用资金多：要承担同样的可亏金额，得买入约 ${fmt.n0(1/v)} 倍的市值。&#10;`+
-    `回测里止损越宽赚得越多。`);
+    `回测里这一档报酬接近白干，亏损却常常超出计划的可亏金额。`);
 }
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
@@ -680,7 +682,7 @@ function renderDetailBody(st){
   const cardHTML=(arr)=>arr.map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v||"—"}</div></div>`).join("");
   const narrow = s.signal==="Enter" && stopNarrow(s);
   const note = narrow
-      ? "⚠ 止损过窄：距止损不足约 1 个 ATR，容易被日常噪音打掉。"
+      ? "⚠ 止损距离不足 8%：按执行门槛应跳过。止损离买入价太近，容易被日常波动扫掉，亏损也常常超出计划。"
       : (s.signal==="Enter"?"收盘位于买入区间内，大盘向上，止损低于入场价。":"")
   const asofNote = asOfDate ? (()=>{
     const hs=deriveSummary(rowAsOf(st, asOfDate));
