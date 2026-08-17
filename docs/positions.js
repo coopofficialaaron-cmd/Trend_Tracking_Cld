@@ -276,8 +276,16 @@ function renderTotals(open){
 
 /* ===== 添加持仓 ===== */
 function latestBarDate(){ let m=""; for(const t in SUM){ const d=SUM[t].date; if(d&&d>m) m=d; } return m; }
+/* 入场日期默认值 = 实际成交那天。你的流程是：当晚（数据日 D）看信号 → 次日开盘市价成交，
+   所以填表时的"今天"就是成交日，而不是数据最后一根K线的日期 D。
+   周末填表则是在补录周五开盘的成交，回退到最新K线日期。 */
+function defaultEntryDate(){
+  const t=new Date(), wd=t.getDay();
+  if(wd===0||wd===6) return latestBarDate();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+}
 function openAdd(){ document.getElementById("addScrim").hidden=false; document.getElementById("addModal").hidden=false;
-  document.getElementById("f_date").value=latestBarDate();   // 用最新K线日期，而非 generated_at（引擎可能在收盘前运行）
+  document.getElementById("f_date").value=defaultEntryDate();
   ["f_ticker","f_price","f_stop","f_loss","f_shares"].forEach(id=>{const e=document.getElementById(id);e.value="";delete e.dataset.touched;});
   document.getElementById("f_loss").placeholder=`留空 → 按 ${RISKPCT}% (≈${fmt.money(perTradeRisk())})`;
   const bn=document.getElementById("barNote"); if(bn) bn.textContent="";
@@ -286,12 +294,12 @@ function closeAdd(){ document.getElementById("addScrim").hidden=true; document.g
 function candOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.cand!=null) best=r; } return best; }
 async function onTickerPick(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase(); const s=SUM[tk]; if(!s)return;
-  // 价格与日期都取该股票"最新那根K线"，保证同源同一天
+  // 价格取该股票"最新那根K线"的收盘价作参考，你应改成实际成交价
   const rows=await fetchRows(s.file);
   let last=null; for(let i=rows.length-1;i>=0;i--){ if(rows[i].close!=null){ last=rows[i]; break; } }
   const bar=last||{date:s.date,close:s.close};
-  const dEl=document.getElementById("f_date"), pEl=document.getElementById("f_price");
-  if(!dEl.dataset.touched) dEl.value=bar.date||"";
+  // 只预填价格；日期保持成交日（选股票不再把它改回K线日期）
+  const pEl=document.getElementById("f_price");
   if(!pEl.value) pEl.value=fmt.n2(bar.close);
   const bn=document.getElementById("barNote");
   if(bn) bn.textContent=`最新收盘 ${fmt.n2(bar.close)} @ ${bar.date}（数据最后一个交易日）`;
