@@ -401,20 +401,35 @@ function stopChartSVG(rows,h,c){
   let entryMark=""; const ei=d.findIndex(p=>p.date===h.entryDate);
   if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
     `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--ink)" stroke="#fff" stroke-width="1.6"/>`;
+  // 加仓标记：空心环 + 序号。环画在价格线之上（addDots），竖线画在下面（addLines）
+  const addList=(h.adds||[]).filter(a=>a&&a.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const addAt={}; let addLines="",addDots="";
+  addList.forEach((a,k)=>{
+    if(a.date<d[0].date) return;                       // 早于可见窗口，不画（否则会被挤到左边缘误导）
+    let ai=d.findIndex(p=>p.date===a.date);
+    if(ai<0) ai=d.findIndex(p=>p.date>a.date);         // 假日/非交易日 → 顺延到下一根
+    if(ai<0) return;                                   // 晚于最后一根数据
+    (addAt[ai]=addAt[ai]||[]).push({k:k+1,shares:a.shares,price:a.price,date:a.date});
+    const X=+xs[ai].toFixed(1), Y=+y(d[ai].close).toFixed(1);
+    const LY=Math.max(padT+8,Y-11);                    // 序号贴顶时不越界
+    addLines+=`<line x1="${X}" y1="${padT}" x2="${X}" y2="${H-padB}" stroke="var(--enter)" stroke-width="1" stroke-dasharray="2 4" opacity=".45"/>`;
+    addDots+=`<circle cx="${X}" cy="${Y}" r="4" fill="#fff" stroke="var(--enter)" stroke-width="2"/>`+
+      `<text x="${X}" y="${LY.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--enter)" font-family="JetBrains Mono, monospace">${k+1}</text>`;
+  });
   // latest values at right edge (nudge apart if overlapping)
   const lastClose=d[d.length-1].close, lastStop=trailAt(d[d.length-1]);
   const rx=W-padR+5; let ycL=y(lastClose), ysL=(lastStop!=null?y(lastStop):null);
   if(ysL!=null&&Math.abs(ycL-ysL)<12){ if(ycL<=ysL) ysL=ycL+12; else ysL=ycL-12; }
   const rlabels=`<text x="${rx}" y="${(ycL+3).toFixed(1)}" font-size="11" fill="var(--ink)" font-family="JetBrains Mono, monospace">${fmt.n2(lastClose)}</text>`+
     (lastStop!=null?`<text x="${rx}" y="${(ysL+3).toFixed(1)}" font-size="11" fill="var(--bad)" font-family="JetBrains Mono, monospace">${fmt.n2(lastStop)}</text>`:"");
-  const pts=d.map((p,i)=>({x:+xs[i].toFixed(1),cy:+y(p.close).toFixed(1),date:p.date,close:p.close,trail:trailAt(p),enter:p.enter==="ENTER"}));
+  const pts=d.map((p,i)=>({x:+xs[i].toFixed(1),cy:+y(p.close).toFixed(1),date:p.date,close:p.close,trail:trailAt(p),enter:p.enter==="ENTER",add:addAt[i]||null}));
   POSCHART={pts,W,cost:c.avgCost};
   return `<div class="chart-box" id="posChartBox">
     <svg id="posChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-      ${grid}${xticks}${costLine}${entryMark}
+      ${grid}${xticks}${costLine}${entryMark}${addLines}
       <path d="${path(p=>trailAt(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
       <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-      ${rlabels}
+      ${addDots}${rlabels}
       <g id="posCross" style="display:none">
         <line id="posCrossX" y1="${padT}" y2="${H-padB}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
         <circle id="posCrossDot" r="4" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>
@@ -427,6 +442,7 @@ function stopChartSVG(rows,h,c){
       <span><i style="background:var(--bad);height:0;border-top:2px dashed var(--bad)"></i>移动止损(trail)</span>
       <span><i style="background:var(--muted)"></i>成本</span>
       <span><i style="background:var(--ink)"></i>入场</span>
+      ${addList.length?`<span><i style="width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px var(--enter)"></i>加仓</span>`:""}
     </div>
     <p class="chart-note">止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
   </div>`;
@@ -448,6 +464,7 @@ function wirePosChart(){
     dot.setAttribute("cx",best.x); dot.setAttribute("cy",best.cy);
     const row=(cl,k,v)=>v==null?"":`<div class="tr"><span class="sw" style="background:${cl}"></span>${k}<b>${fmt.n2(v)}</b></div>`;
     tip.innerHTML=`<div class="dt">${best.date}${best.enter?' · <span style="color:var(--enter)">ENTER</span>':''}</div>`+
+      (best.add?best.add.map(a=>`<div class="dt" style="color:var(--enter);border:0;padding-top:0">加仓#${a.k} · ${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</div>`).join(""):"")+
       row('var(--accent)','收盘',best.close)+row('var(--bad)','移动止损',best.trail)+row('var(--muted)','成本',cost);
     tip.style.display="";
     const brect=box.getBoundingClientRect();
