@@ -400,7 +400,7 @@ function stopChartSVG(rows,h,c){
   const costLine=`<line x1="${padL}" y1="${y(c.avgCost).toFixed(1)}" x2="${W-padR}" y2="${y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".55"/>`;
   let entryMark=""; const ei=d.findIndex(p=>p.date===h.entryDate);
   if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
-    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--ink)" stroke="#fff" stroke-width="1.6"/>`;
+    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--bad)" stroke="#fff" stroke-width="1.6"/>`;
   // 加仓标记：空心环 + 序号。环画在价格线之上（addDots），竖线画在下面（addLines）
   const addList=(h.adds||[]).filter(a=>a&&a.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const addAt={}; let addLines="",addDots="";
@@ -412,9 +412,9 @@ function stopChartSVG(rows,h,c){
     (addAt[ai]=addAt[ai]||[]).push({k:k+1,shares:a.shares,price:a.price,date:a.date});
     const X=+xs[ai].toFixed(1), Y=+y(d[ai].close).toFixed(1);
     const LY=Math.max(padT+8,Y-11);                    // 序号贴顶时不越界
-    addLines+=`<line x1="${X}" y1="${padT}" x2="${X}" y2="${H-padB}" stroke="var(--enter)" stroke-width="1" stroke-dasharray="2 4" opacity=".45"/>`;
-    addDots+=`<circle cx="${X}" cy="${Y}" r="4" fill="#fff" stroke="var(--enter)" stroke-width="2"/>`+
-      `<text x="${X}" y="${LY.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--enter)" font-family="JetBrains Mono, monospace">${k+1}</text>`;
+    addLines+=`<line x1="${X}" y1="${padT}" x2="${X}" y2="${H-padB}" stroke="var(--bad)" stroke-width="1" stroke-dasharray="2 4" opacity=".35"/>`;
+    addDots+=`<circle cx="${X}" cy="${Y}" r="4" fill="#fff" stroke="var(--bad)" stroke-width="2"/>`+
+      `<text x="${X}" y="${LY.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--bad)" font-family="JetBrains Mono, monospace">${k+1}</text>`;
   });
   // latest values at right edge (nudge apart if overlapping)
   const lastClose=d[d.length-1].close, lastStop=trailAt(d[d.length-1]);
@@ -441,8 +441,8 @@ function stopChartSVG(rows,h,c){
       <span><i style="background:var(--accent)"></i>收盘</span>
       <span><i style="background:var(--bad);height:0;border-top:2px dashed var(--bad)"></i>移动止损(trail)</span>
       <span><i style="background:var(--muted)"></i>成本</span>
-      <span><i style="background:var(--ink)"></i>入场</span>
-      ${addList.length?`<span><i style="width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px var(--enter)"></i>加仓</span>`:""}
+      <span><i style="width:9px;height:9px;border-radius:50%;background:var(--bad)"></i>入场</span>
+      ${addList.length?`<span><i style="width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px var(--bad)"></i>加仓</span>`:""}
     </div>
     <p class="chart-note">止损线在往上走 = 即便被打掉，亏损也越来越小。当前若被止损：<b style="color:${c.lockedIfStop>=0?'var(--enter)':'var(--bad)'}">${fmt.money(c.lockedIfStop)}</b></p>
   </div>`;
@@ -464,7 +464,7 @@ function wirePosChart(){
     dot.setAttribute("cx",best.x); dot.setAttribute("cy",best.cy);
     const row=(cl,k,v)=>v==null?"":`<div class="tr"><span class="sw" style="background:${cl}"></span>${k}<b>${fmt.n2(v)}</b></div>`;
     tip.innerHTML=`<div class="dt">${best.date}${best.enter?' · <span style="color:var(--enter)">ENTER</span>':''}</div>`+
-      (best.add?best.add.map(a=>`<div class="dt" style="color:var(--enter);border:0;padding-top:0">加仓#${a.k} · ${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</div>`).join(""):"")+
+      (best.add?best.add.map(a=>`<div class="dt" style="color:var(--bad);border:0;padding-top:0">加仓#${a.k} · ${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</div>`).join(""):"")+
       row('var(--accent)','收盘',best.close)+row('var(--bad)','移动止损',best.trail)+row('var(--muted)','成本',cost);
     tip.style.display="";
     const brect=box.getBoundingClientRect();
