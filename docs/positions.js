@@ -398,9 +398,11 @@ function stopChartSVG(rows,h,c){
             `<text x="${xs[i].toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="JetBrains Mono, monospace">${lab}</text>`; }});
   // cost line + entry marker (black, larger)
   const costLine=`<line x1="${padL}" y1="${y(c.avgCost).toFixed(1)}" x2="${W-padR}" y2="${y(c.avgCost).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".55"/>`;
-  let entryMark=""; const ei=d.findIndex(p=>p.date===h.entryDate);
-  if(ei>=0) entryMark=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`+
-    `<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--bad)" stroke="#fff" stroke-width="1.6"/>`;
+  let entryLine="",entryDot=""; const ei=d.findIndex(p=>p.date===h.entryDate);
+  if(ei>=0){
+    entryLine=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    entryDot=`<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--bad)" stroke="#fff" stroke-width="1.6"/>`;
+  }
   // 加仓标记：空心环 + 序号。环画在价格线之上（addDots），竖线画在下面（addLines）
   const addList=(h.adds||[]).filter(a=>a&&a.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const addAt={}; let addLines="",addDots="";
@@ -412,7 +414,7 @@ function stopChartSVG(rows,h,c){
     (addAt[ai]=addAt[ai]||[]).push({k:k+1,shares:a.shares,price:a.price,date:a.date});
     const X=+xs[ai].toFixed(1), Y=+y(d[ai].close).toFixed(1);
     const LY=Math.max(padT+8,Y-11);                    // 序号贴顶时不越界
-    addLines+=`<line x1="${X}" y1="${padT}" x2="${X}" y2="${H-padB}" stroke="var(--bad)" stroke-width="1" stroke-dasharray="2 4" opacity=".35"/>`;
+    addLines+=`<line x1="${X}" y1="${padT}" x2="${X}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>`;
     addDots+=`<circle cx="${X}" cy="${Y}" r="4" fill="#fff" stroke="var(--bad)" stroke-width="2"/>`+
       `<text x="${X}" y="${LY.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--bad)" font-family="JetBrains Mono, monospace">${k+1}</text>`;
   });
@@ -426,10 +428,10 @@ function stopChartSVG(rows,h,c){
   POSCHART={pts,W,cost:c.avgCost};
   return `<div class="chart-box" id="posChartBox">
     <svg id="posChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-      ${grid}${xticks}${costLine}${entryMark}${addLines}
+      ${grid}${xticks}${costLine}${entryLine}${addLines}
       <path d="${path(p=>trailAt(p))}" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/>
       <path d="${path(p=>p.close)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-      ${addDots}${rlabels}
+      ${entryDot}${addDots}${rlabels}
       <g id="posCross" style="display:none">
         <line id="posCrossX" y1="${padT}" y2="${H-padB}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
         <circle id="posCrossDot" r="4" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>
