@@ -401,7 +401,7 @@ function stopChartSVG(rows,h,c){
   let entryLine="",entryDot=""; const ei=d.findIndex(p=>p.date===h.entryDate);
   if(ei>=0){
     entryLine=`<line x1="${xs[ei].toFixed(1)}" y1="${padT}" x2="${xs[ei].toFixed(1)}" y2="${H-padB}" stroke="var(--faint)" stroke-width="1" stroke-dasharray="3 3"/>`;
-    entryDot=`<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--bad)" stroke="#fff" stroke-width="1.6"/>`;
+    entryDot=`<circle cx="${xs[ei].toFixed(1)}" cy="${y(d[ei].close).toFixed(1)}" r="4.5" fill="var(--bad)"/>`;
   }
   // 加仓标记：空心环 + 序号。环画在价格线之上（addDots），竖线画在下面（addLines）
   const addList=(h.adds||[]).filter(a=>a&&a.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
