@@ -440,5 +440,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787042293408
+  },
+  {
+    "ticker": "NAT",
+    "file": "NAT",
+    "name": "Nordic American Tankers Limited",
+    "major": "航运",
+    "entryDate": "2026-08-18",
+    "entryPrice": 6.78,
+    "initialStop": 5.81,
+    "r0": 0.9700000000000006,
+    "shares": 45,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787062050897
   }
 ]
