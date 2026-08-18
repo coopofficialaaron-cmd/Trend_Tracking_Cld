@@ -78,9 +78,22 @@ function atrCell(v){
 }
 // 止损距离(占价格%)= R0/收盘。既是同档内的排序依据,也直接决定占用资金:
 // 占用 ≈ 单笔可亏 ÷ 止损距离%,所以越宽越省钱,而回测里越宽也越赚。
+/* r0Eff：按"你实际会成交的价格"算的每股风险。
+   index.json 的 r0 = 最高买入 − 止损，但你的限价单是 24/5 挂在最低买入价，
+   成交价就是最低买入价，所以真实每股风险是 最低买入 − 止损（更小）。
+   用大的 r0 算股数 = 少担风险（AAOI 这种高波动票只担了设定值的 3/4）。
+   回测的 r0_pct 是成交价口径的(entry=成交价)，最低买入口径与它一致，
+   所以 STOPW.narrow=8% 这个从回测定出来的门槛在新口径下才是名副其实的 8%。 */
+function r0Eff(s){
+  if(!s) return null;
+  if(s.minentry!=null && s.stop!=null && s.minentry>s.stop) return s.minentry-s.stop;
+  return (s.r0!=null&&s.r0>0)?s.r0:null;
+}
+function entryPx(s){ return (s&&s.minentry!=null)?s.minentry:(s?s.close:null); }
 function stopPct(s){
-  if(!s || !s.close || s.r0==null || s.r0<=0) return null;
-  return s.r0 / s.close;
+  const r=r0Eff(s), px=entryPx(s);
+  if(r==null||!px) return null;
+  return r/px;
 }
 function structTier(s){
   if(!s) return null;
@@ -141,8 +154,11 @@ const COLS = [
   // 止损距离% 前移:它是同档内的排序依据,也直接决定占用资金(占用 ≈ 单笔可亏 ÷ 止损%),
   // 且原「入场质量」角标删除后,这里是唯一能一眼看到止损宽窄的地方。<3.5% 打告警。
   {k:"stoppct", t:"止损%",     la:true, f:s=>stopCell(s), v:s=>stopPct(s)},
+  // 止损%(百分比)在不同波动的票之间不可比:ATR 10% 的票止损 11% 只等于一天波动。
+  // 这一列把它归一化成"还剩几个典型日" —— 也是这笔大约多久出结果的预期。
+  {k:"roomatr", t:"距止损(ATR)", la:true, f:s=>roomCell(s), v:s=>stopRoomATR(s)},
   // ④ 买多少
-  {k:"shares",  t:"股数",        f:s=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesFor(s.r0);return x==null?-1:x;}},
+  {k:"shares",  t:"股数",        f:s=>{const x=sharesOf(s);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesOf(s);return x==null?-1:x;}},
   // ④ 买在哪
   {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
@@ -175,6 +191,32 @@ function stopCell(s){
     `而且占用资金多：要承担同样的可亏金额，得买入约 ${fmt.n0(1/v)} 倍的市值。&#10;`+
     `回测里这一档报酬接近白干，亏损却常常超出计划的可亏金额。`);
 }
+/* 距止损的 ATR 倍数 = (收盘 − 止损) / ATR14：还需几个"典型日"的逆向波动才会碰到止损。
+   注意分子用收盘价，与 stopPct() 用的 r0(= 最高买入 − 止损) 不同 —— 回测的 r0_pct 是收盘口径的,
+   要和下面的阈值对得上就必须同口径。
+   5 年 4836 笔分档(PF / 均R / 中位持天):
+     <1.0   n=385  1.02 / 0.02 / 3 天   ← 零期望，唯一真正该躲的一档
+     1.0-1.5 n=298 1.75 / 0.66 / 10 天  ← 单位槽位时间回报最高的一档
+     1.5-2.5 n=636 1.76 / 0.48 / 18 天
+     >=3.5  n=2682 1.62 / 0.23 / 27 天
+   所以这一列不是"越大越好"，它主要告诉你这笔要多久出结果。只有 <1.0 打告警。 */
+function stopRoomATR(s){
+  if(!s||!s.close||s.stop==null||!s.atrpct) return null;
+  // 分子必须用收盘价,不是成交价:止损触发条件是"收盘 < 止损",与你买在哪里无关。
+  // 这一列问的是"价格离止损还有几天波动",不是"我的成本离止损多远"。所以它和左边的
+  // 止损%(成交价口径)不能互相除,两者回答的是不同问题。
+  const atr=(s.atr14!=null&&s.atr14>0)?s.atr14:s.atrpct*s.close;
+  if(!atr||s.stop==null||!s.close) return null;
+  return (s.close-s.stop)/atr;
+}
+function roomCell(s){
+  const v=stopRoomATR(s); if(v==null) return "";
+  return flagged(v.toFixed(1), v<1.0,
+    `距止损只有 ${v.toFixed(1)} 个日均波动(ATR)&#10;`+
+    `一天的正常波动就够跌破止损。&#10;`+
+    `回测里这一档 385 笔:PF 1.02、均 R 0.02、中位 3 天结束 —— 零期望。&#10;`+
+    `成因:止损锚在 55 日高点上,而现价离那个高点太远(差距 ÷ ATR 吃掉了 4 倍预算)。`);
+}
 function colSigned(v){ if(v==null||v==="")return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${fmt.n2(v)}</span>`; }
 function num(v){ return (v==null||v==="")?null:Number(v); }
 
@@ -199,9 +241,10 @@ let asOfDate="", ROWS_ALL_LOADED=false, ROWS_LOADING=false;   // 历史回看状
 function mround(x,m){ return Math.round(x/m)*m; }
 function perTradeRisk(){ return ACCOUNT * RISKPCT / 100; }       // 单笔可亏金额
 function sharesFor(r0){ return (r0!=null && r0>0) ? Math.floor(perTradeRisk()/r0) : null; }
-function buyPrice(s){ return s.maxentry!=null ? s.maxentry : s.close; }   // 计仓用的买入价(保守取上沿)
-function capitalFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*buyPrice(s) : null; }
-function worstLossFor(s){ const sh=sharesFor(s.r0); return sh!=null ? sh*s.r0 : null; }
+function sharesOf(s){ return sharesFor(r0Eff(s)); }                       // 向下取整,宁可少担风险
+function buyPrice(s){ return entryPx(s); }                                // 限价挂在最低买入价,成交价就是它
+function capitalFor(s){ const sh=sharesOf(s), px=buyPrice(s); return (sh!=null&&px!=null) ? sh*px : null; }
+function worstLossFor(s){ const sh=sharesOf(s), r=r0Eff(s); return (sh!=null&&r!=null) ? sh*r : null; }
 
 /* ---------- 历史回看:复刻 indicators.py build_summary() 的 SWITCH 判定 ----------
    每条历史row本身已包含 close/minentry/maxentry/cand/mktok 等"当天为止"的滚动指标
@@ -674,7 +717,7 @@ function renderDetailBody(st){
     ["止损(候选)",fmt.n2(s.stop)],["最低买入",fmt.n2(s.minentry)],["最高买入",fmt.n2(s.maxentry)],
     ["溢价",fmt.n2(s.premium)],["入场分位",fmt.pct(s.entry_pct)],
     ["ER22",fmt.er(s.er22)],["ER55",fmt.er(s.er55)],["ATR50",fmt.n2(s.atr50)],
-    ["R0(每股风险)",fmt.n2(s.r0)],["可建仓股数",(()=>{const x=sharesFor(s.r0);return x!=null?fmt.n0(x):"—";})()],
+    ["R0(每股风险)",fmt.n2(r0Eff(s))],["可建仓股数",(()=>{const x=sharesOf(s);return x!=null?fmt.n0(x):"—";})()],
     ["占用资金",(()=>{const c=capitalFor(s);return c!=null?"$"+fmt.n0(c):"—";})()],
     ["最坏亏损",(()=>{const w=worstLossFor(s);return w!=null?"−$"+fmt.n0(w):"—";})()],
     ["ATR倍数",fmt.n1(s.mult)],["EntryBuffer",fmt.n2(s.buf)],
@@ -732,7 +775,7 @@ function gaugeHTML(s){
   const inZone = cl>=mn && cl<mx;
   const clColor = inZone?"var(--enter)":(cl>=mx?"var(--toohigh)":"var(--accent)");
   const posTxt = inZone? `区间内 · 分位 ${fmt.pct(s.entry_pct)}` : (cl>=mx? "高于上限 · 追高":"低于入场价");
-  const sh=sharesFor(s.r0); const cap=capitalFor(s); const wl=worstLossFor(s);
+  const sh=sharesOf(s); const cap=capitalFor(s); const wl=worstLossFor(s);
   return `<div class="gauge">
     <div class="gauge-head">
       <span class="g-close" style="color:${clColor}">收盘 ${fmt.n2(cl)}</span>
