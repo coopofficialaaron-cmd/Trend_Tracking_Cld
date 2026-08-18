@@ -426,5 +426,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787003070519
+  },
+  {
+    "ticker": "AAOI",
+    "file": "AAOI",
+    "name": "Applied Optoelectronics, Inc.",
+    "major": "科技硬件",
+    "entryDate": "2026-08-18",
+    "entryPrice": 149.89,
+    "initialStop": 138.18,
+    "r0": 11.70999999999998,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787042293408
   }
 ]
