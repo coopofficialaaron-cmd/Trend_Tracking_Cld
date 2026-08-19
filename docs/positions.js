@@ -298,13 +298,13 @@ function defaultEntryDate(){
   if(wd===0||wd===6) return latestBarDate();
   return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
 }
-function openAdd(){ document.getElementById("addScrim").hidden=false; document.getElementById("addModal").hidden=false;
+function openAdd(){ dupPending=""; document.getElementById("addScrim").hidden=false; document.getElementById("addModal").hidden=false;
   document.getElementById("f_date").value=defaultEntryDate();
   ["f_ticker","f_price","f_stop","f_loss","f_shares"].forEach(id=>{const e=document.getElementById(id);e.value="";delete e.dataset.touched;});
   document.getElementById("f_loss").placeholder=`留空 → 按 ${RISKPCT}% (≈${fmt.money(perTradeRisk())})`;
   const bn=document.getElementById("barNote"); if(bn) bn.textContent="";
   refreshSizePreview(); }
-function closeAdd(){ document.getElementById("addScrim").hidden=true; document.getElementById("addModal").hidden=true; document.getElementById("addNote").textContent=""; }
+function closeAdd(){ dupPending=""; document.getElementById("addScrim").hidden=true; document.getElementById("addModal").hidden=true; document.getElementById("addNote").textContent=""; }
 function candOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.cand!=null) best=r; } return best; }
 async function onTickerPick(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase(); const s=SUM[tk]; if(!s)return;
@@ -317,6 +317,9 @@ async function onTickerPick(){
   if(!pEl.value) pEl.value=fmt.n2(bar.close);
   const bn=document.getElementById("barNote");
   if(bn) bn.textContent=`最新收盘 ${fmt.n2(bar.close)} @ ${bar.date}（数据最后一个交易日）`;
+  const dup=POS.filter(p=>p.ticker===tk&&p.status!=="closed");
+  const nt=document.getElementById("addNote");
+  if(nt) nt.innerHTML=dup.length?`<span class="warn-txt">注意：${tk} 已有 ${dup.length} 笔未平仓记录（${dup.map(p=>p.entryDate).join("、")}）。</span>`:"";
   await autofillStop();
 }
 async function autofillStop(){
@@ -347,6 +350,7 @@ function refreshSizePreview(){
   box.className="addbox ok";
   box.innerHTML=`止损若触发 <b>${fmt.n2(r.stop)}</b>，亏 ≈ <b>${fmt.money(r.worst)}</b>（${ACCOUNT>0?fmt.pct(r.worst/ACCOUNT):""} 账户）· 买入 <b>${fmt.n1(r.shares)}</b> 股`;
 }
+let dupPending="";
 function saveNewPosition(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase();
   const date=document.getElementById("f_date").value;
@@ -354,6 +358,10 @@ function saveNewPosition(){
   const stop=num(document.getElementById("f_stop").value);
   const note=document.getElementById("addNote");
   if(!SUM[tk]){ note.textContent="代码无效"; return; }
+  const dup=POS.filter(p=>p.ticker===tk&&p.status!=="closed");
+  if(dup.length&&dupPending!==tk){ dupPending=tk;
+    note.innerHTML=`<span class="warn-txt">已有 ${dup.length} 笔未平仓的 ${tk}（${dup.map(p=>`${p.entryDate} @ ${fmt.n2(p.entryPrice)}`).join("、")}）。
+      加仓请用该行「管理」里的「记录加仓」。确实要新建独立的一笔，再点一次「确认」。</span>`; return; }
   if(!date||price==null||stop==null){ note.textContent="请填日期、入场价、初始止损"; return; }
   const r=sizeFromInputs();
   if(r.err==="stop"){ note.textContent="止损须低于入场价"; return; }
@@ -552,6 +560,8 @@ function histTable(rows){
 
 /* ===== 管理抽屉 ===== */
 let drawerIdx=null;
+function fmtWhen(ts){ if(!ts) return "—（旧记录）"; const d=new Date(ts), p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 async function openDrawer(i){ try{ await openDrawerInner(i); }
   catch(err){
     const d=document.getElementById("detail");
@@ -572,16 +582,22 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
         ${signalNote(c)}</div>`
     : `<div class="addbox"><b>暂不加仓</b><div class="why">${c.addWhy||"—"}</div>${signalNote(c)}</div>`;
   const closed=h.status==="closed";
+  const dupOther=POS.filter((p,k)=>k!==i&&p.ticker===h.ticker&&p.status!=="closed");
+  const dupBox=dupOther.length?`<div class="addbox"><b class="warn-txt">疑似重复记录 ⚠</b>
+      <div class="why">另有 ${dupOther.length} 笔未平仓的 ${h.ticker}：${dupOther.map(p=>`${p.entryDate} @ ${fmt.n2(p.entryPrice)} · ${fmt.n1(p.shares)}股 · 初始止损 ${fmt.n2(p.initialStop)}（录入 ${fmtWhen(p.createdAt)}）`).join("；")}。
+      若是同一笔成交被录了两次，删掉多余的那条；加仓请用抽屉里的「记录加仓」。</div></div>`:"";
   document.getElementById("detail").innerHTML=`
     <div class="pdetail">
       <h3>${h.ticker} ${c.exitNow?'<span class="tag exit">离场信号</span>':''}</h3>
       <p class="psub">${c.s.name||""} · ${c.s.major||""} / ${c.s.sub||""}</p>
+      ${dupBox}
       ${stopChartSVG(rows,h,c)}
       <dl class="kv">
         <dt>今日止损（收盘跌破 → 次日开盘卖出）</dt><dd class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" style="font-size:15px">${fmt.n2(c.stop)}${c.stopChanged?`<span style="font-size:11px;color:var(--enter)"> ↑ +${fmt.n2(c.stopDelta)}</span>`:(c.stopFresh?'<span style="font-size:11px;color:var(--muted)"> 首次</span>':'<span style="font-size:11px;color:var(--faint)"> 未变</span>')}</dd>
         <dt>现价 / 距止损</dt><dd>${fmt.n2(c.close)} / ${c.distPct==null?"":fmt.pct(c.distPct)}${c.distATR==null?"":'<span style="color:var(--faint)"> · '+c.distATR.toFixed(1)+' ATR</span>'}</dd>
         <dt>均价成本 / 股数</dt><dd>${fmt.n2(c.avgCost)} / ${fmt.n1(c.shares)}</dd>
         <dt>初始止损 / R0</dt><dd>${fmt.n2(h.initialStop)} / ${fmt.n2(h.r0)}</dd>
+        <dt>建仓日期 / 录入时间</dt><dd>${h.entryDate||"—"} <span style="color:var(--faint)">· ${fmtWhen(h.createdAt)}</span></dd>
         <dt>浮动盈亏</dt><dd>${signed(c.pnl,fmt.money2)} (${c.pnlPct==null?"":fmt.signedPct(c.pnlPct)})</dd>
         <dt>当前盈利倍数</dt><dd>${c.R==null?"":c.R.toFixed(2)+"R"}</dd>
         <dt>此刻被止损则</dt><dd>${signed(c.lockedIfStop,fmt.money)}</dd>
