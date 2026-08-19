@@ -215,7 +215,6 @@ WMB,NYSE,AMLP,油气,油气中游
 XOM,NYSE,XLE,油气,综合油气
 YPF,NYSE,XLE,油气,综合油气
 AES,NYSE,XLU,公用电力,再生能源
-AXIA,NYSE,XLU,公用电力,可再生能源
 BKH,NYSE,XLU,公用电力,天然气/电力
 BWXT,NYSE,ITA,航空国防,航空航天国防
 CCJ,NYSE,URA,矿业,铀
@@ -555,3 +554,12 @@ C,NYSE,XLF,金融地产,银行
 GILD,NASDAQ,XLV,医疗健康,制药
 MNST,NASDAQ,XLP,消费,消费必需品
 MTCH,NASDAQ,XLC,通讯服务,互联网媒体
+BA,NYSE,ITA,航空国防,航空航天国防
+DAL,NYSE,IYT,工业,航空运输
+RIO,NYSE,XME,矿业,金属采矿
+SCCO,NYSE,COPX,矿业,铜
+USB,NYSE,XLF,金融地产,银行
+TMO,NYSE,XLV,医疗健康,生命科学工具
+NVO,NYSE,XLV,医疗健康,制药
+MRNA,NASDAQ,XBI,医疗健康,生物制药
+EL,NYSE,XLP,消费,消费必需品
