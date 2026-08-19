@@ -85,11 +85,17 @@ function atrCell(v){
    回测的 r0_pct 是成交价口径的(entry=成交价)，最低买入口径与它一致，
    所以 STOPW.narrow=8% 这个从回测定出来的门槛在新口径下才是名副其实的 8%。 */
 function r0Eff(s){
-  if(!s) return null;
-  if(s.minentry!=null && s.stop!=null && s.minentry>s.stop) return s.minentry-s.stop;
-  return (s.r0!=null&&s.r0>0)?s.r0:null;
+  const px=entryPx(s);
+  if(px==null||!s||s.stop==null||px<=s.stop) return (s&&s.r0>0)?s.r0:null;
+  return px-s.stop;
 }
-function entryPx(s){ return (s&&s.minentry!=null)?s.minentry:(s?s.close:null); }
+/* 假设成交价 = 收盘价。你的挂单规则是"价格低于最低买入价就挂最低买入价,
+   高于就挂比它高一点"—— 也就是贴着当前价格,所以收盘价是对成交价最好的单一估计。
+   Enter 信号的收盘价必定落在买入区间内(今晚 15/15,中位在区间的 0.76 处),
+   所以它自动等价于"区间内取中偏上",比中值略保守一档。
+   更重要的是:回测的 r0_pct 就是按成交价=收盘价算的,所以 STOPW.narrow=8% 和
+   距止损 1.0 ATR 这两个从回测定出来的阈值在这个口径下不需要任何换算。 */
+function entryPx(s){ return s?s.close:null; }
 function stopPct(s){
   const r=r0Eff(s), px=entryPx(s);
   if(r==null||!px) return null;
@@ -202,9 +208,8 @@ function stopCell(s){
    所以这一列不是"越大越好"，它主要告诉你这笔要多久出结果。只有 <1.0 打告警。 */
 function stopRoomATR(s){
   if(!s||!s.close||s.stop==null||!s.atrpct) return null;
-  // 分子必须用收盘价,不是成交价:止损触发条件是"收盘 < 止损",与你买在哪里无关。
-  // 这一列问的是"价格离止损还有几天波动",不是"我的成本离止损多远"。所以它和左边的
-  // 止损%(成交价口径)不能互相除,两者回答的是不同问题。
+  // 分子用收盘价:止损的触发条件是"收盘 < 止损"。因为假设成交价也是收盘价,
+  // 这一列与左边的止损% 同口径,可以互相除(止损% ÷ ATR% = 本列)。
   const atr=(s.atr14!=null&&s.atr14>0)?s.atr14:s.atrpct*s.close;
   if(!atr||s.stop==null||!s.close) return null;
   return (s.close-s.stop)/atr;
