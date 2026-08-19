@@ -316,20 +316,6 @@
     "createdAt": 1786624504147
   },
   {
-    "ticker": "DIOD",
-    "file": "DIOD",
-    "name": "Diodes Incorporated",
-    "major": "半导体",
-    "entryDate": "2026-08-13",
-    "entryPrice": 103,
-    "initialStop": 94.32,
-    "r0": 8.680000000000007,
-    "shares": 3,
-    "adds": [],
-    "status": "open",
-    "createdAt": 1787002726010
-  },
-  {
     "ticker": "VLO",
     "file": "VLO",
     "name": "Valero Energy Corporation",
