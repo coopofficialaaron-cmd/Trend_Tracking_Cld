@@ -268,10 +268,9 @@ function renderTotals(open){
   const chips=Object.entries(bySec).sort((a,b)=>b[1]-a[1]).map(([m,v])=>{
     const p=mkt>0?v/mkt:0, act=secFilter===m;
     const tks=(tkSec[m]||[]).slice().sort((a,b)=>b.v-a.v).map(x=>x.t);
-    const tip=`${m}：${tks.join(" · ")}（${tks.length} 笔 · ${fmt.money(v)}）\n点击只看这个板块`;
+    const tip=`${m}：${tks.join(" · ")}（${tks.length} 笔 · ${fmt.money(v)}）\n${act?"再点一次显示全部":"点击只看这个板块"}`;
     return `<span class="chip ${(p>0.4&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
-      +`${m} <b>${(p*100).toFixed(0)}%</b> <span style="opacity:.6;font-size:10.5px">${tks.length}</span></span>`; }).join("")
-    +(secFilter?`<span class="chip clear" data-sec="" title="显示全部持仓">全部 ✕</span>`:"");
+      +`${m} <b>${(p*100).toFixed(0)}%</b> <span style="opacity:.6;font-size:10.5px">${tks.length}</span></span>`; }).join("");
   const nSell=open.filter(({c})=>c.exitNow).length;
   const nBuy=open.filter(({c})=>c.canAdd).length;
   el.innerHTML=`
