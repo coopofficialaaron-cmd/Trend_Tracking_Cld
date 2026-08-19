@@ -438,8 +438,12 @@
     "r0": 11.70999999999998,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787042293408
+    "status": "closed",
+    "createdAt": 1787042293408,
+    "exit": {
+      "date": "2026-08-18",
+      "price": 130.5
+    }
   },
   {
     "ticker": "NAT",
