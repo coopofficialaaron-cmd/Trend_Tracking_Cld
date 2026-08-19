@@ -15,9 +15,13 @@
 .totals .stat.big b{font-size:16px}
 .expo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
 .expo .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;
-  background:var(--panel);border:1px solid var(--line);font-size:11.5px}
+  background:var(--panel);border:1px solid var(--line);font-size:11.5px;cursor:pointer;user-select:none}
 .expo .chip b{font-family:var(--mono);color:var(--ink)}
+.expo .chip:hover{border-color:var(--accent);color:var(--accent)}
 .expo .chip.hot{border-color:rgba(180,118,12,.5);background:rgba(180,118,12,.08);color:var(--toohigh)}
+.expo .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.expo .chip.active b{color:#fff}
+.expo .chip.clear{border-style:dashed;font-family:var(--ui)}
 .exit-row td{background:var(--hot-solid)!important}
 .exit-row td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .addable td:first-child{box-shadow:inset 3px 0 0 var(--enter)}
