@@ -211,7 +211,11 @@ function posRisk(h,c){
   const r0=(h.r0!=null&&h.r0>0)?h.r0:((c&&c.avgCost!=null&&h.initialStop!=null)?c.avgCost-h.initialStop:null);
   return (r0!=null&&r0>0&&c&&c.shares)?r0*c.shares:0;
 }
-const SECW=0.25;   // 单一板块风险敞口超过这个比例就标黄
+/* 单一板块风险敞口 >= 1/3 就标黄。
+   这不是风险规则:持仓期重叠的交易对里,同板块不同天进场的 R 相关只有 0.021(跨板块 -0.012),
+   常驻板块集中度对结果几乎没影响。它是异常提示——按信号流随机建 20 个仓,
+   最大板块占比中位 22%、p90 31%,所以 1/3 以上说明分布偏离了信号流本身的形状。 */
+const SECW=1/3;
 function render(){
   const open=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.c&&o.h.status!=="closed");
   let closed=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.h.status==="closed");
@@ -278,9 +282,9 @@ function renderTotals(open){
     const p=risk>0?v/risk:0, act=secFilter===m;
     const tks=(tkSec[m]||[]).slice().sort((a,b)=>b.v-a.v).map(x=>x.t);
     const tip=`${m}：${tks.join(" · ")}（${tks.length} 笔）\n风险敞口 ${fmt.money(v)} = 全部持仓风险的 ${(p*100).toFixed(0)}%\n市值 ${fmt.money(mvSec[m]||0)}`
-      +(p>SECW?`\n⚠ 超过 ${(SECW*100).toFixed(0)}%：同板块同日进场的盈亏有一半以上是共同决定的（组内相关 0.52），这些仓位接近一笔放大的单一仓位`:"")
+      +(p>=SECW?`\n⚠ 已达 1/3：不是风险规则，是异常提示——按信号流随机建仓，最大板块占比中位 22%、p90 31%，超过 1/3 说明分布偏离了信号流本身的形状（常驻同板块持仓之间 R 相关仅 0.02，真正相关的是同一天同板块进场：0.31）`:"")
       +`\n${act?"再点一次显示全部":"点击只看这个板块"}`;
-    return `<span class="chip ${(p>SECW&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
+    return `<span class="chip ${(p>=SECW&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
       +`${m} <b>${(p*100).toFixed(0)}%</b> <span style="opacity:.6;font-size:10.5px">${tks.length}</span></span>`; }).join("");
   const nSell=open.filter(({c})=>c.exitNow).length;
   const nBuy=open.filter(({c})=>c.canAdd).length;
