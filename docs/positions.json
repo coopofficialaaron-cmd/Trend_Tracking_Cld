@@ -312,8 +312,12 @@
     "r0": 7.5,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1786624504147
+    "status": "closed",
+    "createdAt": 1786624504147,
+    "exit": {
+      "date": "2026-08-20",
+      "price": 95
+    }
   },
   {
     "ticker": "VLO",
@@ -340,8 +344,12 @@
     "r0": 19.53,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787002819623
+    "status": "closed",
+    "createdAt": 1787002819623,
+    "exit": {
+      "date": "2026-08-19",
+      "price": 145.52
+    }
   },
   {
     "ticker": "WAY",
@@ -444,5 +452,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787062050897
+  },
+  {
+    "ticker": "TTAN",
+    "file": "TTAN",
+    "name": "ServiceTitan, Inc.",
+    "major": "软件",
+    "entryDate": "2026-08-20",
+    "entryPrice": 94.75,
+    "initialStop": 73.73,
+    "r0": 21.019999999999996,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787220411881
   }
 ]
