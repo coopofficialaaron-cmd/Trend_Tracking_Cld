@@ -132,7 +132,7 @@ function structCell(s){
    过滤后子集内它不再单调(强档 10-13% 最好、中档 8-10% 最好)。
    ATR% 才是因:在 止损%>=8 的子集里仍然单调(2.5-3.5% 均R +0.20 → 8%+ 均R +1.35)。
    档位标签保留显示,只是不再参与排序(3.9% 与 4.1% 之间没有本质差别,不该被切到两边)。 */
-function structSort(s){ return (s&&s.atrpct!=null)?s.atrpct:null; }
+function structSort(s){ const t=structTier(s); return t?({strong:2,mid:1,weak:0}[t.tier]):null; }
 
 const fmt = {
   n2:(v)=>v==null||v===""?"":Number(v).toFixed(2),
@@ -242,7 +242,7 @@ function freshDot(st){
   return `<span class="fdot ${f.fresh?'ok':'stale'}" title="${tip}"></span>`;
 }
 
-let DATA=null, view="signals", sort={k:"struct",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
+let DATA=null, view="signals", sort={k:"atrpct",dir:-1}, q="", fMajor="", fSub="", EXPECTED="", currentTk=null;
 let ACCOUNT=20000, RISKPCT=1.0;   // 账户总额 / 每笔风险%
 let asOfDate="", ROWS_ALL_LOADED=false, ROWS_LOADING=false;   // 历史回看状态
 
