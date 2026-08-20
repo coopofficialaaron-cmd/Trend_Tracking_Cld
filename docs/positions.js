@@ -238,7 +238,7 @@ function render(){
       <td>${addCell}</td>
       <td><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
-  }).join("")+(closed.length?`<tr><td colspan="15" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔</td></tr>`+
+  }).join("")+(closed.length?`<tr><td colspan="15" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
       return `<tr data-i="${i}" style="opacity:.6">
@@ -383,6 +383,19 @@ function signalNote(c){
   if(s.mktok===false) extra=(extra?extra+"；":"")+"大盘不允许新仓";
   return `<div class="why" style="margin-top:6px;border-top:1px solid var(--line);padding-top:6px">
     信号表现在是 <b>${sig}</b>${extra?" · "+extra:""}</div>`;
+}
+
+/* 已平仓小结：赚了多少、亏了多少、净额。盈亏比 = 总盈利 ÷ 总亏损（回测里叫 PF），
+   >1 就是赚钱的。样本少的时候这几个数波动很大，看趋势不要看绝对值。 */
+function closedSummary(closed){
+  const v=closed.map(({h,c})=>(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null).filter(x=>x!=null);
+  if(!v.length) return "";
+  const win=v.filter(x=>x>0), los=v.filter(x=>x<=0);
+  const gp=win.reduce((a,b)=>a+b,0), gl=los.reduce((a,b)=>a+b,0), net=gp+gl;
+  const pf=gl<0?(gp/Math.abs(gl)):null;
+  return ` · 赚 <span class="pos">${fmt.money(gp)}</span>（${win.length}笔） · 亏 <span class="neg">${fmt.money(gl)}</span>（${los.length}笔）`
+    +` · 净 ${signed(net,fmt.money)} · 胜率 ${Math.round(win.length/v.length*100)}%`
+    +(pf!=null?` · 盈亏比 ${pf.toFixed(2)}`:"");
 }
 
 /* ===== 止损 vs 股价 走势图（信号页同款样式） ===== */
