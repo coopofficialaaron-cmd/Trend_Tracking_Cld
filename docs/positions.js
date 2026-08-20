@@ -204,6 +204,14 @@ function sortForReview(list){
   });
 }
 function secOf(c){ return (c&&c.s&&c.s.major)||"其他"; }
+/* 板块敞口按"风险"算,不按市值:止损宽度在 8%~25% 之间,同样 $1000 市值承担的风险能差 3 倍,
+   市值口径会把宽止损的仓位算得过重、窄止损的算得过轻。
+   一笔的风险 = 总股数 × R0(每股风险),也就是"这个仓位等于几个 R"。 */
+function posRisk(h,c){
+  const r0=(h.r0!=null&&h.r0>0)?h.r0:((c&&c.avgCost!=null&&h.initialStop!=null)?c.avgCost-h.initialStop:null);
+  return (r0!=null&&r0>0&&c&&c.shares)?r0*c.shares:0;
+}
+const SECW=0.25;   // 单一板块风险敞口超过这个比例就标黄
 function render(){
   const open=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.c&&o.h.status!=="closed");
   let closed=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.h.status==="closed");
@@ -259,17 +267,20 @@ function render(){
 function renderTotals(open){
   const el=document.getElementById("totals");
   if(!open.length){ el.innerHTML=`<span class="stat">持仓 <b>0</b> 笔</span>`; return; }
-  let mkt=0,cost=0,pnl=0,ifstop=0; const bySec={}, tkSec={};
+  let mkt=0,cost=0,pnl=0,ifstop=0,risk=0; const bySec={}, mvSec={}, tkSec={};
   open.forEach(({h,c})=>{ if(c.mktVal!=null){mkt+=c.mktVal;cost+=h.entryPrice*h.shares+(h.adds||[]).reduce((a,x)=>a+x.price*x.shares,0);}
     if(c.pnl!=null)pnl+=c.pnl; if(c.lockedIfStop!=null)ifstop+=c.lockedIfStop;
-    const m=secOf(c); bySec[m]=(bySec[m]||0)+(c.mktVal||0);
-    (tkSec[m]=tkSec[m]||[]).push({t:h.ticker,v:c.mktVal||0}); });
+    const m=secOf(c), rk=posRisk(h,c);
+    risk+=rk; bySec[m]=(bySec[m]||0)+rk; mvSec[m]=(mvSec[m]||0)+(c.mktVal||0);
+    (tkSec[m]=tkSec[m]||[]).push({t:h.ticker,v:rk}); });
   const ifstopPct=ACCOUNT>0?ifstop/ACCOUNT:0;
   const chips=Object.entries(bySec).sort((a,b)=>b[1]-a[1]).map(([m,v])=>{
-    const p=mkt>0?v/mkt:0, act=secFilter===m;
+    const p=risk>0?v/risk:0, act=secFilter===m;
     const tks=(tkSec[m]||[]).slice().sort((a,b)=>b.v-a.v).map(x=>x.t);
-    const tip=`${m}：${tks.join(" · ")}（${tks.length} 笔 · ${fmt.money(v)}）\n${act?"再点一次显示全部":"点击只看这个板块"}`;
-    return `<span class="chip ${(p>0.4&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
+    const tip=`${m}：${tks.join(" · ")}（${tks.length} 笔）\n风险敞口 ${fmt.money(v)} = 全部持仓风险的 ${(p*100).toFixed(0)}%\n市值 ${fmt.money(mvSec[m]||0)}`
+      +(p>SECW?`\n⚠ 超过 ${(SECW*100).toFixed(0)}%：同板块同日进场的盈亏有一半以上是共同决定的（组内相关 0.52），这些仓位接近一笔放大的单一仓位`:"")
+      +`\n${act?"再点一次显示全部":"点击只看这个板块"}`;
+    return `<span class="chip ${(p>SECW&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
       +`${m} <b>${(p*100).toFixed(0)}%</b> <span style="opacity:.6;font-size:10.5px">${tks.length}</span></span>`; }).join("");
   const nSell=open.filter(({c})=>c.exitNow).length;
   const nBuy=open.filter(({c})=>c.canAdd).length;
@@ -280,7 +291,7 @@ function renderTotals(open){
     <span class="stat" title="假设此刻所有持仓都被各自的止损打掉，相对成本的总盈亏">若全部止损 ${signed(ifstop,fmt.money)} <span style="color:var(--faint)">(${fmt.signedPct(ifstopPct)})</span></span>
     <span class="stat sep" title="收盘已跌破止损、需次日开盘市价卖出的笔数">明早卖出 <b style="color:${nSell?"var(--bad)":"var(--faint)"}">${nSell}</b> 笔</span>
     <span class="stat" title="四道闸门全过、可在次日开盘加仓的笔数">明早加仓 <b style="color:${nBuy?"var(--enter)":"var(--faint)"}">${nBuy}</b> 笔</span>
-    <span class="expo"><span style="color:var(--faint);font-size:11.5px">板块敞口</span>${chips}</span>`;
+    <span class="expo"><span style="color:var(--faint);font-size:11.5px" title="按风险计:板块内 Σ(股数×R0) ÷ 全部持仓 Σ(股数×R0)">板块风险敞口</span>${chips}</span>`;
   el.querySelectorAll(".chip[data-sec]").forEach(ch=>ch.addEventListener("click",()=>{
     const s=ch.dataset.sec||"";
     secFilter=(s&&secFilter!==s)?s:"";
