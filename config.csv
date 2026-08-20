@@ -204,7 +204,7 @@ TK,NYSE,SEA,航运,海运
 TRGP,NYSE,AMLP,油气,油气中游
 TRMD,NASDAQ,SEA,航运,海运
 TRP,NYSE,AMLP,油气,油气中游
-TTE,NYSE,XLE,油气,油气中游
+TTE,NYSE,XLE,油气,综合油气
 USAC,NYSE,AMLP,油气,油气中游
 VG,NYSE,XLE,油气,油气中游
 VLO,NYSE,XLE,油气,炼油
@@ -563,3 +563,14 @@ TMO,NYSE,XLV,医疗健康,生命科学工具
 NVO,NYSE,XLV,医疗健康,制药
 MRNA,NASDAQ,XBI,医疗健康,生物制药
 EL,NYSE,XLP,消费,消费必需品
+LLY,NYSE,XLV,医疗健康,制药
+DHR,NYSE,XLV,医疗健康,生命科学工具
+GH,NASDAQ,XLV,医疗健康,诊断检测
+AMLX,NASDAQ,XBI,医疗健康,生物制药
+UNP,NYSE,IYT,工业,铁路
+DE,NYSE,XLI,工业,工业机械
+ALSN,NYSE,XLI,工业,工业机械
+EIX,NYSE,XLU,公用电力,电力
+SHW,NYSE,XLB,基础材料,化工
+ABNB,NASDAQ,XLY,消费,在线旅游
+KMX,NYSE,XLY,消费,汽车零售
