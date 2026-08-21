@@ -520,5 +520,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787335032205
+  },
+  {
+    "ticker": "AG",
+    "file": "AG",
+    "name": "First Majestic Silver Corp.",
+    "major": "矿业",
+    "entryDate": "2026-08-21",
+    "entryPrice": 21.06,
+    "initialStop": 16.97,
+    "r0": 4.09,
+    "shares": 11,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787345493510
   }
 ]
