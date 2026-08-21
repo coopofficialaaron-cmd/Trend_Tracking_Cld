@@ -256,8 +256,12 @@
     "r0": 34.18000000000001,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1786437833924
+    "status": "closed",
+    "createdAt": 1786437833924,
+    "exit": {
+      "date": "2026-08-21",
+      "price": 190.55
+    }
   },
   {
     "ticker": "CGON",
@@ -404,8 +408,12 @@
     "r0": 1.5899999999999999,
     "shares": 15,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787002904461
+    "status": "closed",
+    "createdAt": 1787002904461,
+    "exit": {
+      "date": "2026-08-21",
+      "price": 17.25
+    }
   },
   {
     "ticker": "MOG.A",
@@ -418,8 +426,12 @@
     "r0": 58.55000000000001,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787003070519
+    "status": "closed",
+    "createdAt": 1787003070519,
+    "exit": {
+      "date": "2026-08-21",
+      "price": 385
+    }
   },
   {
     "ticker": "AAOI",
@@ -466,5 +478,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787220411881
+  },
+  {
+    "ticker": "NHC",
+    "file": "NHC",
+    "name": "National HealthCare Corporation",
+    "major": "医疗健康",
+    "entryDate": "2026-08-21",
+    "entryPrice": 235.6,
+    "initialStop": 204.91,
+    "r0": 30.689999999999998,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787320199629
+  },
+  {
+    "ticker": "TRGP",
+    "file": "TRGP",
+    "name": "Targa Resources, Inc.",
+    "major": "油气",
+    "entryDate": "2026-08-21",
+    "entryPrice": 300.99,
+    "initialStop": 267,
+    "r0": 33.99000000000001,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787335019559
+  },
+  {
+    "ticker": "AMLX",
+    "file": "AMLX",
+    "name": "Amylyx Pharmaceuticals, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-08-21",
+    "entryPrice": 39,
+    "initialStop": 29.03,
+    "r0": 9.969999999999999,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787335032205
   }
 ]
