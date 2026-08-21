@@ -534,5 +534,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787345493510
+  },
+  {
+    "ticker": "KMX",
+    "file": "KMX",
+    "name": "CarMax Inc",
+    "major": "消费",
+    "entryDate": "2026-08-21",
+    "entryPrice": 62.12,
+    "initialStop": 53.57,
+    "r0": 8.549999999999997,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787346928912
+  },
+  {
+    "ticker": "PAAS",
+    "file": "PAAS",
+    "name": "Pan American Silver Corp.",
+    "major": "矿业",
+    "entryDate": "2026-08-21",
+    "entryPrice": 52.91,
+    "initialStop": 45.27,
+    "r0": 7.6399999999999935,
+    "shares": 6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787346947250
   }
 ]
