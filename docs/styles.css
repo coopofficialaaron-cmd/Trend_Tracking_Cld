@@ -365,7 +365,44 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
 @media (max-width:720px){
   .topbar{flex-wrap:wrap;gap:12px}.meta{align-items:flex-start}
   .controls{width:100%;margin:8px 0 0;flex-wrap:wrap}.controls input{flex:1}
+
+  /* ---- 手机版表格 ----
+     列数由 app.js 的 MOBILE_KEYS 降到 6~7 列；这里只管尺寸。
+     冻结列只剩「代码」(col0)，桌面的 col1/col2/col3 在手机上不会被渲染。 */
+  body{height:100dvh}                       /* iOS 地址栏伸缩时 100vh 会算错 */
+  .topbar{padding:10px 12px;gap:10px}
+  .brand{min-width:0}.brand .sub{display:none}
+  h1{font-size:15px}
+  .table-wrap{margin:8px 4px;border-radius:8px}
+  #grid{font-size:13px}
+  thead th,tbody td{padding:9px 8px}
+  thead th{font-size:11px;letter-spacing:0}
+  #grid .col0{width:74px;min-width:74px;box-shadow:2px 0 0 var(--line)}
+  tbody tr{min-height:44px}                 /* 触摸目标 */
+  .foot{padding:8px 12px calc(8px + env(safe-area-inset-bottom));font-size:11px}
+  .topbar{padding-top:calc(10px + env(safe-area-inset-top))}
+  .tile{font-size:12px;padding:5px 9px}
+  /* 弹出层在手机上占满屏，桌面的居中小窗在窄屏会挤成一条 */
+  .drawer{width:100vw;max-width:100vw}
+  .modal{width:calc(100vw - 24px);max-height:82dvh;padding:18px 16px 20px}
+  /* 持仓表：窄屏隐藏的列（positions.js 的 MHIDE 打的标记） */
+  .mh{display:none}
 }
+
+/* 一键推送到 GitHub */
+.pushbox{border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0 10px;background:var(--panel-2)}
+.pushlab{display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px}
+.pushnote{font-weight:400;font-size:11.5px;color:var(--faint)}
+.pushrow{display:flex;gap:8px;margin-bottom:10px}
+.pushrow input{flex:1;min-width:0;font-family:var(--mono);font-size:13px;padding:8px 10px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+#pushBtn{width:100%}
+#pushStatus{margin:8px 0 0}
+#pushStatus.pos{color:var(--enter)}
+#pushStatus.neg{color:var(--bad)}
+.manualbox{margin-top:6px;border-top:1px solid var(--line);padding-top:10px}
+.manualbox summary{cursor:pointer;font-size:12.5px;color:var(--muted);user-select:none}
+.manualbox summary:hover{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.drawer{animation:none}}
 
 /* 趋势结构标签(强/中/弱)—— 与入场质量 A/B/C 分开:前者看结构,后者看风险几何 */
