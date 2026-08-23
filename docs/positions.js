@@ -100,6 +100,9 @@ function initControls(){
   document.getElementById("syncClose").addEventListener("click",closeSync);
   document.getElementById("syncScrim").addEventListener("click",closeSync);
   document.getElementById("copySync").addEventListener("click",copySync);
+  document.getElementById("pushBtn").addEventListener("click",ghPush);
+  document.getElementById("saveTokBtn").addEventListener("click",saveToken);
+  document.getElementById("ghToken").addEventListener("focus",e=>{ if(e.target.value.startsWith("•")) e.target.value=""; });
   document.getElementById("markSynced").addEventListener("click",markSynced);
   document.getElementById("pullBtn").addEventListener("click",pullCloud);
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"){closeAdd();closeDrawer();closeSync();} });
@@ -179,6 +182,7 @@ function compute(h){
 }
 
 /* ===== 表格 ===== */
+const MHIDE=new Set([1,2,7,8,9,10,11,12,14]);   // 窄屏隐藏的列序号（对应下面 HEAD）
 const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","距止损(ATR)","若止损","加仓",""];
 /* 距止损 ATR 倍数：<2 打 ⚠（与信号页各列自己告警的做法一致，不再给「持有」标签染色）
    含义是"一两天的正常波动就够碰到止损"，不是"这笔不好"——回测里 1.5~2.5 ATR 档 PF 1.76，
@@ -227,7 +231,9 @@ function render(){
   if(!POS.length){ wrap.hidden=true; empty.hidden=false;
     empty.innerHTML='还没有持仓。点右上角 <b>＋ 添加持仓</b> 记录你的第一笔。'; renderTotals(open); return; }
   wrap.hidden=false; empty.hidden=true;
-  document.querySelector("#grid thead").innerHTML="<tr>"+HEAD.map((t,i)=>`<th class="${i<2?"l":""}">${t}</th>`).join("")+"</tr>";
+  // 手机上只留：代码 / 股数 / 现价 / 今日止损 / 信号 / 加仓（其余进"管理"抽屉，点整行即可打开）
+  document.querySelector("#grid thead").innerHTML="<tr>"+HEAD.map((t,i)=>
+    `<th class="${i<2?"l ":""}${MHIDE.has(i)?"mh":""}">${t}</th>`).join("")+"</tr>";
   const body=document.querySelector("#grid tbody");
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
@@ -235,30 +241,30 @@ function render(){
     const addCell=c.canAdd?`<span class="tag ok">可加 ${c.addShares} 股</span>`:`<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
       <td class="l"><b>${h.ticker}</b></td>
-      <td class="l">${h.entryDate||""}</td>
-      <td>${fmt.n2(c.avgCost)}</td>
+      <td class="l mh">${h.entryDate||""}</td>
+      <td class="mh">${fmt.n2(c.avgCost)}</td>
       <td>${fmt.n1(c.shares)}</td>
       <td>${fmt.n2(c.close)}</td>
       <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日抬高 "+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 今晚用新值比收盘"):(c.stopFresh?"新建仓，今晚起用这个比收盘":"与上一交易日相同")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
       <td>${sig}</td>
-      <td>${signed(c.pnl,fmt.money)}</td>
-      <td>${signed(c.pnlPct,fmt.signedPct0)}</td>
-      <td>${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
-      <td>${c.distPct==null?"":fmt.pct0(c.distPct)}</td>
-      <td title="还需几个典型日波幅（ATR）才会打到止损">${atrDistCell(c)}</td>
-      <td>${signed(c.lockedIfStop,fmt.money)}</td>
+      <td class="mh">${signed(c.pnl,fmt.money)}</td>
+      <td class="mh">${signed(c.pnlPct,fmt.signedPct0)}</td>
+      <td class="mh">${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
+      <td class="mh">${c.distPct==null?"":fmt.pct0(c.distPct)}</td>
+      <td class="mh" title="还需几个典型日波幅（ATR）才会打到止损">${atrDistCell(c)}</td>
+      <td class="mh">${signed(c.lockedIfStop,fmt.money)}</td>
       <td>${addCell}</td>
-      <td><button class="mini" data-open="${i}">管理</button></td>
+      <td class="mh"><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
   }).join("")+(closed.length?`<tr><td colspan="15" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
       return `<tr data-i="${i}" style="opacity:.6">
-        <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
-        <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
+        <td class="l"><b>${h.ticker}</b></td><td class="l mh">${h.entryDate}→${h.exit?h.exit.date:""}</td>
+        <td class="mh">${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td colspan="6"></td>
-        <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
+        <td>${signed(rpnl,fmt.money)}</td><td colspan="6" class="mh"></td>
+        <td class="mh"><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   if(!list.length) body.insertAdjacentHTML("afterbegin",
     `<tr><td colspan="15" class="l" style="color:var(--faint);padding:14px 0">没有符合当前筛选的持仓。</td></tr>`);
@@ -670,6 +676,59 @@ function doClose(){ const h=POS[drawerIdx];
 function doDelete(){ if(!confirm("删除这笔持仓记录？无法撤销。"))return; POS.splice(drawerIdx,1); savePositions(); closeDrawer(); render(); }
 
 /* ===== 同步（仓库 positions.json，跨设备） ===== */
+/* --- 一键推送到 GitHub（免手动复制粘贴） ---
+   用 fine-grained token 调 contents API：先 GET 拿 sha，再 PUT 覆盖 docs/positions.json。
+   token 存本机 localStorage，每台设备各输一次。 */
+const TOK_KEY="tt_gh_token";
+function ghRepo(){
+  const h=location.hostname, parts=location.pathname.split("/").filter(Boolean);
+  if(!h.endsWith("github.io")) return null;
+  return { owner:h.split(".")[0], repo:parts[0], path:"docs/positions.json" };
+}
+function ghToken(){ return localStorage.getItem(TOK_KEY)||""; }
+function b64utf8(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin);
+}
+async function ghPush(){
+  const r=ghRepo(); const tok=ghToken();
+  const st=document.getElementById("pushStatus");
+  const say=(t,cls)=>{ if(st){ st.textContent=t; st.className="modal-hint "+(cls||""); } };
+  if(!r){ say("非 GitHub Pages 环境，无法直接推送。","neg"); return; }
+  if(!tok){ say("请先填入 GitHub token。","neg"); return; }
+  const api=`https://api.github.com/repos/${r.owner}/${r.repo}/contents/${r.path}`;
+  const hdr={ "Authorization":`Bearer ${tok}`, "Accept":"application/vnd.github+json" };
+  try{
+    say("正在推送…");
+    // 取当前 sha（文件不存在则 404，走新建）
+    let sha=null;
+    const g=await fetch(api+"?ref=main",{headers:hdr,cache:"no-store"});
+    if(g.status===200){ sha=(await g.json()).sha; }
+    else if(g.status===401||g.status===403){ say("token 无效或权限不足（需要该仓库的 Contents 读写）。","neg"); return; }
+    else if(g.status!==404){ say("读取失败："+g.status,"neg"); return; }
+    const body={ message:`positions: ${POS.length} 笔 · ${new Date().toISOString().slice(0,16).replace("T"," ")}`,
+                 content:b64utf8(JSON.stringify(POS,null,2)), branch:"main" };
+    if(sha) body.sha=sha;
+    const put=await fetch(api,{method:"PUT",headers:{...hdr,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(put.status===200||put.status===201){
+      DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty();
+      say(`已推送 ${POS.length} 笔。其他设备约 1 分钟后（Pages 重建完成）能读到。`,"pos");
+    } else if(put.status===409){
+      say("冲突：云端已被别处改过。请先「从云端刷新」再重推。","neg");
+    } else {
+      say("推送失败："+put.status+" "+((await put.json().catch(()=>({}))).message||""),"neg");
+    }
+  }catch(e){ say("推送失败（网络或 token 问题）。","neg"); }
+}
+function saveToken(){
+  const el=document.getElementById("ghToken"); const v=(el.value||"").trim();
+  if(v){ localStorage.setItem(TOK_KEY,v); } else { localStorage.removeItem(TOK_KEY); }
+  el.value=v?"••••••••••••":""; el.dataset.saved=v?"1":"";
+  const st=document.getElementById("pushStatus");
+  if(st){ st.className="modal-hint"; st.textContent=v?"token 已存到本机。":"token 已清除。"; }
+}
+
 function ghPositionsUrl(){
   const h=location.hostname, parts=location.pathname.split("/").filter(Boolean);
   if(!h.endsWith("github.io")) return null;
@@ -680,6 +739,10 @@ function ghPositionsUrl(){
 }
 function openSync(){
   document.getElementById("syncOut").value=JSON.stringify(POS,null,2);
+  const tk=document.getElementById("ghToken");
+  if(tk){ tk.value=ghToken()?"••••••••••••":""; }
+  const ps=document.getElementById("pushStatus");
+  if(ps){ ps.className="modal-hint"; ps.textContent=ghToken()?"":"首次使用：填一次 token，之后这台设备就不用再填。"; }
   const link=document.getElementById("syncLink"), hint=document.getElementById("syncHint");
   const url=ghPositionsUrl();
   if(url){ link.href=url; link.style.display=""; hint.textContent=CLOUD_EXISTS?"提交后，其他设备打开本页会自动读到最新持仓。":"首次会让你新建 docs/positions.json，把内容粘进去提交即可。"; }
