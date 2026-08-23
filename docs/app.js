@@ -181,6 +181,23 @@ const COLS = [
   // ATR 一族(ATR14/ATR%/自身波动/偏离/倍数/EntryBuf)只放在详情页;
 ];
 
+/* ---------- 手机版列集 ----------
+   窄屏(<=720px)只保留下单真正要用的列，其余进详情页。
+   冻结列在手机上只剩「代码」：桌面版 4 个冻结列合计 460px，比 iPhone 视口还宽。
+   「信号」只在总览页出现 —— 信号页按定义每行都是 Enter(见 rows())，该列恒定无信息。
+   「买入区间」不进手机版：Enter 的成立条件本身就是 minentry<=收盘<maxentry，
+   收盘价必定在区间内；而回测入场价用的就是收盘价，挂单看收盘即可。 */
+const MOBILE_KEYS = ["ticker","signal","atrpct","stoppct","close","shares","stop"];
+const MQ_MOBILE = window.matchMedia("(max-width:720px)");
+const isMobile = () => MQ_MOBILE.matches;
+function viewCols(){
+  if(!isMobile()) return COLS;
+  return MOBILE_KEYS
+    .filter(k => !(k==="signal" && view==="signals"))
+    .map(k => COLS.find(c=>c.k===k))
+    .filter(Boolean);
+}
+
 function flagged(txt, on, tip){ return on ? `${txt}<span class="warn-flag" title="${tip}">⚠</span>` : txt; }
 function sigTag(s){ return s?`<span class="sig ${SIG_CLASS[s]||"Wait"}">${s}</span>`:""; }
 
@@ -638,7 +655,7 @@ function rows(){
   if(fSub) list = list.filter(st=>st.sub===fSub);
   if(q){ const Q=q.toLowerCase();
     list = list.filter(st=>st.ticker.toLowerCase().includes(Q)||(st.name||"").toLowerCase().includes(Q)); }
-  const col = COLS.find(c=>c.k===sort.k);
+  const col = COLS.find(c=>c.k===sort.k) || COLS.find(c=>c.k==="atrpct");
   const sigRank={"Enter":0,"Too High":1,"Wait":2,"Bad Market":3};
   list.sort((a,b)=>{
     const sa=curSummary(a), sb=curSummary(b);
@@ -653,7 +670,10 @@ function rows(){
 
 function render(){
   const head=document.querySelector("#grid thead");
-  head.innerHTML="<tr>"+COLS.map((c,i)=>{
+  const CV=viewCols();
+  // 手机上若当前排序列已隐藏，回落到默认的 ATR% 降序，避免"按看不见的列排序"
+  if(isMobile() && !CV.some(c=>c.k===sort.k)){ sort.k="atrpct"; sort.dir=-1; }
+  head.innerHTML="<tr>"+CV.map((c,i)=>{
     const arrow = sort.k===c.k?`<span class="arrow">${sort.dir>0?"▲":"▼"}</span>`:"";
     const cls=(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"");
     return `<th class="${cls.trim()}" data-k="${c.k}">${c.t}${arrow}</th>`;
@@ -670,7 +690,7 @@ function render(){
     // 才是逐年 5/5 成立的那条。总览页保留绿底，那里它确实区分 Enter 与其他信号。
     const cls = (view==="signals") ? "" : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
-      COLS.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
+      CV.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
   body.querySelectorAll("tr").forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.tk));
 
@@ -1095,6 +1115,8 @@ document.getElementById("copyCfg").onclick=()=>{
   }).catch(()=>document.execCommand("copy"));
 };
 document.getElementById("drawerClose").onclick=closeDetail;
+// 竖屏<->横屏 / 窗口缩放跨过 720px 时重建表头与行(列集会变)
+MQ_MOBILE.addEventListener?.("change", ()=>{ if(DATA) render(); });
 document.getElementById("scrim").onclick=closeDetail;
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail();});
 
