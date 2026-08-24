@@ -646,5 +646,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787585983283
+  },
+  {
+    "ticker": "HCC",
+    "file": "HCC",
+    "name": "Warrior Met Coal, Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-24",
+    "entryPrice": 106.71,
+    "initialStop": 91.05,
+    "r0": 15.659999999999997,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787610247322
   }
 ]
