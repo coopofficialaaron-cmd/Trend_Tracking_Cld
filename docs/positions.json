@@ -576,5 +576,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787350933074
+  },
+  {
+    "ticker": "SBLK",
+    "file": "SBLK",
+    "name": "Star Bulk Carriers Corp.",
+    "major": "航运",
+    "entryDate": "2026-08-24",
+    "entryPrice": 30.5,
+    "initialStop": 26.86,
+    "r0": 3.6400000000000006,
+    "shares": 13,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787574554386
+  },
+  {
+    "ticker": "CGAU",
+    "file": "CGAU",
+    "name": "Centerra Gold Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-24",
+    "entryPrice": 23.7,
+    "initialStop": 20.3,
+    "r0": 3.3999999999999986,
+    "shares": 14,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787574574833
+  },
+  {
+    "ticker": "GH",
+    "file": "GH",
+    "name": "Guardant Health, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-08-24",
+    "entryPrice": 170.31,
+    "initialStop": 143.92,
+    "r0": 26.390000000000015,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787574598316
   }
 ]
