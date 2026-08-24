@@ -562,5 +562,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787346947250
+  },
+  {
+    "ticker": "TWST",
+    "file": "TWST",
+    "name": "Twist Bioscience Corporation",
+    "major": "医疗健康",
+    "entryDate": "2026-08-21",
+    "entryPrice": 145.5,
+    "initialStop": 105.13,
+    "r0": 40.370000000000005,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787350933074
   }
 ]
