@@ -397,8 +397,6 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   .hist-pill{order:8;font-size:12px}
   .hist-pill input[type=date]{font-size:12px;min-width:0;width:118px}
   .add-btn{order:10;font-size:12px;padding:5px 10px}
-  /* 「← 信号」按钮手机上隐藏：两个页面都在主屏有独立图标，这个按钮只占地方 */
-  .navlink{display:none!important}
 
   /* ---- 大类：单行横向滑动，不再换 3 行 ---- */
   .filterbar{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:7px 12px;
@@ -425,6 +423,8 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   thead th:last-child,tbody td:last-child{padding-right:10px}
   thead th{font-size:11px;letter-spacing:0}
   #grid .col0{width:74px;min-width:74px;box-shadow:2px 0 0 var(--line)}
+  /* 持仓表(无冻结列)：代码列收缩到内容宽度，别把 width:100% 的余量都吃掉 */
+  #grid tbody td:first-child,#grid thead th:first-child{width:1%;white-space:nowrap}
   .tag{padding:2px 6px;font-size:10.5px}
   .foot{padding:8px 12px calc(8px + env(safe-area-inset-bottom));font-size:11px}
   .drawer{width:100vw;max-width:100vw}
