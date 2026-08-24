@@ -620,17 +620,17 @@
     "createdAt": 1787574598316
   },
   {
-    "ticker": "WT",
-    "file": "WT",
-    "name": "WisdomTree, Inc.",
-    "major": "金融地产",
+    "ticker": "CF",
+    "file": "CF",
+    "name": "CF Industries Holdings, Inc.",
+    "major": "基础材料",
     "entryDate": "2026-08-24",
-    "entryPrice": 23.39,
-    "initialStop": 20.18,
-    "r0": 3.210000000000001,
-    "shares": 15,
+    "entryPrice": 129.6,
+    "initialStop": 110.08,
+    "r0": 19.519999999999996,
+    "shares": 2,
     "adds": [],
     "status": "open",
-    "createdAt": 1787584089769
+    "createdAt": 1787585845505
   }
 ]
