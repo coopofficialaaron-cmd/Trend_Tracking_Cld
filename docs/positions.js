@@ -24,6 +24,10 @@ function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<s
 
 let DATA=null, SUM={}, ROWS={}, LIVE={}, POS=[], ACCOUNT=20000, RISKPCT=1.0, q="", secFilter="";
 let DIRTY=false, CLOUD_EXISTS=false;
+/* CLOUD_SNAP = 本页打开时(或上次成功推送后)云端那份数据的样子。
+   推送前拿它跟云端现况比对：不一致说明另一台设备在这中间推过，
+   直接覆盖就会抹掉对方的改动 —— 所以先拦下来。 */
+let CLOUD_SNAP=null, FORCE_PUSH=false;
 
 const mround=(x,m)=>Math.round(x/m)*m;
 const perTradeRisk=()=>ACCOUNT*RISKPCT/100;
@@ -49,7 +53,7 @@ async function loadPositions(){
   let local=null, localDirty=false;
   try{ const o=JSON.parse(localStorage.getItem(POS_KEY)); if(o){ local=Array.isArray(o)?o:(o.pos||[]); localDirty=Array.isArray(o)?false:!!o.dirty; } }catch(e){}
   let cloud=null;
-  try{ const r=await fetch("positions.json",{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(Array.isArray(j)){ cloud=j; CLOUD_EXISTS=true; } } }catch(e){}
+  try{ const r=await fetch("positions.json",{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(Array.isArray(j)){ cloud=j; CLOUD_EXISTS=true; CLOUD_SNAP=JSON.stringify(j); } } }catch(e){}
   if(localDirty&&local){ POS=local; DIRTY=true; }            // 本机有未同步改动 → 保留
   else if(cloud){ POS=cloud; DIRTY=false; saveLocal(); }     // 否则以云端为准
   else if(local){ POS=local; DIRTY=localDirty; }
@@ -93,9 +97,6 @@ function initControls(){
   document.getElementById("f_date").addEventListener("change",e=>{e.target.dataset.touched="1";});
   document.getElementById("drawerClose").addEventListener("click",closeDrawer);
   document.getElementById("scrim").addEventListener("click",closeDrawer);
-  document.getElementById("exportBtn").addEventListener("click",exportJSON);
-  document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
-  document.getElementById("importFile").addEventListener("change",importJSON);
   document.getElementById("syncBtn").addEventListener("click",openSync);
   document.getElementById("syncClose").addEventListener("click",closeSync);
   document.getElementById("syncScrim").addEventListener("click",closeSync);
@@ -709,6 +710,11 @@ function b64utf8(str){
   let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
   return btoa(bin);
 }
+function b64decUtf8(b64){
+  const bin=atob((b64||"").replace(/\n/g,""));
+  const bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
 async function ghPush(){
   const r=ghRepo(); const tok=ghToken();
   const st=document.getElementById("pushStatus");
@@ -720,20 +726,33 @@ async function ghPush(){
   try{
     say("正在推送…");
     // 取当前 sha（文件不存在则 404，走新建）
-    let sha=null;
+    let sha=null, cloudNow=null;
     const g=await fetch(api+"?ref=main",{headers:hdr,cache:"no-store"});
-    if(g.status===200){ sha=(await g.json()).sha; }
+    if(g.status===200){
+      const j=await g.json(); sha=j.sha;
+      try{ cloudNow=JSON.stringify(JSON.parse(b64decUtf8(j.content))); }catch(e){}
+    }
     else if(g.status===401||g.status===403){ say("token 无效或权限不足（需要该仓库的 Contents 读写）。","neg"); return; }
     else if(g.status!==404){ say("读取失败："+g.status,"neg"); return; }
+
+    // 云端现况 ≠ 本页开着时的那份 → 中途有别的设备推过，拦下
+    if(!FORCE_PUSH && cloudNow!==null && CLOUD_SNAP!==null && cloudNow!==CLOUD_SNAP){
+      let n="?"; try{ n=JSON.parse(cloudNow).length; }catch(e){}
+      FORCE_PUSH=true;
+      say(`已拦下：云端在这中间被另一台设备改过（现有 ${n} 笔）。建议刷新本页拉取云端最新，再重做你的改动。若确定本机这 ${POS.length} 笔才是对的，再点一次「一键推送」会覆盖云端。`,"neg");
+      return;
+    }
     const body={ message:`positions: ${POS.length} 笔 · ${new Date().toISOString().slice(0,16).replace("T"," ")}`,
                  content:b64utf8(JSON.stringify(POS,null,2)), branch:"main" };
     if(sha) body.sha=sha;
     const put=await fetch(api,{method:"PUT",headers:{...hdr,"Content-Type":"application/json"},body:JSON.stringify(body)});
     if(put.status===200||put.status===201){
-      DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty();
+      DIRTY=false; CLOUD_EXISTS=true; FORCE_PUSH=false;
+      CLOUD_SNAP=JSON.stringify(POS);   // 基线前移：同一台设备连续推送不会误报冲突
+      saveLocal(); markDirty();
       say(`已推送 ${POS.length} 笔。其他设备约 1 分钟后（Pages 重建完成）能读到。`,"pos");
     } else if(put.status===409){
-      say("冲突：云端已被别处改过。请先「从云端刷新」再重推。","neg");
+      say("冲突：云端已被别处改过。请先点「刷新」再重推。","neg");
     } else {
       say("推送失败："+put.status+" "+((await put.json().catch(()=>({}))).message||""),"neg");
     }
@@ -759,6 +778,7 @@ function openSync(){
   document.getElementById("syncOut").value=JSON.stringify(POS,null,2);
   const tk=document.getElementById("ghToken");
   if(tk){ tk.value=ghToken()?"••••••••••••":""; }
+  FORCE_PUSH=false;
   const ps=document.getElementById("pushStatus");
   if(ps){ ps.className="modal-hint"; ps.textContent=ghToken()?"":"首次使用：填一次 token，之后这台设备就不用再填。"; }
   const link=document.getElementById("syncLink"), hint=document.getElementById("syncHint");
@@ -773,19 +793,27 @@ function markSynced(){ DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty();
 function copySync(){ const t=document.getElementById("syncOut"); t.select(); document.execCommand&&document.execCommand("copy");
   navigator.clipboard&&navigator.clipboard.writeText(t.value); document.getElementById("syncHint").textContent="已复制。到 GitHub 把它存为 docs/positions.json 并提交。"; }
 async function pullCloud(){
-  try{ const r=await fetch("positions.json",{cache:"no-store"}); if(!r.ok){alert("还没有 positions.json，请先同步一次。");return;}
-    const j=await r.json(); if(!Array.isArray(j)){alert("positions.json 格式不对");return;}
-    if(DIRTY&&!confirm("本机有未同步改动，确定用云端覆盖？"))return;
-    POS=j; DIRTY=false; CLOUD_EXISTS=true; saveLocal(); markDirty(); await buildLive(); render();
+  /* 有 token 时直接读 GitHub API：Pages 重建有约 1 分钟延迟，
+     刚被另一台设备推过的话，读 positions.json 会拿到旧的一份。API 是即时的。 */
+  try{
+    let j=null;
+    const r0=ghRepo(), tok=ghToken();
+    if(r0&&tok){
+      const g=await fetch(`https://api.github.com/repos/${r0.owner}/${r0.repo}/contents/${r0.path}?ref=main`,
+        {headers:{"Authorization":`Bearer ${tok}`,"Accept":"application/vnd.github+json"},cache:"no-store"});
+      if(g.status===200){ try{ j=JSON.parse(b64decUtf8((await g.json()).content)); }catch(e){} }
+    }
+    if(j===null){
+      const r=await fetch("positions.json",{cache:"no-store"});
+      if(!r.ok){alert("还没有 positions.json，请先同步一次。");return;}
+      j=await r.json();
+    }
+    if(!Array.isArray(j)){alert("positions.json 格式不对");return;}
+    if(DIRTY&&!confirm(`本机有未同步改动，确定用云端这 ${j.length} 笔覆盖？本机改动会丢失。`))return;
+    POS=j; DIRTY=false; CLOUD_EXISTS=true;
+    CLOUD_SNAP=JSON.stringify(j); FORCE_PUSH=false;   // 基线跟着前移，否则下次推送会误报冲突
+    saveLocal(); markDirty(); await buildLive(); render();
   }catch(e){ alert("拉取失败"); }
 }
-
-/* ===== 导出 / 导入（本地文件备份） ===== */
-function exportJSON(){ const blob=new Blob([JSON.stringify(POS,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download=`positions_${(DATA.generated_at||"").slice(0,10)||"backup"}.json`; a.click(); URL.revokeObjectURL(a.href); }
-function importJSON(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
-  r.onload=async()=>{ try{ const arr=JSON.parse(r.result); if(Array.isArray(arr)&&confirm(`导入 ${arr.length} 笔持仓，覆盖当前 ${POS.length} 笔？`)){ POS=arr; savePositions(); await buildLive(); render(); } }catch(err){ alert("文件格式不对"); } };
-  r.readAsText(f); e.target.value=""; }
 
 load();
