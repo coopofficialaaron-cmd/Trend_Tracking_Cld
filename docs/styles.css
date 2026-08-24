@@ -363,31 +363,86 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   border-top:1px solid var(--line);color:var(--faint);font-size:12px;flex:none;background:var(--bg)}
 
 @media (max-width:720px){
-  .topbar{flex-wrap:wrap;gap:12px}.meta{align-items:flex-start}
-  .controls{width:100%;margin:8px 0 0;flex-wrap:wrap}.controls input{flex:1}
+  /* ============ 手机版 ============
+     桌面用的是"固定外壳"：body 锁高不滚，只有表格内部滚。
+     在 390×844 上头部要吃掉约 600px，表格只剩两百来像素且推不走。
+     手机上改成整页正常滚动 —— 往下滑时标题/大类/敞口全部滚走，表头吸顶。 */
+  body{display:block;height:auto;min-height:100dvh;overflow:visible;font-size:14px}
+  main{display:block;padding:0 8px;overflow:visible}
+  .table-wrap{overflow-x:auto;overflow-y:visible;max-height:none;margin:10px 0;border-radius:8px}
+  thead th{top:0;z-index:6}
+  #grid thead th.sticky{z-index:7}
 
-  /* ---- 手机版表格 ----
-     列数由 app.js 的 MOBILE_KEYS 降到 6~7 列；这里只管尺寸。
-     冻结列只剩「代码」(col0)，桌面的 col1/col2/col3 在手机上不会被渲染。 */
-  body{height:100dvh}                       /* iOS 地址栏伸缩时 100vh 会算错 */
-  .topbar{padding:10px 12px;gap:10px}
-  .brand{min-width:0}.brand .sub{display:none}
+  /* ---- 顶栏：两行网格，右上角放状态，避免宽度 pill 和更新时间撞在一起 ---- */
+  .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+    gap:6px 8px;padding:calc(6px + env(safe-area-inset-top)) 12px 7px}
+  .brand{grid-area:1/1;min-width:0;gap:8px}
+  .brand .mark{width:24px;height:24px;border-radius:6px}
+  .brand .sub{display:none}
   h1{font-size:15px}
-  .table-wrap{margin:8px 4px;border-radius:8px}
+  .meta{grid-area:1/2;align-items:flex-end;gap:1px;font-size:9.5px;line-height:1.35}
+  .meta .src{display:none}
+  .freshness{font-size:10px;padding:2px 7px}
+  .mktwrap,.topbar>.market{grid-area:2/1/auto/3;min-width:0;gap:6px}
+  .breadth-slot .pill,.market .pill{font-size:11px;padding:3px 8px}
+
+  /* ---- 控件行：换行排布，输入框自适应，不再溢出屏幕 ---- */
+  .tabs{flex-wrap:wrap;gap:6px;padding:7px 12px}
+  .tab{font-size:13px;padding:5px 10px;white-space:nowrap}
+  .tab .badge{font-size:10px;padding:0 5px}
+  .risk-group{margin-left:auto}
+  .risk-toggle{font-size:12px;padding:5px 9px;white-space:nowrap}
+  .controls{order:9;width:100%;margin:0;gap:6px}
+  .controls input,.controls select{min-width:0;flex:1 1 0;padding:6px 8px;font-size:13px}
+  .hist-pill{order:8;font-size:12px}
+  .hist-pill input[type=date]{font-size:12px;min-width:0;width:118px}
+  .add-btn{order:10;font-size:12px;padding:5px 10px}
+  /* 「← 信号」按钮手机上隐藏：两个页面都在主屏有独立图标，这个按钮只占地方 */
+  .navlink{display:none!important}
+
+  /* ---- 大类：单行横向滑动，不再换 3 行 ---- */
+  .filterbar{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:7px 12px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .filterbar::-webkit-scrollbar{display:none}
+  .filterbar .flabel{display:none}
+  .filterbar>*{flex:none}
+  #majorTiles{display:flex;flex-wrap:nowrap;gap:6px}
+  .tile{flex:none;font-size:12px;padding:4px 9px}
+
+  /* ---- 持仓汇总：紧凑 + 板块敞口折叠 ---- */
+  .totals{gap:4px 12px;padding:7px 12px;font-size:12px}
+  .totals .stat b{font-size:13px}
+  .totals .stat.big b{font-size:14px}
+  .totals .stat.sep{border-left:0;padding-left:0}
+  .expo-fold{width:100%}
+  .expo{margin:6px 0 0;width:100%;gap:6px}
+  .expo-lab{display:none}
+
+  /* ---- 表格：紧凑列距，5~6 列一屏放得下 ---- */
   #grid{font-size:13px}
-  thead th,tbody td{padding:9px 8px}
+  thead th,tbody td{padding:8px 6px}
+  thead th:first-child,tbody td:first-child{padding-left:10px}
+  thead th:last-child,tbody td:last-child{padding-right:10px}
   thead th{font-size:11px;letter-spacing:0}
   #grid .col0{width:74px;min-width:74px;box-shadow:2px 0 0 var(--line)}
-  tbody tr{min-height:44px}                 /* 触摸目标 */
+  .tag{padding:2px 6px;font-size:10.5px}
   .foot{padding:8px 12px calc(8px + env(safe-area-inset-bottom));font-size:11px}
-  .topbar{padding-top:calc(10px + env(safe-area-inset-top))}
-  .tile{font-size:12px;padding:5px 9px}
-  /* 弹出层在手机上占满屏，桌面的居中小窗在窄屏会挤成一条 */
   .drawer{width:100vw;max-width:100vw}
   .modal{width:calc(100vw - 24px);max-height:82dvh;padding:18px 16px 20px}
   /* 持仓表：窄屏隐藏的列（positions.js 的 MHIDE 打的标记） */
   .mh{display:none}
 }
+
+/* 板块敞口折叠条：桌面永远展开（JS 给 open）且不显示标题行 */
+.expo-fold{margin-left:auto}
+.expo-fold>summary{display:none}
+.expo-fold[open]>summary{display:none}
+@media (max-width:720px){
+  .expo-fold>summary{display:list-item;cursor:pointer;font-size:11.5px;color:var(--muted);
+    padding:3px 0;user-select:none;list-style-position:inside}
+  .expo-fold>summary b{color:var(--ink);font-family:var(--mono);font-weight:600}
+}
+
 
 /* 一键推送到 GitHub */
 .pushbox{border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0 10px;background:var(--panel-2)}
