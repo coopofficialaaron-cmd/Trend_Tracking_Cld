@@ -252,7 +252,7 @@ function render(){
       <td>${fmt.n1(c.shares)}</td>
       <td>${fmt.n2(c.close)}</td>
       <td class="${(c.stopChanged||c.stopFresh)?"stopcell":"stopcell-flat"}" title="${c.stopChanged?("较上一交易日抬高 "+fmt.n2(c.stopDelta)+"（"+fmt.n2(c.stopPrev)+" → "+fmt.n2(c.stop)+"）· 今晚用新值比收盘"):(c.stopFresh?"新建仓，今晚起用这个比收盘":"与上一交易日相同")}">${fmt.n2(c.stop)}${c.stopChanged?' <span style="font-size:10px">↑</span>':""}</td>
-      <td>${sig}</td>
+      <td class="mh">${sig}</td>
       <td class="mh">${signed(c.pnl,fmt.money)}</td>
       <td class="mh">${signed(c.pnlPct,fmt.signedPct0)}</td>
       <td class="mh">${c.R==null?"":signed(c.R,v=>v.toFixed(1)+"R")}</td>
@@ -262,15 +262,22 @@ function render(){
       <td>${addCell}</td>
       <td class="mh"><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
-  }).join("")+(closed.length?`<tr><td colspan="15" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
+  }).join("")+(closed.length?`<tr><td colspan="${isMob()?5:15}" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
+      if(isMob()){
+        return `<tr data-i="${i}" style="opacity:.6">
+          <td class="l"><b>${h.ticker}</b></td><td>${fmt.n1(c.shares)}</td>
+          <td>${h.exit?fmt.n2(h.exit.price):""}</td>
+          <td style="color:var(--faint)">已平</td>
+          <td>${signed(rpnl,fmt.money)}</td></tr>`;
+      }
       return `<tr data-i="${i}" style="opacity:.6">
-        <td class="l"><b>${h.ticker}</b></td><td class="l mh">${h.entryDate}→${h.exit?h.exit.date:""}</td>
-        <td class="mh">${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
+        <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
+        <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td colspan="6" class="mh"></td>
-        <td class="mh"><button class="mini" data-open="${i}">管理</button></td></tr>`;
+        <td>${signed(rpnl,fmt.money)}</td><td colspan="6"></td>
+        <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   if(!list.length) body.insertAdjacentHTML("afterbegin",
     `<tr><td colspan="15" class="l" style="color:var(--faint);padding:14px 0">没有符合当前筛选的持仓。</td></tr>`);
