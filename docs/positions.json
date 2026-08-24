@@ -618,5 +618,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787574598316
+  },
+  {
+    "ticker": "WT",
+    "file": "WT",
+    "name": "WisdomTree, Inc.",
+    "major": "金融地产",
+    "entryDate": "2026-08-24",
+    "entryPrice": 23.39,
+    "initialStop": 20.18,
+    "r0": 3.210000000000001,
+    "shares": 15,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787584089769
   }
 ]
