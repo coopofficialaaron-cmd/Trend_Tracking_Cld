@@ -107,6 +107,7 @@ function initControls(){
   document.getElementById("pullBtn").addEventListener("click",pullCloud);
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"){closeAdd();closeDrawer();closeSync();} });
   markDirty();
+  MQ_M.addEventListener?.("change",()=>{ if(DATA) render(); });
 }
 function fillTickerList(){
   document.getElementById("tkList").innerHTML=Object.keys(SUM).sort()
@@ -182,7 +183,10 @@ function compute(h){
 }
 
 /* ===== 表格 ===== */
-const MHIDE=new Set([1,2,7,8,9,10,11,12,14]);   // 窄屏隐藏的列序号（对应下面 HEAD）
+const MHIDE=new Set([1,2,6,7,8,9,10,11,12,14]);  // 窄屏隐藏的列序号（对应下面 HEAD）
+// 「信号」列在手机上也去掉：行左侧色条已经在表达同一件事（红=明早卖出，绿=可加仓）
+const MQ_M=window.matchMedia("(max-width:720px)");
+const isMob=()=>MQ_M.matches;
 const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","距止损(ATR)","若止损","加仓",""];
 /* 距止损 ATR 倍数：<2 打 ⚠（与信号页各列自己告警的做法一致，不再给「持有」标签染色）
    含义是"一两天的正常波动就够碰到止损"，不是"这笔不好"——回测里 1.5~2.5 ATR 档 PF 1.76，
@@ -238,7 +242,9 @@ function render(){
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
     const sig=c.exitNow?`<span class="tag exit">离场</span>`:`<span class="tag ok">持有</span>`;
-    const addCell=c.canAdd?`<span class="tag ok">可加 ${c.addShares} 股</span>`:`<span class="tag no" title="${c.addWhy}">—</span>`;
+    const addCell=c.canAdd
+      ? `<span class="tag ok">${isMob()?("+"+c.addShares):("可加 "+c.addShares+" 股")}</span>`
+      : `<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
       <td class="l"><b>${h.ticker}</b></td>
       <td class="l mh">${h.entryDate||""}</td>
@@ -292,6 +298,8 @@ function renderTotals(open){
       +`\n${act?"再点一次显示全部":"点击只看这个板块"}`;
     return `<span class="chip ${(p>=SECW&&!act)?"hot":""} ${act?"active":""}" data-sec="${m}" title="${tip}">`
       +`${m} <b>${(p*100).toFixed(0)}%</b> <span style="opacity:.6;font-size:10.5px">${tks.length}</span></span>`; }).join("");
+  const topEntry=Object.entries(bySec).sort((a,b)=>b[1]-a[1])[0];
+  const topSec=topEntry?`${topEntry[0]} ${(risk>0?topEntry[1]/risk*100:0).toFixed(0)}%`:"—";
   const nSell=open.filter(({c})=>c.exitNow).length;
   const nBuy=open.filter(({c})=>c.canAdd).length;
   el.innerHTML=`
@@ -301,7 +309,10 @@ function renderTotals(open){
     <span class="stat" title="假设此刻所有持仓都被各自的止损打掉，相对成本的总盈亏">若全部止损 ${signed(ifstop,fmt.money)} <span style="color:var(--faint)">(${fmt.signedPct(ifstopPct)})</span></span>
     <span class="stat sep" title="收盘已跌破止损、需次日开盘市价卖出的笔数">明早卖出 <b style="color:${nSell?"var(--bad)":"var(--faint)"}">${nSell}</b> 笔</span>
     <span class="stat" title="四道闸门全过、可在次日开盘加仓的笔数">明早加仓 <b style="color:${nBuy?"var(--enter)":"var(--faint)"}">${nBuy}</b> 笔</span>
-    <span class="expo"><span style="color:var(--faint);font-size:11.5px" title="按风险计:板块内 Σ(股数×R0) ÷ 全部持仓 Σ(股数×R0)">板块风险敞口</span>${chips}</span>`;
+    <details class="expo-fold"${isMob()?"":" open"}>
+      <summary title="按风险计:板块内 Σ(股数×R0) ÷ 全部持仓 Σ(股数×R0)">板块敞口 <b>${topSec}</b></summary>
+      <span class="expo"><span class="expo-lab" title="按风险计:板块内 Σ(股数×R0) ÷ 全部持仓 Σ(股数×R0)">板块风险敞口</span>${chips}</span>
+    </details>`;
   el.querySelectorAll(".chip[data-sec]").forEach(ch=>ch.addEventListener("click",()=>{
     const s=ch.dataset.sec||"";
     secFilter=(s&&secFilter!==s)?s:"";
