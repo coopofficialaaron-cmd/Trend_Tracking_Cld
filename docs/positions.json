@@ -660,5 +660,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787610247322
+  },
+  {
+    "ticker": "FCX",
+    "file": "FCX",
+    "name": "Freeport-McMoRan, Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-25",
+    "entryPrice": 77.57,
+    "initialStop": 66.22,
+    "r0": 11.349999999999994,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787648392191
+  },
+  {
+    "ticker": "EQX",
+    "file": "EQX",
+    "name": "Equinox Gold Corp.",
+    "major": "矿业",
+    "entryDate": "2026-08-25",
+    "entryPrice": 13.7,
+    "initialStop": 11.47,
+    "r0": 2.2299999999999986,
+    "shares": 21,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787648408597
   }
 ]
