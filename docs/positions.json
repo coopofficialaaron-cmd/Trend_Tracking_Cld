@@ -716,5 +716,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787667347626
+  },
+  {
+    "ticker": "WEN",
+    "file": "WEN",
+    "name": "Wendy's Company (The)",
+    "major": "消费",
+    "entryDate": "2026-08-25",
+    "entryPrice": 9.1,
+    "initialStop": 7.62,
+    "r0": 1.4799999999999995,
+    "shares": 33,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787693313257
   }
 ]
