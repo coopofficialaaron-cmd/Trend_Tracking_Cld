@@ -688,5 +688,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787648408597
+  },
+  {
+    "ticker": "SSRM",
+    "file": "SSRM",
+    "name": "SSR Mining Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-25",
+    "entryPrice": 38.2,
+    "initialStop": 32.11,
+    "r0": 6.090000000000003,
+    "shares": 7,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787667331310
+  },
+  {
+    "ticker": "CRL",
+    "file": "CRL",
+    "name": "Charles River Laboratories Inte",
+    "major": "医疗健康",
+    "entryDate": "2026-08-25",
+    "entryPrice": 298.3,
+    "initialStop": 257.98,
+    "r0": 40.31999999999999,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787667347626
   }
 ]
