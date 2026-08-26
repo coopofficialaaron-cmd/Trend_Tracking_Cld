@@ -730,5 +730,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787693313257
+  },
+  {
+    "ticker": "ALM",
+    "file": "ALM",
+    "name": "Almonty Industries Inc.",
+    "major": "矿业",
+    "entryDate": "2026-08-26",
+    "entryPrice": 18.64,
+    "initialStop": 13.82,
+    "r0": 4.82,
+    "shares": 9,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787741288770
   }
 ]
