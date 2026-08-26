@@ -194,8 +194,12 @@
     "r0": 54.68000000000001,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1785965997455
+    "status": "closed",
+    "createdAt": 1785965997455,
+    "exit": {
+      "date": "2026-08-26",
+      "price": 328.5
+    }
   },
   {
     "ticker": "PLTR",
@@ -758,5 +762,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787744734291
+  },
+  {
+    "ticker": "MTCH",
+    "file": "MTCH",
+    "name": "Match Group, Inc.",
+    "major": "通讯服务",
+    "entryDate": "2026-08-26",
+    "entryPrice": 42.06,
+    "initialStop": 37.46,
+    "r0": 4.600000000000001,
+    "shares": 10,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787752858262
+  },
+  {
+    "ticker": "DSX",
+    "file": "DSX",
+    "name": "Diana Shipping inc.",
+    "major": "航运",
+    "entryDate": "2026-08-26",
+    "entryPrice": 2.71,
+    "initialStop": 2.33,
+    "r0": 0.3799999999999999,
+    "shares": 118,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787752878902
   }
 ]
