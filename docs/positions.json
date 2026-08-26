@@ -744,5 +744,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787741288770
+  },
+  {
+    "ticker": "GNK",
+    "file": "GNK",
+    "name": "Genco Shipping & Trading Limite",
+    "major": "航运",
+    "entryDate": "2026-08-26",
+    "entryPrice": 27.2,
+    "initialStop": 23.67,
+    "r0": 3.5299999999999976,
+    "shares": 13,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787744734291
   }
 ]
