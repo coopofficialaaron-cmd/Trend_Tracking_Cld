@@ -145,7 +145,13 @@
     "initialStop": 405.94,
     "r0": 37.06,
     "shares": 9,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-08-27",
+        "price": 503.41,
+        "shares": 5
+      }
+    ],
     "status": "open",
     "createdAt": 1785831903694
   },
@@ -790,5 +796,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787752878902
+  },
+  {
+    "ticker": "INFQ",
+    "file": "INFQ",
+    "name": "Infleqtion, Inc.",
+    "major": "科技硬件",
+    "entryDate": "2026-08-27",
+    "entryPrice": 14.16,
+    "initialStop": 11.99,
+    "r0": 2.17,
+    "shares": 21,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787870853748
+  },
+  {
+    "ticker": "COIN",
+    "file": "COIN",
+    "name": "Coinbase Global, Inc.",
+    "major": "金融地产",
+    "entryDate": "2026-08-28",
+    "entryPrice": 189.2,
+    "initialStop": 144.7,
+    "r0": 44.5,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787908838510
   }
 ]
