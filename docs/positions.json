@@ -824,5 +824,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787908838510
+  },
+  {
+    "ticker": "ERAS",
+    "file": "ERAS",
+    "name": "Erasca, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-08-28",
+    "entryPrice": 19.36,
+    "initialStop": 16.55,
+    "r0": 2.8099999999999987,
+    "shares": 16,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787943678672
+  },
+  {
+    "ticker": "EXK",
+    "file": "EXK",
+    "name": "Endeavour Silver Corporation",
+    "major": "矿业",
+    "entryDate": "2026-08-28",
+    "entryPrice": 11.2,
+    "initialStop": 8.62,
+    "r0": 2.58,
+    "shares": 18,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1787943697802
   }
 ]
