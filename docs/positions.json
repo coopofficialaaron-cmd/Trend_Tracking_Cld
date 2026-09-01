@@ -238,8 +238,12 @@
         "shares": 2
       }
     ],
-    "status": "open",
-    "createdAt": 1785966289951
+    "status": "closed",
+    "createdAt": 1785966289951,
+    "exit": {
+      "date": "2026-09-01",
+      "price": 223.46
+    }
   },
   {
     "ticker": "ANDG",
@@ -852,5 +856,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1787943697802
+  },
+  {
+    "ticker": "AGRO",
+    "file": "AGRO",
+    "name": "Adecoagro S.A.",
+    "major": "基础材料",
+    "entryDate": "2026-09-01",
+    "entryPrice": 11.39,
+    "initialStop": 9.95,
+    "r0": 1.4400000000000013,
+    "shares": 35,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788272826816
+  },
+  {
+    "ticker": "VG",
+    "file": "VG",
+    "name": "Venture Global, Inc.",
+    "major": "油气",
+    "entryDate": "2026-09-01",
+    "entryPrice": 14.63,
+    "initialStop": 12.72,
+    "r0": 1.9100000000000001,
+    "shares": 26,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788272844703
   }
 ]
