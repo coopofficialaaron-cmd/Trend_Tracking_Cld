@@ -912,5 +912,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788339720238
+  },
+  {
+    "ticker": "PTEN",
+    "file": "PTEN",
+    "name": "Patterson-UTI Energy, Inc.",
+    "major": "油气",
+    "entryDate": "2026-09-02",
+    "entryPrice": 12.72,
+    "initialStop": 10.72,
+    "r0": 2,
+    "shares": 24,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788358079214
   }
 ]
