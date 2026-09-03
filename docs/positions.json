@@ -840,8 +840,12 @@
     "r0": 2.8099999999999987,
     "shares": 16,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787943678672
+    "status": "closed",
+    "createdAt": 1787943678672,
+    "exit": {
+      "date": "2026-09-03",
+      "price": 16.3
+    }
   },
   {
     "ticker": "EXK",
@@ -926,5 +930,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788358079214
+  },
+  {
+    "ticker": "HPQ",
+    "file": "HPQ",
+    "name": "HP Inc.",
+    "major": "科技硬件",
+    "entryDate": "2026-09-03",
+    "entryPrice": 31.7,
+    "initialStop": 26.23,
+    "r0": 5.469999999999999,
+    "shares": 8,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788442555510
+  },
+  {
+    "ticker": "CRGY",
+    "file": "CRGY",
+    "name": "Crescent Energy Company",
+    "major": "油气",
+    "entryDate": "2026-09-03",
+    "entryPrice": 14.15,
+    "initialStop": 12.41,
+    "r0": 1.7400000000000002,
+    "shares": 26,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788442573331
+  },
+  {
+    "ticker": "BG",
+    "file": "BG",
+    "name": "Bunge Limited",
+    "major": "基础材料",
+    "entryDate": "2026-09-03",
+    "entryPrice": 121.99,
+    "initialStop": 109.17,
+    "r0": 12.819999999999993,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788442622990
   }
 ]
