@@ -972,5 +972,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788442622990
+  },
+  {
+    "ticker": "TGTX",
+    "file": "TGTX",
+    "name": "TG Therapeutics, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-03",
+    "entryPrice": 56.47,
+    "initialStop": 50.14,
+    "r0": 6.329999999999998,
+    "shares": 7,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788526039878
+  },
+  {
+    "ticker": "NU",
+    "file": "NU",
+    "name": "Nu Holdings Ltd.",
+    "major": "金融地产",
+    "entryDate": "2026-09-04",
+    "entryPrice": 15.63,
+    "initialStop": 13.24,
+    "r0": 2.3900000000000006,
+    "shares": 20,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788526054027
   }
 ]
