@@ -1028,5 +1028,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788874506724
+  },
+  {
+    "ticker": "SFL",
+    "file": "SFL",
+    "name": "SFL Corporation Ltd",
+    "major": "航运",
+    "entryDate": "2026-09-08",
+    "entryPrice": 12.6,
+    "initialStop": 11.52,
+    "r0": 1.08,
+    "shares": 37,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788878521754
   }
 ]
