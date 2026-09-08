@@ -1014,5 +1014,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788872400069
+  },
+  {
+    "ticker": "SHIP",
+    "file": "SHIP",
+    "name": "Seanergy Maritime Holdings Corp",
+    "major": "航运",
+    "entryDate": "2026-09-08",
+    "entryPrice": 18.79,
+    "initialStop": 16.2,
+    "r0": 2.59,
+    "shares": 18,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788874506724
   }
 ]
