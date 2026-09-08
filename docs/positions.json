@@ -1000,5 +1000,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788526054027
+  },
+  {
+    "ticker": "SMMT",
+    "file": "SMMT",
+    "name": "Summit Therapeutics Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-08",
+    "entryPrice": 17.4,
+    "initialStop": 13.16,
+    "r0": 4.239999999999998,
+    "shares": 11,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788872400069
   }
 ]
