@@ -490,8 +490,12 @@
     "r0": 21.019999999999996,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787220411881
+    "status": "closed",
+    "createdAt": 1787220411881,
+    "exit": {
+      "date": "2026-09-09",
+      "price": 67
+    }
   },
   {
     "ticker": "NHC",
@@ -742,8 +746,12 @@
     "r0": 1.4799999999999995,
     "shares": 33,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787693313257
+    "status": "closed",
+    "createdAt": 1787693313257,
+    "exit": {
+      "date": "2026-09-09",
+      "price": 7.57
+    }
   },
   {
     "ticker": "ALM",
