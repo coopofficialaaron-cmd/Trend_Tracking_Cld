@@ -1050,5 +1050,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1788878521754
+  },
+  {
+    "ticker": "UBER",
+    "file": "UBER",
+    "name": "Uber Technologies, Inc.",
+    "major": "工业",
+    "entryDate": "2026-08-26",
+    "entryPrice": 80.1,
+    "initialStop": 70.92,
+    "r0": 9.179999999999993,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1788961161288
   }
 ]
