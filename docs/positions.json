@@ -1062,7 +1062,53 @@
     "r0": 9.179999999999993,
     "shares": 4,
     "adds": [],
+    "status": "closed",
+    "createdAt": 1788961161288,
+    "exit": {
+      "date": "2026-09-10",
+      "price": 70.2
+    }
+  },
+  {
+    "ticker": "TXG",
+    "file": "TXG",
+    "name": "10x Genomics, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-10",
+    "entryPrice": 66.78,
+    "initialStop": 50.93,
+    "r0": 15.850000000000001,
+    "shares": 3,
+    "adds": [],
     "status": "open",
-    "createdAt": 1788961161288
+    "createdAt": 1789047179330
+  },
+  {
+    "ticker": "CHYM",
+    "file": "CHYM",
+    "name": "Chime Financial, Inc.",
+    "major": "金融地产",
+    "entryDate": "2026-09-10",
+    "entryPrice": 34.11,
+    "initialStop": 28.46,
+    "r0": 5.649999999999999,
+    "shares": 8,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789047192845
+  },
+  {
+    "ticker": "AVAH",
+    "file": "AVAH",
+    "name": "Aveanna Healthcare Holdings Inc",
+    "major": "医疗健康",
+    "entryDate": "2026-09-10",
+    "entryPrice": 14,
+    "initialStop": 11.83,
+    "r0": 2.17,
+    "shares": 22,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789047207525
   }
 ]
