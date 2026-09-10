@@ -1110,5 +1110,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789047207525
+  },
+  {
+    "ticker": "PARR",
+    "file": "PARR",
+    "name": "Par Pacific Holdings, Inc. Comm",
+    "major": "油气",
+    "entryDate": "2026-09-10",
+    "entryPrice": 83.25,
+    "initialStop": 68.47,
+    "r0": 14.780000000000001,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789050156762
   }
 ]
