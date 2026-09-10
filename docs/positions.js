@@ -428,12 +428,18 @@ function signalNote(c){
 /* 已平仓小结：赚了多少、亏了多少、净额。盈亏比 = 总盈利 ÷ 总亏损（回测里叫 PF），
    >1 就是赚钱的。样本少的时候这几个数波动很大，看趋势不要看绝对值。 */
 function closedSummary(closed){
-  const v=closed.map(({h,c})=>(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null).filter(x=>x!=null);
+  // R 用平仓价算（c.R 是按现价盯市的，平仓单不能用）；r0 缺失或 <=0 的单子不计入均值
+  const v=closed.map(({h,c})=>(h.exit&&c)?{
+    p:(h.exit.price-c.avgCost)*c.shares,
+    R:(c.r0&&c.r0>0)?(h.exit.price-c.avgCost)/c.r0:null
+  }:null).filter(x=>x!=null);
   if(!v.length) return "";
-  const win=v.filter(x=>x>0), los=v.filter(x=>x<=0);
-  const gp=win.reduce((a,b)=>a+b,0), gl=los.reduce((a,b)=>a+b,0), net=gp+gl;
+  const win=v.filter(x=>x.p>0), los=v.filter(x=>x.p<=0);
+  const gp=win.reduce((a,b)=>a+b.p,0), gl=los.reduce((a,b)=>a+b.p,0), net=gp+gl;
   const pf=gl<0?(gp/Math.abs(gl)):null;
-  return ` · 赚 <span class="pos">${fmt.money(gp)}</span>（${win.length}笔） · 亏 <span class="neg">${fmt.money(gl)}</span>（${los.length}笔）`
+  const lr=los.map(x=>x.R).filter(x=>x!=null);
+  const avgLR=lr.length?lr.reduce((a,b)=>a+b,0)/lr.length:null;
+  return ` · 赚 <span class="pos">${fmt.money(gp)}</span>（${win.length}笔） · 亏 <span class="neg">${fmt.money(gl)}</span>（${los.length}笔${avgLR!=null?`，均 ${avgLR.toFixed(2)}R`:""}）`
     +` · 净 ${signed(net,fmt.money)} · 胜率 ${Math.round(win.length/v.length*100)}%`
     +(pf!=null?` · 盈亏比 ${pf.toFixed(2)}`:"");
 }
