@@ -684,11 +684,13 @@ function render(){
   const body=document.querySelector("#grid tbody");
   body.innerHTML = list.map(st=>{
     const s=curSummary(st);
-    // 信号页不用行级底色：每行都是 Enter，涂色不携带信息；而各类警示已在
-    // 它描述的那一列里表达（ATR% 与 止损% 各有 ⚠，结构列另有 强/中/弱 徽标），
-    // 再叠一层整行红底既重复，又会让「止损过窄」显得比 ATR% 分档更重要 —— 而后者
-    // 才是逐年 5/5 成立的那条。总览页保留绿底，那里它确实区分 Enter 与其他信号。
-    const cls = (view==="signals") ? "" : (s.signal==="Enter" ? "enter" : "");
+    // 信号页行级底色：只在这一行带 ⚠ 时上红底（ATR%<2.5% 或 止损距离<8%）。
+    // 依据（5 年 4836 笔，按资金占用年化的 R —— 资金是真正的约束）：
+    //   无 ⚠ 63.3 ｜ 只止损 ⚠ 20.8 ｜ 只 ATR ⚠ 15.4 ｜ 两个 ⚠ 2.7
+    // 任一 ⚠ 都至少差 3 倍，两个同时亮时基本没有边际。红底和列里的 ⚠ 确实重复，
+    // 但重复的代价小于漏看的代价。总览页仍用绿底区分 Enter 与其他信号。
+    const warned = (s.atrpct!=null && s.atrpct<STRUCT.atrWeak) || stopNarrow(s);
+    const cls = (view==="signals") ? (warned?"hot":"") : (s.signal==="Enter" ? "enter" : "");
     return `<tr data-tk="${st.ticker}" class="${cls}">`+
       CV.map((c,i)=>`<td class="${(c.l?"l ":"")+(c.la?"la ":"")+(c.s?`sticky col${i}`:"")}">${c.f(s,st)??""}</td>`).join("")+`</tr>`;
   }).join("");
