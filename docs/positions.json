@@ -1148,5 +1148,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789134343487
+  },
+  {
+    "ticker": "GRDN",
+    "file": "GRDN",
+    "name": "Guardian Pharmacy Services, Inc",
+    "major": "医疗健康",
+    "entryDate": "2026-09-11",
+    "entryPrice": 43.76,
+    "initialStop": 37.94,
+    "r0": 5.82,
+    "shares": 8,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789141631642
   }
 ]
