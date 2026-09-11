@@ -76,8 +76,12 @@
     "r0": 4.939999999999998,
     "shares": 5,
     "adds": [],
-    "status": "open",
-    "createdAt": 1785333950475
+    "status": "closed",
+    "createdAt": 1785333950475,
+    "exit": {
+      "date": "2026-09-11",
+      "price": 58.8
+    }
   },
   {
     "ticker": "INSW",
@@ -165,7 +169,13 @@
     "initialStop": 69.24,
     "r0": 9.620000000000005,
     "shares": 3,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-09-11",
+        "price": 97.7,
+        "shares": 1
+      }
+    ],
     "status": "open",
     "createdAt": 1785852044499
   },
@@ -1124,5 +1134,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789050156762
+  },
+  {
+    "ticker": "CLMT",
+    "file": "CLMT",
+    "name": "Calumet, Inc",
+    "major": "油气",
+    "entryDate": "2026-09-11",
+    "entryPrice": 56.4,
+    "initialStop": 47.98,
+    "r0": 8.420000000000002,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789134343487
   }
 ]
