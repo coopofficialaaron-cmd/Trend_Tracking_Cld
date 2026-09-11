@@ -263,21 +263,25 @@ function render(){
       <td>${addCell}</td>
       <td class="mh"><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
-  }).join("")+(closed.length?`<tr><td colspan="${isMob()?5:15}" style="text-align:left;color:var(--faint);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
+  }).join("")+(closed.length?`<tr><td colspan="${isMob()?5:15}" style="text-align:left;color:var(--muted);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
+      // 平仓 R：用平仓价而非现价，和上面小结里的均值同口径
+      const rR=(h.exit&&c&&c.r0>0)?(h.exit.price-c.avgCost)/c.r0:null;
+      const rtxt=rR==null?"":rR.toFixed(1)+"R";
+      const rcls=rR==null?"":(rR>0?"pos":"neg");
       if(isMob()){
-        return `<tr data-i="${i}" style="opacity:.6">
+        return `<tr data-i="${i}" style="opacity:.75">
           <td class="l"><b>${h.ticker}</b></td><td>${fmt.n1(c.shares)}</td>
           <td>${h.exit?fmt.n2(h.exit.price):""}</td>
-          <td style="color:var(--faint)">已平</td>
+          <td class="${rcls}">${rtxt}</td>
           <td>${signed(rpnl,fmt.money)}</td></tr>`;
       }
-      return `<tr data-i="${i}" style="opacity:.6">
+      return `<tr data-i="${i}" style="opacity:.75">
         <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
         <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td colspan="6"></td>
+        <td>${signed(rpnl,fmt.money)}</td><td></td><td class="${rcls}">${rtxt}</td><td colspan="4"></td>
         <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   if(!list.length) body.insertAdjacentHTML("afterbegin",
