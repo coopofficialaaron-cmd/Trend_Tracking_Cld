@@ -168,7 +168,11 @@ const COLS = [
   // 这一列把它归一化成"还剩几个典型日" —— 也是这笔大约多久出结果的预期。
   {k:"roomatr", t:"距止损(ATR)", la:true, f:s=>roomCell(s), v:s=>stopRoomATR(s)},
   // ④ 买多少
-  {k:"shares",  t:"股数",        f:s=>{const x=sharesOf(s);return x!=null?fmt.n0(x):"";}, v:s=>{const x=sharesOf(s);return x==null?-1:x;}},
+  // 股数只在 Enter 行显示（与结构列同一门槛）。总览是扫描用的，不是下单用的：
+  // 非 Enter 行照样印股数会产生可执行的假象，而 r0Eff() 在收盘价已跌破止损时
+  // 会回退用 index.json 的 r0（按最高买入价算），于是 ANAB 这种「现价 53.87、
+  // 买入区间 60.23~61.04、止损 60.39」的票会印出 1.2% 止损距离和 78 股。
+  {k:"shares",  t:"股数",        f:s=>{const x=(s&&s.signal==="Enter")?sharesOf(s):null;return x!=null?fmt.n0(x):"";}, v:s=>{const x=(s&&s.signal==="Enter")?sharesOf(s):null;return x==null?-1:x;}},
   // ④ 买在哪
   {k:"close",   t:"收盘",        f:s=>fmt.n2(s.close), v:s=>s.close},
   {k:"minentry",t:"最低买入",    f:s=>fmt.n2(s.minentry), v:s=>s.minentry},
