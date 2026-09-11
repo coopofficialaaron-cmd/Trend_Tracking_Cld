@@ -55,16 +55,20 @@ function ddPctRow(r){
   return Math.max(0, (r.hc55-r.hc22)/r.hc55);
 }
 
-// ---- 结构评级:直接照抄回测结论(831 笔已平仓,2025-06 ~ 2026-07)----
-// ---- 趋势结构评级:单因子 ----
-// 5 年回测(4560 笔已平仓,含 2022 熊市)结论:
-//   ATR% 分档 PF 单调递增 —— <2%:1.14  2~2.5%:1.00  2.5~4%:1.43  4~6%:2.10  6~8%:3.04  ≥8%:3.13
-//   机制:一段趋势在 ATR 单位上长度大体固定(中位约 3~4 个 ATR),所以最终涨幅≈ATR%×3~4。
-//        ATR% 太小 → 需要走 30 个 ATR 才能涨 60%,几乎不可能;宽止损同时更省资金。
-//   ATR%<2.5% 的 1587 笔(占 35%)只贡献 4.7% 的总利润 —— 近乎纯噪音。
+// ---- 趋势结构评级:单因子、二分 ----
+// 5 年回测(4836 笔已平仓,含 2022 熊市),按资金占用年化的 R(资金是真正的约束):
+//   <2.5%   1690 笔(35%) 单笔 +0.064R  只贡献 7.7% 的总利润  R/资金·年 4.6
+//   ≥2.5%   3146 笔(65%) 单笔 +0.416R  贡献 92.3% 的总利润   R/资金·年 47.5
+// 机制:一段趋势在 ATR 单位上长度大体固定(中位约 3~4 个 ATR),所以最终涨幅≈ATR%×3~4。
+//      ATR% 太小 → 需要走 30 个 ATR 才能涨 60%,几乎不可能;宽止损同时更省资金。
+// 为什么只有 2.5% 这一刀:原来的 4.0% 切点落在平坦区,两侧没有差别 ——
+//   3.5~4.0% 单笔 +0.357R / 资金年化 39.0,4.0~4.5% 单笔 +0.346R / 资金年化 42.7。
+//   2.5% 两侧才是真台阶:2.0~2.5% 年化 3.1 → 2.5~3.0% 年化 11.9,跳 4 倍。
+//   ≥2.5% 内部确实还有 12 倍的梯度(13.3 → 158.6),但那是连续的,不存在第二个台阶,
+//   而且 ATR% 的准确数值就在旁边那一列 —— 徽标只负责"这只票该不该进池子"。
 // 刻意只留一个因子:ER22 阈值增益太小(加上后强档总 R 从 885 掉到 705),
 // ER55/新鲜度 与 ATR%/止损宽度 高度重复,全部降级为显示列,不参与评级。
-const STRUCT = { atrWeak:0.025, atrStrong:0.04 };
+const STRUCT = { atrWeak:0.025 };
 const INFO = { ddDeep:0.20, ageOld:35 };
 function atrCell(v){
   if(v==null) return "";
@@ -104,12 +108,10 @@ function stopPct(s){
 function structTier(s){
   if(!s) return null;
   const a=s.atrpct, sp=stopPct(s);
-  let tier="mid";
-  if(a!=null && a<STRUCT.atrWeak)        tier="weak";
-  else if(a!=null && a>=STRUCT.atrStrong) tier="strong";
+  const tier=(a!=null && a<STRUCT.atrWeak) ? "weak" : "strong";
   const notes=[];
   if(a!=null) notes.push(`ATR% ${fmt.pct(a)} · ${
-    a<STRUCT.atrWeak?"波动不足，走不出幅度":(a>=STRUCT.atrStrong?"波动充足":"中等")}`);
+    a<STRUCT.atrWeak?"波动不足，走不出幅度":"波动充足"}`);
   if(sp!=null) notes.push(`止损距离 ${fmt.pct(sp)} · 买入市值约为可亏金额的 ${fmt.n0(1/sp)} 倍`);
   if(s.er55!=null) notes.push(`ER55 ${fmt.er(s.er55)} · 越低越好（长期横盘后启动优于已走完一大段）`);
   return {tier, notes, sp};
@@ -118,7 +120,6 @@ function structCell(s){
   const t=structTier(s);
   if(!t || !s || s.signal!=="Enter") return "";
   const cfg={strong:["强","var(--enter)","var(--enter-bg)"],
-             mid:["中","var(--toohigh)","rgba(180,118,12,.12)"],
              weak:["弱","#fff","var(--bad)"]}[t.tier];
   const tip=`趋势结构 ${cfg[0]}&#10;${t.notes.join("&#10;")}`;
   return `<span class="stag" title="${tip}" style="color:${cfg[1]};background:${cfg[2]}">${cfg[0]}</span>`;
@@ -132,7 +133,7 @@ function structCell(s){
    过滤后子集内它不再单调(强档 10-13% 最好、中档 8-10% 最好)。
    ATR% 才是因:在 止损%>=8 的子集里仍然单调(2.5-3.5% 均R +0.20 → 8%+ 均R +1.35)。
    档位标签保留显示,只是不再参与排序(3.9% 与 4.1% 之间没有本质差别,不该被切到两边)。 */
-function structSort(s){ const t=structTier(s); return t?({strong:2,mid:1,weak:0}[t.tier]):null; }
+function structSort(s){ const t=structTier(s); return t?({strong:1,weak:0}[t.tier]):null; }
 
 const fmt = {
   n2:(v)=>v==null||v===""?"":Number(v).toFixed(2),
