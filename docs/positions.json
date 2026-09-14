@@ -1194,5 +1194,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789393433422
+  },
+  {
+    "ticker": "META",
+    "file": "META",
+    "name": "Meta Platforms, Inc.",
+    "major": "通讯服务",
+    "entryDate": "2026-09-14",
+    "entryPrice": 617.71,
+    "initialStop": 606.72,
+    "r0": 10.990000000000009,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789423120730
   }
 ]
