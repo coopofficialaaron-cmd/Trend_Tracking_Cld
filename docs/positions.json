@@ -546,8 +546,12 @@
     "r0": 9.969999999999999,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787335032205
+    "status": "closed",
+    "createdAt": 1787335032205,
+    "exit": {
+      "date": "2026-09-14",
+      "price": 31.21
+    }
   },
   {
     "ticker": "AG",
@@ -1162,5 +1166,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789141631642
+  },
+  {
+    "ticker": "AVT",
+    "file": "AVT",
+    "name": "Avnet, Inc.",
+    "major": "科技硬件",
+    "entryDate": "2026-09-14",
+    "entryPrice": 99.63,
+    "initialStop": 86.49,
+    "r0": 13.14,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789393010386
   }
 ]
