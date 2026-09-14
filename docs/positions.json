@@ -1180,5 +1180,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789393010386
+  },
+  {
+    "ticker": "ASC",
+    "file": "ASC",
+    "name": "Ardmore Shipping Corporation",
+    "major": "航运",
+    "entryDate": "2026-09-14",
+    "entryPrice": 18.59,
+    "initialStop": 16.23,
+    "r0": 2.3599999999999994,
+    "shares": 20,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789393433422
   }
 ]
