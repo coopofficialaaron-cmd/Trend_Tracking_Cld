@@ -1290,5 +1290,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789480115272
+  },
+  {
+    "ticker": "ZS",
+    "file": "ZS",
+    "name": "Zscaler, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-15",
+    "entryPrice": 193.49,
+    "initialStop": 151.68,
+    "r0": 41.81,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789509673151
   }
 ]
