@@ -1208,5 +1208,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789423120730
+  },
+  {
+    "ticker": "CRWD",
+    "file": "CRWD",
+    "name": "CrowdStrike Holdings, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-15",
+    "entryPrice": 234,
+    "initialStop": 179.62,
+    "r0": 54.379999999999995,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789460703393
   }
 ]
