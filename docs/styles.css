@@ -242,13 +242,15 @@ thead th .arrow{color:var(--accent);font-size:10px;margin-left:3px}
 tbody td{padding:11px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);
   font-family:var(--mono);font-variant-numeric:tabular-nums;background:var(--panel)}
 tbody td.l{text-align:left;font-family:var(--ui)}
-/* 平仓区子表头：字号/字重/内距与 thead 完全一致，只是颜色更浅；
-   sticky 贴在主表头下沿（--thead-h 由 positions.js 实测写入），
-   z-index 低于 thead，滚到平仓区时接替显示正确的列名。 */
-tbody tr.closed-head td{position:sticky;top:var(--thead-h,41px);z-index:1;
+/* 平仓区子表头：字号/字重/内距与 thead 完全一致，只是颜色更浅。
+   sticky top:0 且 z-index 高于 thead —— 滚到平仓区时它会整块盖住主表头，
+   而不是叠在下面。两者高度、背景、内距一致，所以看上去就是表头换了一套列名。 */
+tbody tr.closed-head td{position:sticky;top:0;z-index:3;
   background:var(--panel-2);color:var(--faint);font-weight:600;font-family:var(--ui);
   text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);cursor:default}
 tbody tr.closed-head td.l{text-align:left}
+tbody tr.closed-sum td{text-align:left;color:var(--muted);padding-top:16px;font-family:var(--ui)}
+tbody tr.closed-sum:hover td{background:var(--panel)}
 tbody tr.closed-head:hover td{background:var(--panel-2)}
 
 tbody td.la{text-align:left}
@@ -433,6 +435,13 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   thead th{font-size:11px;letter-spacing:0}
   /* 子表头在窄屏同样跟随 thead 的内距与字号（它的选择器更具体，必须显式覆盖） */
   tbody tr.closed-head td{padding:8px 6px;font-size:11px;letter-spacing:0}
+  tbody tr.closed-head td{z-index:7}
+  /* 小结行在窄屏换行显示，避免横向滚动才能看全 */
+  /* 表格比屏幕宽，colspan 会把小结拉到整张表的宽度。用一个 sticky left:0 的内层块
+     把它钉在可视区左侧并限宽，文字就在屏幕内换行，不用左右滑。 */
+  tbody tr.closed-sum td{white-space:normal;padding:14px 10px 10px}
+  tbody tr.closed-sum .sumin{position:sticky;left:0;display:block;
+    max-width:calc(100vw - 44px);line-height:1.9;white-space:normal}
   tbody tr.closed-head td:first-child{padding-left:10px}
   tbody tr.closed-head td:last-child{padding-right:10px}
   #grid .col0{width:74px;min-width:74px;box-shadow:2px 0 0 var(--line)}
