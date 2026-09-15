@@ -704,8 +704,14 @@
     "r0": 11.349999999999994,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787648392191
+    "status": "closed",
+    "createdAt": 1787648392191,
+    "exit": {
+      "date": "2026-09-15",
+      "price": 69.35,
+      "stop": 70.1726,
+      "triggerDate": "2026-09-14"
+    }
   },
   {
     "ticker": "EQX",
@@ -718,8 +724,14 @@
     "r0": 2.2299999999999986,
     "shares": 21,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787648408597
+    "status": "closed",
+    "createdAt": 1787648408597,
+    "exit": {
+      "date": "2026-09-15",
+      "price": 11.85,
+      "stop": 11.9986,
+      "triggerDate": "2026-09-14"
+    }
   },
   {
     "ticker": "SSRM",
@@ -1236,5 +1248,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789464091741
+  },
+  {
+    "ticker": "DOCU",
+    "file": "DOCU",
+    "name": "DocuSign, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-15",
+    "entryPrice": 68.96,
+    "initialStop": 58.56,
+    "r0": 10.399999999999991,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789479665683
+  },
+  {
+    "ticker": "OSCR",
+    "file": "OSCR",
+    "name": "Oscar Health, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-15",
+    "entryPrice": 33.4,
+    "initialStop": 25.88,
+    "r0": 7.52,
+    "shares": 6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789479721294
   }
 ]
