@@ -289,37 +289,41 @@ function render(){
       <td class="mh"><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
   }).join("")+(closed.length?`<tr><td colspan="${isMob()?5:15}" style="text-align:left;color:var(--muted);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
+    /* 平仓区自带一行表头：上面那行 thead 的标签（现价/今日止损/距止损/加仓）
+       描述的是持仓中的状态，套在已平仓的行上语义不对。这里按 MHIDE 的同一套
+       列序号重排标签，所以桌面和手机都能和 thead 对齐。 */
+    `<tr style="color:var(--faint);font-size:12px">
+      <td class="l">代码</td><td class="l mh">入场→平仓</td><td class="mh">均价</td><td>股数</td>
+      <td>成交价</td><td>触发止损</td><td class="mh"></td><td class="mh"></td><td class="mh"></td>
+      <td class="mh">R</td><td class="mh">滑移</td><td class="mh"></td><td class="mh"></td>
+      <td>盈亏</td><td class="mh"></td></tr>`+
     closed.map(({h,i,c})=>{
       const rpnl=(h.exit&&c)?(h.exit.price-c.avgCost)*c.shares:null;
       // 平仓 R：用平仓价而非现价，和上面小结里的均值同口径
       const rR=(h.exit&&c&&c.r0>0)?(h.exit.price-c.avgCost)/c.r0:null;
       const rtxt=rR==null?"":rR.toFixed(1)+"R";
       const rcls=rR==null?"":(rR>0?"pos":"neg");
-      // 平仓行每一格都跟随表头的单位：
-      //   今日止损 → 触发时的棘轮止损价    距止损 → 滑移%（成交价相对止损价）
-      // 滑移的 R 值放进悬浮提示，避免和百分比混在同一列。
+      // 滑移用 %（成交价相对触发时的止损价），R 值放进悬浮提示
       const sl=exitSlipR(h,c);
       const slpct=(sl!=null&&sl.stop)?(h.exit.price-sl.stop)/sl.stop:null;
-      const stopTxt=sl==null?"":fmt.n2(sl.stop);
+      const stopTxt=sl==null?"—":fmt.n2(sl.stop);
       const stxt=slpct==null?"":(slpct>=0?"+":"")+(slpct*100).toFixed(1)+"%";
       const scls=slpct==null?"":(slpct>=0?"pos":"neg");
       const stip=sl==null?"未跌破止损：平仓前收盘从未跌破棘轮止损（提前手动平仓）"
         :`触发 ${sl.date||"?"} · 止损 ${fmt.n2(sl.stop)} → 成交 ${fmt.n2(h.exit.price)} · 滑移 ${(sl.slip>=0?"+":"")+sl.slip.toFixed(2)}R`;
-      if(isMob()){
-        return `<tr data-i="${i}" style="opacity:.75">
-          <td class="l"><b>${h.ticker}</b></td><td>${fmt.n1(c.shares)}</td>
-          <td>${h.exit?fmt.n2(h.exit.price):""}</td>
-          <td class="${rcls}">${rtxt}</td>
-          <td>${signed(rpnl,fmt.money)}</td></tr>`;
-      }
       return `<tr data-i="${i}" style="opacity:.75">
-        <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
-        <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
+        <td class="l"><b>${h.ticker}</b></td>
+        <td class="l mh">${h.entryDate}→${h.exit?h.exit.date:""}</td>
+        <td class="mh">${fmt.n2(c.avgCost)}</td>
+        <td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td>
-        <td title="${stip}">${stopTxt}</td><td class="la" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td></td><td class="${rcls}">${rtxt}</td>
-        <td class="${scls}" title="${stip}">${stxt}</td><td colspan="3"></td>
-        <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
+        <td title="${stip}">${stopTxt}</td>
+        <td class="mh"></td><td class="mh"></td><td class="mh"></td>
+        <td class="mh ${rcls}">${rtxt}</td>
+        <td class="mh ${scls}" title="${stip}">${stxt}</td>
+        <td class="mh"></td><td class="mh"></td>
+        <td>${signed(rpnl,fmt.money)}</td>
+        <td class="mh"><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   if(!list.length) body.insertAdjacentHTML("afterbegin",
     `<tr><td colspan="15" class="l" style="color:var(--faint);padding:14px 0">没有符合当前筛选的持仓。</td></tr>`);
