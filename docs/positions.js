@@ -295,11 +295,16 @@ function render(){
       const rR=(h.exit&&c&&c.r0>0)?(h.exit.price-c.avgCost)/c.r0:null;
       const rtxt=rR==null?"":rR.toFixed(1)+"R";
       const rcls=rR==null?"":(rR>0?"pos":"neg");
+      // 平仓行每一格都跟随表头的单位：
+      //   今日止损 → 触发时的棘轮止损价    距止损 → 滑移%（成交价相对止损价）
+      // 滑移的 R 值放进悬浮提示，避免和百分比混在同一列。
       const sl=exitSlipR(h,c);
-      const stxt=sl==null?"":(sl.slip>=0?"+":"")+sl.slip.toFixed(2)+"R";
-      const scls=sl==null?"":(sl.slip>=0?"pos":"neg");
-      const stip=sl==null?"未跌破止损（手动平仓）"
-        :`触发 ${sl.date||"?"}：止损 ${fmt.n2(sl.stop)} → 成交 ${fmt.n2(h.exit.price)}`;
+      const slpct=(sl!=null&&sl.stop)?(h.exit.price-sl.stop)/sl.stop:null;
+      const stopTxt=sl==null?"":fmt.n2(sl.stop);
+      const stxt=slpct==null?"":(slpct>=0?"+":"")+(slpct*100).toFixed(1)+"%";
+      const scls=slpct==null?"":(slpct>=0?"pos":"neg");
+      const stip=sl==null?"未跌破止损：平仓前收盘从未跌破棘轮止损（提前手动平仓）"
+        :`触发 ${sl.date||"?"} · 止损 ${fmt.n2(sl.stop)} → 成交 ${fmt.n2(h.exit.price)} · 滑移 ${(sl.slip>=0?"+":"")+sl.slip.toFixed(2)}R`;
       if(isMob()){
         return `<tr data-i="${i}" style="opacity:.75">
           <td class="l"><b>${h.ticker}</b></td><td>${fmt.n1(c.shares)}</td>
@@ -310,7 +315,8 @@ function render(){
       return `<tr data-i="${i}" style="opacity:.75">
         <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
         <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
-        <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
+        <td>${h.exit?fmt.n2(h.exit.price):""}</td>
+        <td title="${stip}">${stopTxt}</td><td class="la" style="color:var(--faint)">已平仓</td>
         <td>${signed(rpnl,fmt.money)}</td><td></td><td class="${rcls}">${rtxt}</td>
         <td class="${scls}" title="${stip}">${stxt}</td><td colspan="3"></td>
         <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
