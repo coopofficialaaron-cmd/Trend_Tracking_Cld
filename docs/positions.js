@@ -213,14 +213,6 @@ const MHIDE=new Set([1,2,6,7,8,9,10,11,12,14]);  // 窄屏隐藏的列序号（�
 // 「信号」列在手机上也去掉：行左侧色条已经在表达同一件事（红=明早卖出，绿=可加仓）
 const MQ_M=window.matchMedia("(max-width:720px)");
 const isMob=()=>MQ_M.matches;
-/* 主表头是 sticky top:0；平仓子表头要停在它正下方，所以把实测高度写进 CSS 变量。
-   桌面 11px padding、手机 8px padding + 11px 字号，高度不同，必须实测。 */
-function syncTheadHeight(){
-  const th=document.querySelector("#grid thead");
-  if(!th) return;
-  document.documentElement.style.setProperty("--thead-h", th.offsetHeight+"px");
-}
-window.addEventListener("resize", syncTheadHeight);
 const HEAD=["代码","入场日","均价","股数","现价","今日止损","信号","浮盈$","浮盈%","R","距止损","距止损(ATR)","若止损","加仓",""];
 /* 距止损 ATR 倍数：<2 打 ⚠（与信号页各列自己告警的做法一致，不再给「持有」标签染色）
    含义是"一两天的正常波动就够碰到止损"，不是"这笔不好"——回测里 1.5~2.5 ATR 档 PF 1.76，
@@ -272,7 +264,6 @@ function render(){
   // 手机上只留：代码 / 股数 / 现价 / 今日止损 / 信号 / 加仓（其余进"管理"抽屉，点整行即可打开）
   document.querySelector("#grid thead").innerHTML="<tr>"+HEAD.map((t,i)=>
     `<th class="${i<2?"l ":""}${MHIDE.has(i)?"mh":""}">${t}</th>`).join("")+"</tr>";
-  syncTheadHeight();   // 平仓子表头的 sticky top 要贴在主表头下沿，字号随屏宽变，不能写死
   const body=document.querySelector("#grid tbody");
   body.innerHTML=list.map(({h,i,c})=>{
     const cls=c.exitNow?"exit-row":(c.canAdd?"addable":"");
@@ -297,13 +288,13 @@ function render(){
       <td>${addCell}</td>
       <td class="mh"><button class="mini" data-open="${i}">管理</button></td>
     </tr>`;
-  }).join("")+(closed.length?`<tr><td colspan="${isMob()?5:15}" style="text-align:left;color:var(--muted);padding-top:16px">已平仓 ${closed.length} 笔${closedSummary(closed)}</td></tr>`+
+  }).join("")+(closed.length?`<tr class="closed-sum"><td colspan="${isMob()?5:15}"><span class="sumin">已平仓 ${closed.length} 笔${closedSummary(closed)}</span></td></tr>`+
     /* 平仓区自带一行表头：上面那行 thead 的标签（现价/今日止损/距止损/加仓）
        描述的是持仓中的状态，套在已平仓的行上语义不对。这里按 MHIDE 的同一套
        列序号重排标签，所以桌面和手机都能和 thead 对齐。 */
     `<tr class="closed-head">
       <td class="l">代码</td><td class="l mh">入场→平仓</td><td class="mh">均价</td><td>股数</td>
-      <td>成交价</td><td>触发止损</td><td class="mh"></td><td class="mh"></td><td class="mh"></td>
+      <td>平仓价</td><td>触发止损</td><td class="mh"></td><td class="mh"></td><td class="mh"></td>
       <td class="mh">R</td><td class="mh">滑移</td><td class="mh"></td><td class="mh"></td>
       <td>盈亏</td><td class="mh"></td></tr>`+
     closed.map(({h,i,c})=>{
