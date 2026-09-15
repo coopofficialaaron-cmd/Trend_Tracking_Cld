@@ -1222,5 +1222,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789460703393
+  },
+  {
+    "ticker": "IOT",
+    "file": "IOT",
+    "name": "Samsara Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-15",
+    "entryPrice": 42.39,
+    "initialStop": 31.9,
+    "r0": 10.490000000000002,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789464091741
   }
 ]
