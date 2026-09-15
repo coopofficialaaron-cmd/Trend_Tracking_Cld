@@ -242,6 +242,15 @@ thead th .arrow{color:var(--accent);font-size:10px;margin-left:3px}
 tbody td{padding:11px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);
   font-family:var(--mono);font-variant-numeric:tabular-nums;background:var(--panel)}
 tbody td.l{text-align:left;font-family:var(--ui)}
+/* 平仓区子表头：字号/字重/内距与 thead 完全一致，只是颜色更浅；
+   sticky 贴在主表头下沿（--thead-h 由 positions.js 实测写入），
+   z-index 低于 thead，滚到平仓区时接替显示正确的列名。 */
+tbody tr.closed-head td{position:sticky;top:var(--thead-h,41px);z-index:1;
+  background:var(--panel-2);color:var(--faint);font-weight:600;font-family:var(--ui);
+  text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);cursor:default}
+tbody tr.closed-head td.l{text-align:left}
+tbody tr.closed-head:hover td{background:var(--panel-2)}
+
 tbody td.la{text-align:left}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:var(--panel-2)}
@@ -422,6 +431,10 @@ tbody tr.hot:hover td.sticky{background:var(--hot-solid-hi)}
   thead th:first-child,tbody td:first-child{padding-left:10px}
   thead th:last-child,tbody td:last-child{padding-right:10px}
   thead th{font-size:11px;letter-spacing:0}
+  /* 子表头在窄屏同样跟随 thead 的内距与字号（它的选择器更具体，必须显式覆盖） */
+  tbody tr.closed-head td{padding:8px 6px;font-size:11px;letter-spacing:0}
+  tbody tr.closed-head td:first-child{padding-left:10px}
+  tbody tr.closed-head td:last-child{padding-right:10px}
   #grid .col0{width:74px;min-width:74px;box-shadow:2px 0 0 var(--line)}
   /* 持仓表(无冻结列)：代码列收缩到内容宽度，别把 width:100% 的余量都吃掉 */
   #grid tbody td:first-child,#grid thead th:first-child{width:1%;white-space:nowrap}
