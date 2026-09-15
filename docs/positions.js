@@ -146,6 +146,31 @@ function holdingStopInfo(h){
 }
 function holdingStop(h){ return holdingStopInfo(h).stop; }
 
+/* 平仓触发信息：{stop, date, stored}
+   优先用平仓时落盘的 exit.stop / exit.triggerDate；老记录没有这两个字段，
+   就从入场日重放棘轮补算 —— 用的是和 holdingStopInfo() 完全相同的规则，
+   结果等于当时页面上显示的那个止损。返回 null = 从未跌破止损（手动平仓）。 */
+function exitTrigger(h){
+  if(!h||!h.exit) return null;
+  if(h.exit.stop!=null) return {stop:h.exit.stop, date:h.exit.triggerDate||null, stored:true};
+  const f=SUM[h.ticker]?.file; const rows=ROWS[f]||[];
+  if(!rows.length) return null;
+  const ei=rows.findIndex(r=>r.date>=h.entryDate); if(ei<0) return null;
+  let tr=(h.initialStop!=null)?h.initialStop:(rows[ei].cand??rows[ei].final??null);
+  for(let k=ei;k<rows.length;k++){
+    const r=rows[k]; if(r.date>h.exit.date) break;
+    const cd=r.cand; if(cd!=null&&(tr==null||cd>tr)) tr=cd;
+    if(tr!=null&&r.close!=null&&r.close<tr) return {stop:tr, date:r.date, stored:false};
+  }
+  return null;
+}
+/* 滑移 = (成交价 − 触发时的止损价) / R0。负数 = 比止损价卖得差。 */
+function exitSlipR(h,c){
+  const t=exitTrigger(h);
+  if(!t||!h.exit||!c||!(c.r0>0)) return null;
+  return {slip:(h.exit.price-t.stop)/c.r0, stop:t.stop, date:t.date};
+}
+
 /* ===== 单笔派生计算 ===== */
 function compute(h){
   const s=SUM[h.ticker]; if(!s) return null;
@@ -270,6 +295,11 @@ function render(){
       const rR=(h.exit&&c&&c.r0>0)?(h.exit.price-c.avgCost)/c.r0:null;
       const rtxt=rR==null?"":rR.toFixed(1)+"R";
       const rcls=rR==null?"":(rR>0?"pos":"neg");
+      const sl=exitSlipR(h,c);
+      const stxt=sl==null?"":(sl.slip>=0?"+":"")+sl.slip.toFixed(2)+"R";
+      const scls=sl==null?"":(sl.slip>=0?"pos":"neg");
+      const stip=sl==null?"未跌破止损（手动平仓）"
+        :`触发 ${sl.date||"?"}：止损 ${fmt.n2(sl.stop)} → 成交 ${fmt.n2(h.exit.price)}`;
       if(isMob()){
         return `<tr data-i="${i}" style="opacity:.75">
           <td class="l"><b>${h.ticker}</b></td><td>${fmt.n1(c.shares)}</td>
@@ -281,7 +311,8 @@ function render(){
         <td class="l"><b>${h.ticker}</b></td><td class="l">${h.entryDate}→${h.exit?h.exit.date:""}</td>
         <td>${fmt.n2(c.avgCost)}</td><td>${fmt.n1(c.shares)}</td>
         <td>${h.exit?fmt.n2(h.exit.price):""}</td><td colspan="2" style="color:var(--faint)">已平仓</td>
-        <td>${signed(rpnl,fmt.money)}</td><td></td><td class="${rcls}">${rtxt}</td><td colspan="4"></td>
+        <td>${signed(rpnl,fmt.money)}</td><td></td><td class="${rcls}">${rtxt}</td>
+        <td class="${scls}" title="${stip}">${stxt}</td><td colspan="3"></td>
         <td><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
   if(!list.length) body.insertAdjacentHTML("afterbegin",
@@ -701,7 +732,11 @@ function doAdd(){ const h=POS[drawerIdx];
 function doClose(){ const h=POS[drawerIdx];
   const date=document.getElementById("x_date").value, price=num(document.getElementById("x_price").value);
   if(!date||price==null)return;
-  h.status="closed"; h.exit={date,price}; savePositions(); openDrawer(drawerIdx); render(); }
+  h.status="closed"; h.exit={date,price};
+  // 落盘触发时的棘轮止损，事后复盘不必再重放（价格数据日后被修订也不会改变历史记录）
+  const t=exitTrigger(h);
+  if(t){ h.exit.stop=Math.round(t.stop*1e4)/1e4; if(t.date) h.exit.triggerDate=t.date; }
+  savePositions(); openDrawer(drawerIdx); render(); }
 function doDelete(){ if(!confirm("删除这笔持仓记录？无法撤销。"))return; POS.splice(drawerIdx,1); savePositions(); closeDrawer(); render(); }
 
 /* ===== 同步（仓库 positions.json，跨设备） ===== */
