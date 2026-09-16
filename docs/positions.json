@@ -676,8 +676,14 @@
     "r0": 3.210000000000001,
     "shares": 15,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787585983283
+    "status": "closed",
+    "createdAt": 1787585983283,
+    "exit": {
+      "date": "2026-09-16",
+      "price": 22.15,
+      "stop": 22.1734,
+      "triggerDate": "2026-09-15"
+    }
   },
   {
     "ticker": "HCC",
@@ -690,8 +696,14 @@
     "r0": 15.659999999999997,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787610247322
+    "status": "closed",
+    "createdAt": 1787610247322,
+    "exit": {
+      "date": "2026-09-16",
+      "price": 90.95,
+      "stop": 93.4752,
+      "triggerDate": "2026-09-15"
+    }
   },
   {
     "ticker": "FCX",
@@ -790,8 +802,14 @@
     "r0": 4.82,
     "shares": 9,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787741288770
+    "status": "closed",
+    "createdAt": 1787741288770,
+    "exit": {
+      "date": "2026-09-16",
+      "price": 14.32,
+      "stop": 14.2744,
+      "triggerDate": "2026-09-15"
+    }
   },
   {
     "ticker": "GNK",
@@ -1304,5 +1322,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789509673151
+  },
+  {
+    "ticker": "OKTA",
+    "file": "OKTA",
+    "name": "Okta, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-16",
+    "entryPrice": 187.95,
+    "initialStop": 147.93,
+    "r0": 40.01999999999998,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789565636912
   }
 ]
