@@ -5,7 +5,7 @@
    持仓存 localStorage；可同步到仓库 positions.json 跨设备查看。 */
 "use strict";
 
-const ADD_MAX=3, MILESTONE=1.5, ADD_FACTOR=0.8, POS_KEY="tt_positions_v1";
+const ADD_MAX=3, MILESTONE=1.5, ADD_FACTOR=0.8, ADD_MIN_USD=25, POS_KEY="tt_positions_v1";
 
 const fmt={
   n1:v=>v==null||v===""?"":(+v).toLocaleString("en-US",{maximumFractionDigits:1}),
@@ -184,9 +184,14 @@ function compute(h){
   const riskNow=(close!=null&&stop!=null)?close-stop:null;
   const milestone=(r0&&r0>0&&close!=null)?(close-lastAdd)/r0:null;
   const locked=(stop!=null&&stop>avgCost)?(stop-avgCost)*shares:0;
-  const addShares=(riskNow&&riskNow>0&&locked>0)?Math.floor(locked/riskNow*ADD_FACTOR):0;
+  /* 加仓股数：T212 支持碎股，所以不再整数取整。
+     ≥1 股取整数（省得为 0.3 股去改单），<1 股向下保留一位小数。
+     两种情况都向下取——向上会突破 ADD_FACTOR 的缓冲，使加仓风险超过已锁定利润。 */
+  const addRaw=(riskNow&&riskNow>0&&locked>0)?locked/riskNow*ADD_FACTOR:0;
+  const addShares=addRaw>=1?Math.floor(addRaw):Math.floor(addRaw*10)/10;
+  const addCash=(close!=null)?addShares*close:0;
   const exitNow=(close!=null&&stop!=null&&close<stop);
-  const g1=(stop!=null&&stop>=lastAdd), g2=(milestone!=null&&milestone>=MILESTONE), g3=adds.length<ADD_MAX, g4=addShares>=1;
+  const g1=(stop!=null&&stop>=lastAdd), g2=(milestone!=null&&milestone>=MILESTONE), g3=adds.length<ADD_MAX, g4=addShares>0&&addCash>=ADD_MIN_USD;
   const canAdd=g1&&g2&&g3&&g4&&!exitNow;
   const mktVal=close!=null?shares*close:null;
   const pnl=mktVal!=null?mktVal-costTot:null;
@@ -202,9 +207,11 @@ function compute(h){
   else if(exitNow) addWhy="已触发止损，应离场而非加仓";
   else if(!g1) addWhy=`止损 ${fmt.n2(stop)} 未抬过上次加仓价 ${fmt.n2(lastAdd)}`;
   else if(!g2) addWhy=`距上次加仓仅 ${milestone==null?"—":milestone.toFixed(2)}R（需 ≥${MILESTONE}R）`;
-  else if(!g4) addWhy="按风险算出的加仓股数不足 1 股";
+  else if(!g4) addWhy=addShares<=0
+    ? "止损尚未抬过均价，没有可用来加仓的锁定利润"
+    : `加仓金额仅 ${fmt.money(addCash)}（需 ≥${fmt.money(ADD_MIN_USD)}），不值得为它改单`;
   return {s,close,stop,shares,avgCost,r0,lastAdd,riskNow,milestone,addShares,exitNow,
-    canAdd,addWhy,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,distATR,addsCount:adds.length,
+    canAdd,addWhy,addCash,mktVal,pnl,pnlPct,R,lockedIfStop,distPct,distATR,addsCount:adds.length,
     stopPrev:si.prev,stopChanged:si.changed,stopFresh:si.fresh,stopDelta:si.delta};
 }
 
@@ -681,7 +688,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
   const adds=h.adds||[];
   const addLog=adds.length?`<div class="addlog">${adds.map((a,k)=>`<div><span>加仓#${k+1} ${a.date}</span><span>${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</span></div>`).join("")}</div>`:"";
   const addBox=c.canAdd
-    ? `<div class="addbox ok"><b>可以加仓 ✓</b> 建议买入 <b>${c.addShares}</b> 股
+    ? `<div class="addbox ok"><b>可以加仓 ✓</b> 建议买入 <b>${c.addShares}</b> 股（约 ${fmt.money(c.addCash)}）
         <div class="why">用整仓已锁定盈利 ${fmt.money((c.stop-c.avgCost)*c.shares)} 作缓冲，按当前每股风险 ${fmt.n2(c.riskNow)} × ${ADD_FACTOR} 算出，越加越少。</div>
         ${signalNote(c)}</div>`
     : `<div class="addbox"><b>暂不加仓</b><div class="why">${c.addWhy||"—"}</div>${signalNote(c)}</div>`;
