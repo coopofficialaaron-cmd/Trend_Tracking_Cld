@@ -592,8 +592,14 @@
     "r0": 7.6399999999999935,
     "shares": 6,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787346947250
+    "status": "closed",
+    "createdAt": 1787346947250,
+    "exit": {
+      "date": "2026-09-17",
+      "price": 49,
+      "stop": 47.584,
+      "triggerDate": "2026-09-16"
+    }
   },
   {
     "ticker": "TWST",
