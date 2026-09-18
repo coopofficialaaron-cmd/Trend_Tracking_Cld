@@ -37,7 +37,7 @@ async function load(){
   try{ const r=await fetch("data/index.json",{cache:"no-store"}); DATA=await r.json(); }
   catch(e){ const el=document.getElementById("empty"); el.hidden=false;
     el.innerHTML="无法加载 <code>data/index.json</code>。请确认信号引擎已生成数据。"; return; }
-  (DATA.stocks||[]).forEach(s=>{ if(s.summary&&s.summary.date) SUM[s.ticker]={...s.summary,name:s.name,file:s.file,major:s.major,sub:s.sub}; });
+  (DATA.stocks||[]).forEach(s=>{ if(s.summary&&s.summary.date) SUM[s.ticker]={...s.summary,name:s.name,file:s.file,major:s.major,sub:s.sub,earn:s.earn}; });
   ACCOUNT=Number(localStorage.getItem("acctUsd"))||20000;
   RISKPCT=Number(localStorage.getItem("riskPct"))||1.0;
   await loadPositions();
@@ -279,7 +279,7 @@ function render(){
       ? `<span class="tag ok">${isMob()?("+"+c.addShares):("可加 "+c.addShares+" 股")}</span>`
       : `<span class="tag no" title="${c.addWhy}">—</span>`;
     return `<tr class="${cls}" data-i="${i}">
-      <td class="l"><b>${h.ticker}</b></td>
+      <td class="l"><b>${h.ticker}</b>${earnBadge(h.ticker)}</td>
       <td class="l mh">${h.entryDate||""}</td>
       <td class="mh">${fmt.n2(c.avgCost)}</td>
       <td>${fmt.n1(c.shares)}</td>
@@ -381,6 +381,53 @@ function renderTotals(open){
 }
 
 /* ===== 添加持仓 ===== */
+/* ===== 财报邻近提示（与 app.js 同一套规则） =====
+   财报前：跳空可能直接越过吊灯止损，加仓等于在没有缓冲的位置加码。
+   财报后 1–2 日：ATR14 只吸收了 1/14 的跳空，止损偏紧、加仓股数偏大。 */
+const EARN_PRE=5, EARN_POST=2, WD=["周日","周一","周二","周三","周四","周五","周六"];
+function nthWeekday(y,m,wd,n){ let d=new Date(Date.UTC(y,m,1)),c=0;
+  while(true){ if(d.getUTCDay()===wd){ c++; if(c===n) return d; } d.setUTCDate(d.getUTCDate()+1); } }
+function lastWeekday(y,m,wd){ let d=new Date(Date.UTC(y,m+1,0));
+  while(d.getUTCDay()!==wd) d.setUTCDate(d.getUTCDate()-1); return d; }
+function observed(dt){ const w=dt.getUTCDay();
+  if(w===6) dt.setUTCDate(dt.getUTCDate()-1); else if(w===0) dt.setUTCDate(dt.getUTCDate()+1); return dt; }
+function iso(dt){ return dt.toISOString().slice(0,10); }
+function usHolidays(y){ const H=new Set();
+  [[0,1],[5,19],[6,4],[11,25]].forEach(([m,day])=>H.add(iso(observed(new Date(Date.UTC(y,m,day))))));
+  H.add(iso(nthWeekday(y,0,1,3))); H.add(iso(nthWeekday(y,1,1,3))); H.add(iso(lastWeekday(y,4,1)));
+  H.add(iso(nthWeekday(y,8,1,1))); H.add(iso(nthWeekday(y,10,4,4))); return H; }
+function todayET(){ const et=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
+  return iso(new Date(Date.UTC(et.getFullYear(),et.getMonth(),et.getDate()))); }
+function nextTradingDay(isoStr){ let d=new Date(isoStr+"T00:00:00Z");
+  for(let i=0;i<10;i++){ d.setUTCDate(d.getUTCDate()+1); const w=d.getUTCDay();
+    if(w!==0&&w!==6&&!usHolidays(d.getUTCFullYear()).has(iso(d))) return iso(d); } return iso(d); }
+function dateLabel(isoStr){ const d=new Date(isoStr+"T00:00:00Z");
+  return `${d.getUTCMonth()+1}月${d.getUTCDate()}日 ${WD[d.getUTCDay()]}`; }
+function tradingDaysBetween(fromISO,toISO){ if(!fromISO||!toISO) return null;
+  const sign=toISO>=fromISO?1:-1; let a=new Date(fromISO+"T00:00:00Z"),b=new Date(toISO+"T00:00:00Z");
+  if(sign<0){ const t=a; a=b; b=t; }
+  let n=0,d=new Date(a);
+  while(iso(d)<iso(b)){ d.setUTCDate(d.getUTCDate()+1); const w=d.getUTCDay();
+    if(w!==0&&w!==6&&!usHolidays(d.getUTCFullYear()).has(iso(d))) n++; if(n>60) break; }
+  return sign*n; }
+function earnFlag(st){ const e=st&&st.earn; if(!e||!e.d) return null;
+  const slot=e.t==="pre"?"盘前":(e.t==="post"?"盘后":"");
+  const impact=e.t==="post"?nextTradingDay(e.d):e.d;           // 盘后财报的跳空落在下一个交易日
+  const gap=tradingDaysBetween(todayET(),impact); if(gap==null) return null;
+  const label=`${dateLabel(e.d)}${slot?" "+slot:""}`;
+  const last=latestBarDate();
+  const stale=(last&&impact>last)?"；表中数值仍基于财报前收盘":"";
+  if(gap>0&&gap<=EARN_PRE) return {kind:"pre",days:gap,
+    tip:`财报 ${label}（${gap} 个交易日后）：跳空可能直接越过止损，此时加仓没有缓冲 — 建议等财报出来`};
+  if(gap<=0&&-gap<=EARN_POST) return {kind:"post",days:gap,
+    tip:`财报 ${label} 已公布：ATR14 尚未反映跳空，止损偏紧、加仓股数偏大${stale} — 建议等 1–2 个交易日`};
+  return null; }
+const EARN_ICO='<svg class="earn-ico" viewBox="0 0 14 14" aria-hidden="true">'+
+  '<rect x="1.3" y="2.7" width="11.4" height="10" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/>'+
+  '<path d="M1.3 5.7h11.4M4.5 1.3v2.5M9.5 1.3v2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+function earnBadge(tk){ const f=earnFlag(SUM[tk]); if(!f) return "";
+  return `<span class="earn-badge ${f.kind}" title="${f.tip}">${EARN_ICO}</span>`; }
+
 function latestBarDate(){ let m=""; for(const t in SUM){ const d=SUM[t].date; if(d&&d>m) m=d; } return m; }
 /* 入场日期默认值 = 实际成交那天。你的流程是：当晚（数据日 D）看信号 → 次日开盘市价成交，
    所以填表时的"今天"就是成交日，而不是数据最后一根K线的日期 D。
@@ -397,6 +444,7 @@ function openAdd(){ dupPending=""; document.getElementById("addScrim").hidden=fa
   const bn=document.getElementById("barNote"); if(bn) bn.textContent="";
   refreshSizePreview(); }
 function closeAdd(){ dupPending=""; document.getElementById("addScrim").hidden=true; document.getElementById("addModal").hidden=true; document.getElementById("addNote").textContent=""; }
+function closeOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.close!=null) best=r; } return best; }
 function candOnOrBefore(rows,date){ let best=null; for(const r of rows){ if(r.date&&r.date<=date&&r.cand!=null) best=r; } return best; }
 async function onTickerPick(){
   const tk=document.getElementById("f_ticker").value.trim().toUpperCase(); const s=SUM[tk]; if(!s)return;
@@ -687,6 +735,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
   const rows=await fetchRows(h.file);
   const adds=h.adds||[];
   const addLog=adds.length?`<div class="addlog">${adds.map((a,k)=>`<div><span>加仓#${k+1} ${a.date}</span><span>${fmt.n1(a.shares)}股 @ ${fmt.n2(a.price)}</span></div>`).join("")}</div>`:"";
+  const earnBanner=(()=>{const f=earnFlag(SUM[h.ticker]);return f?`<div class="earn-banner">${EARN_ICO} ${f.tip}</div>`:"";})();
   const addBox=c.canAdd
     ? `<div class="addbox ok"><b>可以加仓 ✓</b> 建议买入 <b>${c.addShares}</b> 股（约 ${fmt.money(c.addCash)}）
         <div class="why">用整仓已锁定盈利 ${fmt.money((c.stop-c.avgCost)*c.shares)} 作缓冲，按当前每股风险 ${fmt.n2(c.riskNow)} × ${ADD_FACTOR} 算出，越加越少。</div>
@@ -715,7 +764,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
         <dt>加仓次数</dt><dd>${c.addsCount} / ${ADD_MAX}</dd>
       </dl>
       ${closed?`<div class="addbox">已于 ${h.exit.date} 按 ${fmt.n2(h.exit.price)} 平仓。</div>`:`
-      ${addBox}${addLog}
+      ${earnBanner}${addBox}${addLog}
       <div class="section-h">记录加仓</div>
       <div class="frow">
         <div class="fld">日期<input id="a_date" type="date"></div>
@@ -723,12 +772,14 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
       </div>
       <div class="fld">股数<input id="a_shares" inputmode="decimal" placeholder="${c.canAdd?('建议 '+c.addShares):'自填股数'}"></div>
       <button class="btn-primary" id="doAdd">确认加仓</button>
+      <div class="why" id="addFormNote"></div>
       <div class="section-h">平仓</div>
       <div class="frow">
         <div class="fld">平仓日期<input id="x_date" type="date"></div>
         <div class="fld">平仓价格<input id="x_price" inputmode="decimal" placeholder="成交价"></div>
       </div>
       <button class="mini" id="doClose">标记平仓</button>
+      <div class="why" id="closeFormNote"></div>
       `}
       <div class="section-h">其他</div>
       <button class="mini danger" id="doDelete">删除这笔记录</button>
@@ -737,18 +788,37 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
     </div>`;
   document.getElementById("scrim").hidden=false;
   const dr=document.getElementById("drawer"); dr.hidden=false; dr.setAttribute("aria-hidden","false");
-  if(!closed){ document.getElementById("doAdd").addEventListener("click",doAdd); document.getElementById("doClose").addEventListener("click",doClose); }
+  if(!closed){
+    document.getElementById("doAdd").addEventListener("click",doAdd);
+    document.getElementById("doClose").addEventListener("click",doClose);
+    /* 选好日期就把该日收盘价填进去（手动改过就不再覆盖），与添加持仓一致 */
+    const bindPx=(dId,pId)=>{
+      const dEl=document.getElementById(dId), pEl=document.getElementById(pId);
+      if(!dEl||!pEl) return;
+      const fill=()=>{ if(pEl.dataset.touched) return; const r=closeOnOrBefore(rows,dEl.value);
+        if(r&&r.close!=null) pEl.value=fmt.n2(r.close); };
+      pEl.addEventListener("input",()=>{ pEl.dataset.touched="1"; });
+      dEl.addEventListener("change",fill); dEl.addEventListener("input",fill);
+      dEl.value=latestBarDate(); fill();
+    };
+    bindPx("a_date","a_price"); bindPx("x_date","x_price");
+  }
   document.getElementById("doDelete").addEventListener("click",doDelete);
   wirePosChart();
 }
 function closeDrawer(){ const dr=document.getElementById("drawer"); dr.hidden=true; dr.setAttribute("aria-hidden","true"); document.getElementById("scrim").hidden=true; drawerIdx=null; }
 function doAdd(){ const h=POS[drawerIdx];
   const date=document.getElementById("a_date").value, price=num(document.getElementById("a_price").value), sh=num(document.getElementById("a_shares").value);
-  if(!date||price==null||!sh||sh<1)return;
+  const warn=m=>{ const b=document.getElementById("addFormNote"); if(b) b.textContent=m; };
+  if(!date){ warn("请选择加仓日期"); return; }
+  if(price==null||price<=0){ warn("请填写成交价"); return; }
+  if(!sh||sh<=0){ warn("请填写股数（支持碎股，例如 0.4）"); return; }   // 原为 sh<1，碎股被静默丢弃
   (h.adds=h.adds||[]).push({date,price,shares:sh}); savePositions(); openDrawer(drawerIdx); render(); }
 function doClose(){ const h=POS[drawerIdx];
   const date=document.getElementById("x_date").value, price=num(document.getElementById("x_price").value);
-  if(!date||price==null)return;
+  const b=document.getElementById("closeFormNote");
+  if(!date){ if(b) b.textContent="请选择平仓日期"; return; }
+  if(price==null||price<=0){ if(b) b.textContent="请填写平仓价"; return; }
   h.status="closed"; h.exit={date,price};
   // 落盘触发时的棘轮止损，事后复盘不必再重放（价格数据日后被修订也不会改变历史记录）
   const t=exitTrigger(h);
