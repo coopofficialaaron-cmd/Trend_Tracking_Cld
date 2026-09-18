@@ -1342,5 +1342,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1789565636912
+  },
+  {
+    "ticker": "IOVA",
+    "file": "IOVA",
+    "name": "Iovance Biotherapeutics, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-18",
+    "entryPrice": 10,
+    "initialStop": 7.63,
+    "r0": 2.37,
+    "shares": 20,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789741101598
+  },
+  {
+    "ticker": "ABCL",
+    "file": "ABCL",
+    "name": "AbCellera Biologics Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-18",
+    "entryPrice": 12.64,
+    "initialStop": 9.46,
+    "r0": 3.1799999999999997,
+    "shares": 15,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1789741117757
   }
 ]
