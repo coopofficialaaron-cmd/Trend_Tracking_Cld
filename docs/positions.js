@@ -799,7 +799,7 @@ async function openDrawerInner(i){ drawerIdx=i; const h=POS[i]; const c=compute(
         if(r&&r.close!=null) pEl.value=fmt.n2(r.close); };
       pEl.addEventListener("input",()=>{ pEl.dataset.touched="1"; });
       dEl.addEventListener("change",fill); dEl.addEventListener("input",fill);
-      dEl.value=latestBarDate(); fill();
+      /* 不预填日期、不预填价格：必须先自己选日期，价格才带出来，避免误点直接提交 */
     };
     bindPx("a_date","a_price"); bindPx("x_date","x_price");
   }
