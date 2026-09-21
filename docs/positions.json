@@ -596,8 +596,14 @@
     "r0": 8.549999999999997,
     "shares": 5,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787346928912
+    "status": "closed",
+    "createdAt": 1787346928912,
+    "exit": {
+      "date": "2026-09-21",
+      "price": 57.21,
+      "stop": 57.9602,
+      "triggerDate": "2026-09-18"
+    }
   },
   {
     "ticker": "PAAS",
@@ -1074,8 +1080,14 @@
     "r0": 2.3900000000000006,
     "shares": 20,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788526054027
+    "status": "closed",
+    "createdAt": 1788526054027,
+    "exit": {
+      "date": "2026-09-21",
+      "price": 13.8,
+      "stop": 13.803,
+      "triggerDate": "2026-09-18"
+    }
   },
   {
     "ticker": "SMMT",
