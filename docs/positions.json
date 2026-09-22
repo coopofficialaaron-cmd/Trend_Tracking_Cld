@@ -1038,8 +1038,14 @@
     "r0": 1.7400000000000002,
     "shares": 26,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788442573331
+    "status": "closed",
+    "createdAt": 1788442573331,
+    "exit": {
+      "date": "2026-09-22",
+      "price": 13.01,
+      "stop": 13.5688,
+      "triggerDate": "2026-09-21"
+    }
   },
   {
     "ticker": "BG",
