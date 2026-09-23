@@ -692,8 +692,14 @@
     "r0": 19.519999999999996,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787585845505
+    "status": "closed",
+    "createdAt": 1787585845505,
+    "exit": {
+      "date": "2026-09-23",
+      "price": 121.26,
+      "stop": 121.0822,
+      "triggerDate": "2026-09-22"
+    }
   },
   {
     "ticker": "WT",
@@ -968,8 +974,14 @@
     "r0": 1.9100000000000001,
     "shares": 26,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788272844703
+    "status": "closed",
+    "createdAt": 1788272844703,
+    "exit": {
+      "date": "2026-09-23",
+      "price": 13.02,
+      "stop": 13.4548,
+      "triggerDate": "2026-09-22"
+    }
   },
   {
     "ticker": "RNG",
@@ -1010,8 +1022,14 @@
     "r0": 2,
     "shares": 24,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788358079214
+    "status": "closed",
+    "createdAt": 1788358079214,
+    "exit": {
+      "date": "2026-09-23",
+      "price": 11.25,
+      "stop": 11.3131,
+      "triggerDate": "2026-09-22"
+    }
   },
   {
     "ticker": "HPQ",
@@ -1180,8 +1198,14 @@
     "r0": 5.649999999999999,
     "shares": 8,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789047192845
+    "status": "closed",
+    "createdAt": 1789047192845,
+    "exit": {
+      "date": "2026-09-23",
+      "price": 28.2,
+      "stop": 29.3576,
+      "triggerDate": "2026-09-22"
+    }
   },
   {
     "ticker": "AVAH",
@@ -1277,7 +1301,13 @@
     "initialStop": 606.72,
     "r0": 10.990000000000009,
     "shares": 4,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-09-23",
+        "price": 748.85,
+        "shares": 1
+      }
+    ],
     "status": "open",
     "createdAt": 1789423120730
   },
