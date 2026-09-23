@@ -1450,5 +1450,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790162786232
+  },
+  {
+    "ticker": "VKTX",
+    "file": "VKTX",
+    "name": "Viking Therapeutics, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-23",
+    "entryPrice": 38.3,
+    "initialStop": 32.24,
+    "r0": 6.059999999999995,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790200039954
   }
 ]
