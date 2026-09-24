@@ -1478,5 +1478,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790237881158
+  },
+  {
+    "ticker": "FPS",
+    "file": "FPS",
+    "name": "Forgent Power Solutions, Inc.",
+    "major": "工业",
+    "entryDate": "2026-09-24",
+    "entryPrice": 38.48,
+    "initialStop": 35.87,
+    "r0": 2.6099999999999994,
+    "shares": 38,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790238022097
   }
 ]
