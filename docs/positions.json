@@ -1464,5 +1464,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790200039954
+  },
+  {
+    "ticker": "S",
+    "file": "S",
+    "name": "SentinelOne, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-24",
+    "entryPrice": 24.02,
+    "initialStop": 19.76,
+    "r0": 4.259999999999998,
+    "shares": 12,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790237881158
   }
 ]
