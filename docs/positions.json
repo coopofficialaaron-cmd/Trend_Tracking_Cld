@@ -1492,5 +1492,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790238022097
+  },
+  {
+    "ticker": "FIVN",
+    "file": "FIVN",
+    "name": "Five9, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-24",
+    "entryPrice": 36.7,
+    "initialStop": 28.7,
+    "r0": 8.000000000000004,
+    "shares": 5,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790246073410
   }
 ]
