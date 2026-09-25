@@ -1506,5 +1506,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790246073410
+  },
+  {
+    "ticker": "TEM",
+    "file": "TEM",
+    "name": "Tempus AI, Inc.",
+    "major": "软件",
+    "entryDate": "2026-09-25",
+    "entryPrice": 82,
+    "initialStop": 61.16,
+    "r0": 20.840000000000003,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790317212471
   }
 ]
