@@ -298,8 +298,14 @@
     "r0": 13.569999999999993,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1786458076718
+    "status": "closed",
+    "createdAt": 1786458076718,
+    "exit": {
+      "date": "2026-09-25",
+      "price": 69.25,
+      "stop": 70.6645,
+      "triggerDate": "2026-09-24"
+    }
   },
   {
     "ticker": "CDE",
@@ -960,8 +966,14 @@
     "r0": 1.4400000000000013,
     "shares": 35,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788272826816
+    "status": "closed",
+    "createdAt": 1788272826816,
+    "exit": {
+      "date": "2026-09-25",
+      "price": 10.5,
+      "stop": 10.7757,
+      "triggerDate": "2026-09-24"
+    }
   },
   {
     "ticker": "VG",
@@ -1218,8 +1230,14 @@
     "r0": 2.17,
     "shares": 22,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789047207525
+    "status": "closed",
+    "createdAt": 1789047207525,
+    "exit": {
+      "date": "2026-09-25",
+      "price": 12.27,
+      "stop": 12.5004,
+      "triggerDate": "2026-09-24"
+    }
   },
   {
     "ticker": "PARR",
