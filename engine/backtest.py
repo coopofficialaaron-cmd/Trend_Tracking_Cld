@@ -920,8 +920,9 @@ def main():
     ap.add_argument("--years", type=float, default=5.0)
     ap.add_argument("--limit", type=int, default=0, help="only N tickers (smoke test)")
     ap.add_argument("--sleep", type=float, default=0.12)
-    ap.add_argument("--slots", type=int, default=22,
-                    help="position slots for the portfolio drawdown simulation")
+    ap.add_argument("--slots", type=str, default="22",
+                    help="position slots for the portfolio drawdown simulation; "
+                         "comma list runs each, e.g. 22,52")
     ap.add_argument("--no-dd", action="store_true",
                     help="skip the portfolio simulation (saves memory)")
     ap.add_argument("--boot", type=int, default=BOOT_N,
@@ -1071,7 +1072,9 @@ def main():
               f"{BOOT_N} bootstrap resamples)")
         paired_vs_prod(by_rule)
         if not args.no_dd:
-            prows = portfolio_report(by_rule, args.slots)
+            prows = []
+            for sl in [int(x) for x in str(args.slots).split(",") if x.strip()]:
+                prows += portfolio_report(by_rule, sl)
             write_rows(os.path.join(OUT_DIR, "portfolio.csv"), prows,
                        ["rule", "filter", "slots", "signals", "taken",
                         "take_pct", "totalR", "maxDD_R", "R_per_DD",
