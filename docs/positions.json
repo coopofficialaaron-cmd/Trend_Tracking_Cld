@@ -318,8 +318,14 @@
     "r0": 3.619999999999999,
     "shares": 12,
     "adds": [],
-    "status": "open",
-    "createdAt": 1786575204892
+    "status": "closed",
+    "createdAt": 1786575204892,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 17.87,
+      "stop": 18.6397,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "AUGO",
@@ -588,8 +594,14 @@
     "r0": 4.09,
     "shares": 11,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787345493510
+    "status": "closed",
+    "createdAt": 1787345493510,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 18,
+      "stop": 18.2391,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "KMX",
@@ -656,8 +668,14 @@
     "r0": 3.6400000000000006,
     "shares": 13,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787574554386
+    "status": "closed",
+    "createdAt": 1787574554386,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 29.14,
+      "stop": 29.3396,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "CGAU",
@@ -798,8 +816,14 @@
     "r0": 6.090000000000003,
     "shares": 7,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787667331310
+    "status": "closed",
+    "createdAt": 1787667331310,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 33.84,
+      "stop": 33.9911,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "CRL",
@@ -878,8 +902,14 @@
     "r0": 4.600000000000001,
     "shares": 10,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787752858262
+    "status": "closed",
+    "createdAt": 1787752858262,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 39.3,
+      "stop": 40.1064,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "DSX",
@@ -952,8 +982,14 @@
     "r0": 2.58,
     "shares": 18,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787943697802
+    "status": "closed",
+    "createdAt": 1787943697802,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 8.9,
+      "stop": 9.1666,
+      "triggerDate": "2026-09-24"
+    }
   },
   {
     "ticker": "AGRO",
@@ -1020,8 +1056,14 @@
     "r0": 4.010000000000002,
     "shares": 12,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788339720238
+    "status": "closed",
+    "createdAt": 1788339720238,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 22.15,
+      "stop": 22.9047,
+      "triggerDate": "2026-09-28"
+    }
   },
   {
     "ticker": "PTEN",
@@ -1088,8 +1130,14 @@
     "r0": 12.819999999999993,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788442622990
+    "status": "closed",
+    "createdAt": 1788442622990,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 107.65,
+      "stop": 109.9649,
+      "triggerDate": "2026-09-25"
+    }
   },
   {
     "ticker": "TGTX",
@@ -1150,8 +1198,14 @@
     "r0": 2.59,
     "shares": 18,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788874506724
+    "status": "closed",
+    "createdAt": 1788874506724,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 16.18,
+      "stop": 16.7372,
+      "triggerDate": "2026-09-25"
+    }
   },
   {
     "ticker": "SFL",
@@ -1278,8 +1332,14 @@
     "r0": 5.82,
     "shares": 8,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789141631642
+    "status": "closed",
+    "createdAt": 1789141631642,
+    "exit": {
+      "date": "2026-09-29",
+      "price": 39.8,
+      "stop": 41.6727,
+      "triggerDate": "2026-09-25"
+    }
   },
   {
     "ticker": "AVT",
