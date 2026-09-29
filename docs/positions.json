@@ -1538,5 +1538,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790317212471
+  },
+  {
+    "ticker": "CDNA",
+    "file": "CDNA",
+    "name": "CareDx, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-09-29",
+    "entryPrice": 64.5,
+    "initialStop": 53.61,
+    "r0": 10.89,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790672407234
   }
 ]
