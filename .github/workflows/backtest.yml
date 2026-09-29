@@ -19,6 +19,10 @@ on:
         type: boolean
         required: false
         default: true
+      slots:
+        description: "Portfolio slot limits to simulate (comma list)"
+        required: false
+        default: "22,52"
       grid_mode:
         description: "Execution mode used to score the stop grid"
         type: choice
@@ -55,6 +59,7 @@ jobs:
           python engine/backtest.py \
             --years "${{ github.event.inputs.years }}" \
             --limit "${{ github.event.inputs.limit }}" \
+            --slots "${{ github.event.inputs.slots || '22,52' }}" \
             $ARGS
 
       - name: Commit results
