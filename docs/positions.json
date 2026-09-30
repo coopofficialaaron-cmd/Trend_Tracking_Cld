@@ -562,8 +562,14 @@
     "r0": 33.99000000000001,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787335019559
+    "status": "closed",
+    "createdAt": 1787335019559,
+    "exit": {
+      "date": "2026-09-30",
+      "price": 273.08,
+      "stop": 276.616,
+      "triggerDate": "2026-09-29"
+    }
   },
   {
     "ticker": "AMLX",
@@ -1540,8 +1546,14 @@
     "r0": 6.059999999999995,
     "shares": 5,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790200039954
+    "status": "closed",
+    "createdAt": 1790200039954,
+    "exit": {
+      "date": "2026-09-30",
+      "price": 31.8,
+      "stop": 32.24,
+      "triggerDate": "2026-09-29"
+    }
   },
   {
     "ticker": "S",
