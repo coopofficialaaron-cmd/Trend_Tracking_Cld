@@ -173,7 +173,10 @@ function exitSlipR(h,c){
 
 /* ===== 单笔派生计算 ===== */
 function compute(h){
-  const s=SUM[h.ticker]; if(!s) return null;
+  /* 代码已移出信号池（config.csv 删掉）时，已平仓记录照样要显示、照样计入平仓统计：
+     用持仓记录自带的 name/major/file 兜底。持仓中的仍要求在池内。 */
+  let s=SUM[h.ticker];
+  if(!s){ if(h.status!=="closed") return null; s={name:h.name||"",major:h.major,file:h.file}; }
   const si=holdingStopInfo(h);
   const close=num(liveClose(h.ticker)), stop=num(si.stop), r0=num(h.r0);
   const adds=h.adds||[];
