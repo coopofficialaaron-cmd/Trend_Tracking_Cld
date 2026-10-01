@@ -1644,5 +1644,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790861699478
+  },
+  {
+    "ticker": "RMBS",
+    "file": "RMBS",
+    "name": "Rambus, Inc.",
+    "major": "半导体",
+    "entryDate": "2026-10-01",
+    "entryPrice": 106.66,
+    "initialStop": 87.15,
+    "r0": 19.50999999999999,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790861733308
+  },
+  {
+    "ticker": "COHU",
+    "file": "COHU",
+    "name": "Cohu, Inc.",
+    "major": "半导体",
+    "entryDate": "2026-10-01",
+    "entryPrice": 67.97,
+    "initialStop": 52.86,
+    "r0": 15.11,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790862212853
   }
 ]
