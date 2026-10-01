@@ -1630,5 +1630,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790672407234
+  },
+  {
+    "ticker": "GRAL",
+    "file": "GRAL",
+    "name": "GRAIL, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-10-01",
+    "entryPrice": 139,
+    "initialStop": 103.76,
+    "r0": 35.239999999999995,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790861699478
   }
 ]
