@@ -1503,7 +1503,13 @@
     "initialStop": 7.63,
     "r0": 2.37,
     "shares": 20,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-09-30",
+        "price": 14.79,
+        "shares": 4
+      }
+    ],
     "status": "open",
     "createdAt": 1789741101598
   },
