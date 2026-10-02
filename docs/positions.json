@@ -1672,5 +1672,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790862212853
+  },
+  {
+    "ticker": "BB",
+    "file": "BB",
+    "name": "BlackBerry Limited",
+    "major": "软件",
+    "entryDate": "2026-10-02",
+    "entryPrice": 9.28,
+    "initialStop": 7.18,
+    "r0": 2.0999999999999996,
+    "shares": 23,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1790978150935
   }
 ]
