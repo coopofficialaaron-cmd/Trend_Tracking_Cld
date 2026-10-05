@@ -1706,5 +1706,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1791205525232
+  },
+  {
+    "ticker": "SANM",
+    "file": "SANM",
+    "name": "Sanmina Corporation",
+    "major": "科技硬件",
+    "entryDate": "2026-10-05",
+    "entryPrice": 227.91,
+    "initialStop": 187.03,
+    "r0": 40.879999999999995,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791212119260
   }
 ]
