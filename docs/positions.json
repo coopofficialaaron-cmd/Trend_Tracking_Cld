@@ -1686,5 +1686,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1790978150935
+  },
+  {
+    "ticker": "MRVL",
+    "file": "MRVL",
+    "name": "Marvell Technology, Inc.",
+    "major": "半导体",
+    "entryDate": "2026-10-05",
+    "entryPrice": 272,
+    "initialStop": 222.56,
+    "r0": 49.44,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791205525232
   }
 ]
