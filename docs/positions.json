@@ -194,6 +194,11 @@
         "date": "2026-08-11",
         "price": 54.24,
         "shares": 4
+      },
+      {
+        "date": "2026-10-06",
+        "price": 69.7,
+        "shares": 1
       }
     ],
     "status": "open",
@@ -1734,5 +1739,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1791239108326
+  },
+  {
+    "ticker": "PBF",
+    "file": "PBF",
+    "name": "PBF Energy Inc.",
+    "major": "油气",
+    "entryDate": "2026-10-06",
+    "entryPrice": 83.04,
+    "initialStop": 63.57,
+    "r0": 19.470000000000006,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791294348076
   }
 ]
