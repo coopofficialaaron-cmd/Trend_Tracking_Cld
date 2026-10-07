@@ -1753,5 +1753,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1791294348076
+  },
+  {
+    "ticker": "VIAV",
+    "file": "VIAV",
+    "name": "Viavi Solutions Inc.",
+    "major": "科技硬件",
+    "entryDate": "2026-10-07",
+    "entryPrice": 47.9,
+    "initialStop": 37.31,
+    "r0": 10.589999999999996,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791376831452
+  },
+  {
+    "ticker": "TENB",
+    "file": "TENB",
+    "name": "Tenable Holdings, Inc.",
+    "major": "软件",
+    "entryDate": "2026-10-07",
+    "entryPrice": 38.83,
+    "initialStop": 31.99,
+    "r0": 6.84,
+    "shares": 6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791376849543
   }
 ]
