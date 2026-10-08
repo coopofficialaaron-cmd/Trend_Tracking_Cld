@@ -699,8 +699,14 @@
     "r0": 3.3999999999999986,
     "shares": 14,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787574574833
+    "status": "closed",
+    "createdAt": 1787574574833,
+    "exit": {
+      "date": "2026-10-08",
+      "price": 20.83,
+      "stop": 21.4015,
+      "triggerDate": "2026-10-07"
+    }
   },
   {
     "ticker": "GH",
@@ -947,8 +953,14 @@
     "r0": 2.17,
     "shares": 21,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787870853748
+    "status": "closed",
+    "createdAt": 1787870853748,
+    "exit": {
+      "date": "2026-10-08",
+      "price": 11.5,
+      "stop": 12.3564,
+      "triggerDate": "2026-10-07"
+    }
   },
   {
     "ticker": "COIN",
@@ -1549,8 +1561,14 @@
     "r0": 5.599999999999998,
     "shares": 8,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790162786232
+    "status": "closed",
+    "createdAt": 1790162786232,
+    "exit": {
+      "date": "2026-10-08",
+      "price": 26.5,
+      "stop": 27.1918,
+      "triggerDate": "2026-10-07"
+    }
   },
   {
     "ticker": "VKTX",
