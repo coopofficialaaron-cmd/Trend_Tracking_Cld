@@ -98,6 +98,11 @@
         "date": "2026-08-03",
         "price": 96.37,
         "shares": 2
+      },
+      {
+        "date": "2026-10-09",
+        "price": 122,
+        "shares": 1
       }
     ],
     "status": "open",
