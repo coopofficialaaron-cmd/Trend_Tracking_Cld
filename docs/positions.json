@@ -237,7 +237,13 @@
     "initialStop": 128.32,
     "r0": 31.480000000000018,
     "shares": 8.6,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-12",
+        "price": 209.24,
+        "shares": 3
+      }
+    ],
     "status": "open",
     "createdAt": 1785966052849
   },
@@ -1124,8 +1130,14 @@
     "r0": 5.469999999999999,
     "shares": 8,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788442555510
+    "status": "closed",
+    "createdAt": 1788442555510,
+    "exit": {
+      "date": "2026-10-12",
+      "price": 30.2,
+      "stop": 31.0413,
+      "triggerDate": "2026-10-09"
+    }
   },
   {
     "ticker": "CRGY",
