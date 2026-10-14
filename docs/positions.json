@@ -1296,8 +1296,14 @@
         "shares": 0.3
       }
     ],
-    "status": "open",
-    "createdAt": 1789047179330
+    "status": "closed",
+    "createdAt": 1789047179330,
+    "exit": {
+      "date": "2026-10-14",
+      "price": 69.1,
+      "stop": 72.5005,
+      "triggerDate": "2026-10-13"
+    }
   },
   {
     "ticker": "CHYM",
