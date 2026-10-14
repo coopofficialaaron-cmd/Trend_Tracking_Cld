@@ -1816,5 +1816,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1791376849543
+  },
+  {
+    "ticker": "NTSK",
+    "file": "NTSK",
+    "name": "Netskope, Inc.",
+    "major": "软件",
+    "entryDate": "2026-10-14",
+    "entryPrice": 21,
+    "initialStop": 17.39,
+    "r0": 3.6099999999999994,
+    "shares": 13,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1791981100431
   }
 ]
