@@ -676,8 +676,14 @@
     "r0": 40.370000000000005,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787350933074
+    "status": "closed",
+    "createdAt": 1787350933074,
+    "exit": {
+      "date": "2026-10-15",
+      "price": 137.26,
+      "stop": 148.234,
+      "triggerDate": "2026-10-14"
+    }
   },
   {
     "ticker": "SBLK",
@@ -950,8 +956,14 @@
     "r0": 0.3799999999999999,
     "shares": 118,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787752878902
+    "status": "closed",
+    "createdAt": 1787752878902,
+    "exit": {
+      "date": "2026-10-15",
+      "price": 2.58,
+      "stop": 2.7717,
+      "triggerDate": "2026-10-14"
+    }
   },
   {
     "ticker": "INFQ",
@@ -1708,8 +1720,14 @@
     "r0": 19.50999999999999,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790861733308
+    "status": "closed",
+    "createdAt": 1790861733308,
+    "exit": {
+      "date": "2026-10-15",
+      "price": 87.7,
+      "stop": 96.1155,
+      "triggerDate": "2026-10-14"
+    }
   },
   {
     "ticker": "COHU",
@@ -1722,8 +1740,14 @@
     "r0": 15.11,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790862212853
+    "status": "closed",
+    "createdAt": 1790862212853,
+    "exit": {
+      "date": "2026-10-15",
+      "price": 55,
+      "stop": 61.4397,
+      "triggerDate": "2026-10-14"
+    }
   },
   {
     "ticker": "BB",
