@@ -206,8 +206,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1785853986302
+    "status": "closed",
+    "createdAt": 1785853986302,
+    "exit": {
+      "date": "2026-10-16",
+      "price": 57.7,
+      "stop": 59.8562,
+      "triggerDate": "2026-10-15"
+    }
   },
   {
     "ticker": "PANW",
@@ -922,8 +928,14 @@
     "r0": 3.5299999999999976,
     "shares": 13,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787744734291
+    "status": "closed",
+    "createdAt": 1787744734291,
+    "exit": {
+      "date": "2026-10-16",
+      "price": 25.09,
+      "stop": 25.2605,
+      "triggerDate": "2026-10-15"
+    }
   },
   {
     "ticker": "MTCH",
@@ -1416,8 +1428,14 @@
     "r0": 13.14,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789393010386
+    "status": "closed",
+    "createdAt": 1789393010386,
+    "exit": {
+      "date": "2026-10-16",
+      "price": 90.38,
+      "stop": 94.3262,
+      "triggerDate": "2026-10-15"
+    }
   },
   {
     "ticker": "ASC",
@@ -1788,8 +1806,14 @@
     "r0": 40.879999999999995,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1791212119260
+    "status": "closed",
+    "createdAt": 1791212119260,
+    "exit": {
+      "date": "2026-10-16",
+      "price": 185,
+      "stop": 193.9003,
+      "triggerDate": "2026-10-15"
+    }
   },
   {
     "ticker": "XERS",
@@ -1830,8 +1854,14 @@
     "r0": 10.589999999999996,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1791376831452
+    "status": "closed",
+    "createdAt": 1791376831452,
+    "exit": {
+      "date": "2026-10-16",
+      "price": 36.51,
+      "stop": 38.4269,
+      "triggerDate": "2026-10-15"
+    }
   },
   {
     "ticker": "TENB",
@@ -1860,5 +1890,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1791981100431
+  },
+  {
+    "ticker": "AMPL",
+    "file": "AMPL",
+    "name": "Amplitude, Inc.",
+    "major": "软件",
+    "entryDate": "2026-10-16",
+    "entryPrice": 15.93,
+    "initialStop": 13.45,
+    "r0": 2.4800000000000004,
+    "shares": 10,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1792157746135
   }
 ]
