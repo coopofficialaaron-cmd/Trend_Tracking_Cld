@@ -250,8 +250,14 @@
         "shares": 3
       }
     ],
-    "status": "open",
-    "createdAt": 1785966052849
+    "status": "closed",
+    "createdAt": 1785966052849,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 186.77,
+      "stop": 186.1018,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "CRDO",
@@ -538,8 +544,14 @@
         "shares": 13
       }
     ],
-    "status": "open",
-    "createdAt": 1787062050897
+    "status": "closed",
+    "createdAt": 1787062050897,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 7.75,
+      "stop": 7.6772,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "TTAN",
@@ -742,8 +754,14 @@
     "r0": 26.390000000000015,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787574598316
+    "status": "closed",
+    "createdAt": 1787574598316,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 160.03,
+      "stop": 159.0357,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "CF",
@@ -1248,8 +1266,14 @@
     "r0": 4.239999999999998,
     "shares": 11,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788872400069
+    "status": "closed",
+    "createdAt": 1788872400069,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 14.8,
+      "stop": 14.6848,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "SHIP",
@@ -1282,8 +1306,14 @@
     "r0": 1.08,
     "shares": 37,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788878521754
+    "status": "closed",
+    "createdAt": 1788878521754,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 12.36,
+      "stop": 12.5154,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "UBER",
@@ -1482,8 +1512,14 @@
     "r0": 54.379999999999995,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789460703393
+    "status": "closed",
+    "createdAt": 1789460703393,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 233.47,
+      "stop": 238.7624,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "IOT",
@@ -1566,8 +1602,14 @@
     "r0": 40.01999999999998,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789565636912
+    "status": "closed",
+    "createdAt": 1789565636912,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 189.5,
+      "stop": 199.2637,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "IOVA",
@@ -1654,8 +1696,14 @@
     "r0": 4.259999999999998,
     "shares": 12,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790237881158
+    "status": "closed",
+    "createdAt": 1790237881158,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 21.7,
+      "stop": 22.7284,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "FPS",
@@ -1696,8 +1744,14 @@
     "r0": 20.840000000000003,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790317212471
+    "status": "closed",
+    "createdAt": 1790317212471,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 66.25,
+      "stop": 66.0387,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "CDNA",
@@ -1792,8 +1846,14 @@
     "r0": 49.44,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1791205525232
+    "status": "closed",
+    "createdAt": 1791205525232,
+    "exit": {
+      "date": "2026-10-19",
+      "price": 239.53,
+      "stop": 237.5189,
+      "triggerDate": "2026-10-16"
+    }
   },
   {
     "ticker": "SANM",
