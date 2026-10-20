@@ -105,8 +105,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1785334127136
+    "status": "closed",
+    "createdAt": 1785334127136,
+    "exit": {
+      "date": "2026-10-20",
+      "price": 103.02,
+      "stop": 109.189,
+      "triggerDate": "2026-10-19"
+    }
   },
   {
     "ticker": "CTVA",
@@ -181,8 +187,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1785852044499
+    "status": "closed",
+    "createdAt": 1785852044499,
+    "exit": {
+      "date": "2026-10-20",
+      "price": 94.01,
+      "stop": 95.1825,
+      "triggerDate": "2026-10-19"
+    }
   },
   {
     "ticker": "HPE",
