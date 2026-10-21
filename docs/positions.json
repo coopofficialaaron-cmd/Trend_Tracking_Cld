@@ -1510,8 +1510,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1789423120730
+    "status": "closed",
+    "createdAt": 1789423120730,
+    "exit": {
+      "date": "2026-10-21",
+      "price": 695.45,
+      "stop": 700.2729,
+      "triggerDate": "2026-10-20"
+    }
   },
   {
     "ticker": "CRWD",
@@ -1654,8 +1660,14 @@
     "r0": 3.1799999999999997,
     "shares": 15,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789741117757
+    "status": "closed",
+    "createdAt": 1789741117757,
+    "exit": {
+      "date": "2026-10-21",
+      "price": 11.71,
+      "stop": 11.7326,
+      "triggerDate": "2026-10-20"
+    }
   },
   {
     "ticker": "CAI",
@@ -1976,5 +1988,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1792157746135
+  },
+  {
+    "ticker": "APPN",
+    "file": "APPN",
+    "name": "Appian Corporation",
+    "major": "软件",
+    "entryDate": "2026-10-21",
+    "entryPrice": 44.5,
+    "initialStop": 34.06,
+    "r0": 10.439999999999998,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1792600484644
+  },
+  {
+    "ticker": "FIGS",
+    "file": "FIGS",
+    "name": "FIGS, Inc.",
+    "major": "消费",
+    "entryDate": "2026-10-21",
+    "entryPrice": 19.7,
+    "initialStop": 16.2,
+    "r0": 3.5,
+    "shares": 13,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1792600509050
+  },
+  {
+    "ticker": "RSKD",
+    "file": "RSKD",
+    "name": "Riskified Ltd.",
+    "major": "软件",
+    "entryDate": "2026-10-21",
+    "entryPrice": 8.75,
+    "initialStop": 7.11,
+    "r0": 1.6399999999999997,
+    "shares": 30,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1792600546525
   }
 ]
