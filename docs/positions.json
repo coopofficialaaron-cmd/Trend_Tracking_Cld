@@ -378,8 +378,14 @@
     "r0": 16.639999999999993,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1786624475161
+    "status": "closed",
+    "createdAt": 1786624475161,
+    "exit": {
+      "date": "2026-10-27",
+      "price": 75.93,
+      "stop": 77.62,
+      "triggerDate": "2026-10-26"
+    }
   },
   {
     "ticker": "DIOD",
@@ -1038,8 +1044,14 @@
     "r0": 44.5,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787908838510
+    "status": "closed",
+    "createdAt": 1787908838510,
+    "exit": {
+      "date": "2026-10-27",
+      "price": 160.33,
+      "stop": 160.6771,
+      "triggerDate": "2026-10-26"
+    }
   },
   {
     "ticker": "ERAS",
@@ -1617,7 +1629,13 @@
     "initialStop": 151.68,
     "r0": 41.81,
     "shares": 1,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-27",
+        "price": 260.5,
+        "shares": 1
+      }
+    ],
     "status": "open",
     "createdAt": 1789509673151
   },
@@ -2042,5 +2060,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1792600546525
+  },
+  {
+    "ticker": "HTFL",
+    "file": "HTFL",
+    "name": "Heartflow, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-10-27",
+    "entryPrice": 56.48,
+    "initialStop": 47.12,
+    "r0": 9.36,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793061770960
   }
 ]
