@@ -422,8 +422,14 @@
         "shares": 0.4
       }
     ],
-    "status": "open",
-    "createdAt": 1787002763470
+    "status": "closed",
+    "createdAt": 1787002763470,
+    "exit": {
+      "date": "2026-10-28",
+      "price": 390,
+      "stop": 403.0396,
+      "triggerDate": "2026-10-27"
+    }
   },
   {
     "ticker": "ENTG",
@@ -600,8 +606,14 @@
     "r0": 30.689999999999998,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1787320199629
+    "status": "closed",
+    "createdAt": 1787320199629,
+    "exit": {
+      "date": "2026-10-28",
+      "price": 207.57,
+      "stop": 223.4845,
+      "triggerDate": "2026-10-27"
+    }
   },
   {
     "ticker": "TRGP",
@@ -911,7 +923,13 @@
     "initialStop": 257.98,
     "r0": 40.31999999999999,
     "shares": 1,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-28",
+        "price": 362.13,
+        "shares": 0.2
+      }
+    ],
     "status": "open",
     "createdAt": 1787667347626
   },
@@ -2074,5 +2092,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1793061770960
+  },
+  {
+    "ticker": "RBRK",
+    "file": "RBRK",
+    "name": "Rubrik, Inc.",
+    "major": "软件",
+    "entryDate": "2026-10-28",
+    "entryPrice": 135.3,
+    "initialStop": 110.84,
+    "r0": 24.460000000000008,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793198326802
+  },
+  {
+    "ticker": "MANE",
+    "file": "MANE",
+    "name": "Veradermics, Incorporated",
+    "major": "医疗健康",
+    "entryDate": "2026-10-28",
+    "entryPrice": 140.48,
+    "initialStop": 106.29,
+    "r0": 34.18999999999998,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793198540852
   }
 ]
