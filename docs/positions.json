@@ -494,8 +494,14 @@
         "shares": 0.7
       }
     ],
-    "status": "open",
-    "createdAt": 1787002889003
+    "status": "closed",
+    "createdAt": 1787002889003,
+    "exit": {
+      "date": "2026-10-29",
+      "price": 112.59,
+      "stop": 113.0766,
+      "triggerDate": "2026-10-28"
+    }
   },
   {
     "ticker": "NN",
@@ -2019,7 +2025,13 @@
     "initialStop": 17.39,
     "r0": 3.6099999999999994,
     "shares": 13,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-29",
+        "price": 25.02,
+        "shares": 1
+      }
+    ],
     "status": "open",
     "createdAt": 1791981100431
   },
