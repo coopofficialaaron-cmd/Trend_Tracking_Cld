@@ -2146,5 +2146,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1793199264036
+  },
+  {
+    "ticker": "ABSI",
+    "file": "ABSI",
+    "name": "Absci Corporation",
+    "major": "医疗健康",
+    "entryDate": "2026-10-29",
+    "entryPrice": 11.8,
+    "initialStop": 7.88,
+    "r0": 3.920000000000001,
+    "shares": 12,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793285685590
   }
 ]
