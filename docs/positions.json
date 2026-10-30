@@ -305,7 +305,13 @@
     "initialStop": 40.11,
     "r0": 9.68,
     "shares": 4,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-30",
+        "price": 65.8,
+        "shares": 2
+      }
+    ],
     "status": "open",
     "createdAt": 1786046792931
   },
@@ -1700,8 +1706,14 @@
         "shares": 4
       }
     ],
-    "status": "open",
-    "createdAt": 1789741101598
+    "status": "closed",
+    "createdAt": 1789741101598,
+    "exit": {
+      "date": "2026-10-30",
+      "price": 9.07,
+      "stop": 11.4748,
+      "triggerDate": "2026-10-29"
+    }
   },
   {
     "ticker": "ABCL",
@@ -2011,7 +2023,13 @@
     "initialStop": 31.99,
     "r0": 6.84,
     "shares": 6,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-10-30",
+        "price": 52.56,
+        "shares": 0.6
+      }
+    ],
     "status": "open",
     "createdAt": 1791376849543
   },
@@ -2160,5 +2178,33 @@
     "adds": [],
     "status": "open",
     "createdAt": 1793285685590
+  },
+  {
+    "ticker": "SG",
+    "file": "SG",
+    "name": "Sweetgreen, Inc.",
+    "major": "消费",
+    "entryDate": "2026-10-30",
+    "entryPrice": 11.31,
+    "initialStop": 9.28,
+    "r0": 2.030000000000001,
+    "shares": 23,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793367660488
+  },
+  {
+    "ticker": "QLYS",
+    "file": "QLYS",
+    "name": "Qualys, Inc.",
+    "major": "软件",
+    "entryDate": "2026-10-30",
+    "entryPrice": 228.8,
+    "initialStop": 190.03,
+    "r0": 38.77000000000001,
+    "shares": 1,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1793367691184
   }
 ]
