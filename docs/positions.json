@@ -167,8 +167,14 @@
         "shares": 5
       }
     ],
-    "status": "open",
-    "createdAt": 1785831903694
+    "status": "closed",
+    "createdAt": 1785831903694,
+    "exit": {
+      "date": "2026-11-03",
+      "price": 508.05,
+      "stop": 511.0583,
+      "triggerDate": "2026-11-02"
+    }
   },
   {
     "ticker": "TNK",
@@ -1464,8 +1470,14 @@
     "r0": 14.780000000000001,
     "shares": 3,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789050156762
+    "status": "closed",
+    "createdAt": 1789050156762,
+    "exit": {
+      "date": "2026-11-03",
+      "price": 71,
+      "stop": 72.2242,
+      "triggerDate": "2026-11-02"
+    }
   },
   {
     "ticker": "CLMT",
@@ -1853,7 +1865,13 @@
     "initialStop": 53.61,
     "r0": 10.89,
     "shares": 4,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-11-03",
+        "price": 85.88,
+        "shares": 0.5
+      }
+    ],
     "status": "open",
     "createdAt": 1790672407234
   },
