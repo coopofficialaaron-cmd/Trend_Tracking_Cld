@@ -271,7 +271,9 @@ function render(){
   const open=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.c&&o.h.status!=="closed");
   let closed=POS.map((h,i)=>({h,i,c:compute(h)})).filter(o=>o.h.status==="closed");
   let list=open;
-  if(q) list=list.filter(o=>o.h.ticker.includes(q)||(o.c.s.name||"").toUpperCase().includes(q));
+  // 搜索同时作用于持仓中和已平仓（代码或名称包含关键词）
+  const hit=o=>o.h.ticker.includes(q)||((o.c&&o.c.s&&o.c.s.name)||o.h.name||"").toUpperCase().includes(q);
+  if(q){ list=list.filter(hit); closed=closed.filter(hit); }
   if(secFilter){ list=list.filter(o=>secOf(o.c)===secFilter); closed=closed.filter(o=>secOf(o.c)===secFilter); }
   list=sortForReview(list);
   const empty=document.getElementById("empty"), wrap=document.getElementById("tableWrap");
@@ -342,8 +344,14 @@ function render(){
         <td>${signed(rpnl,fmt.money)}</td>
         <td class="mh"><button class="mini" data-open="${i}">管理</button></td></tr>`;
     }).join(""):"");
-  if(!list.length) body.insertAdjacentHTML("afterbegin",
-    `<tr><td colspan="15" class="l" style="color:var(--faint);padding:14px 0">没有符合当前筛选的持仓。</td></tr>`);
+  if(!list.length){
+    const kw=q?`「${q}」`:"";
+    const msg=q
+      ? (closed.length?`持仓中没有${kw}，已平仓里找到 ${closed.length} 笔（见下方）。`:`没有找到${kw}：持仓中和已平仓都没有。`)
+      : "没有符合当前筛选的持仓。";
+    body.insertAdjacentHTML("afterbegin",
+      `<tr><td colspan="15" class="l" style="color:var(--faint);padding:14px 0">${msg}</td></tr>`);
+  }
   body.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDrawer(+b.dataset.open);}));
   body.querySelectorAll("tr[data-i]").forEach(tr=>{ tr.style.cursor="pointer";
     tr.addEventListener("click",()=>openDrawer(+tr.dataset.i)); });
