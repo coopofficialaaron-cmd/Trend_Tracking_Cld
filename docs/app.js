@@ -381,9 +381,15 @@ async function load(){
   render();
 }
 
+// 刷新时间统一显示英国时间（Europe/London，自动跟随夏令时，不受设备时区影响）
+function fmtUKTime(ts){
+  if(!ts) return "—";
+  const d=new Date(ts); if(isNaN(d)) return "—";
+  const p={}; new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(d).forEach(x=>p[x.type]=x.value);
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute} 英国`;
+}
 function renderMeta(){
-  const d=new Date(DATA.generated_at);
-  document.getElementById("updated").textContent = "更新 "+d.toLocaleString();
+  document.getElementById("updated").textContent = "更新 "+fmtUKTime(DATA.generated_at);
   document.getElementById("source").textContent = "源 "+DATA.source;
   renderFreshness();
 }
