@@ -20,6 +20,13 @@ const fmt={
   signedPct0:v=>v==null?"":(v>=0?"+":"")+(v*100).toFixed(0)+"%",
 };
 const num=v=>(v==null||v==="")?null:Number(v);
+// 刷新时间统一显示英国时间（Europe/London，自动跟随夏令时，不受设备时区影响）
+function fmtUKTime(ts){
+  if(!ts) return "—";
+  const d=new Date(ts); if(isNaN(d)) return "—";
+  const p={}; new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(d).forEach(x=>p[x.type]=x.value);
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute} 英国`;
+}
 function signed(v,f){ if(v==null)return ""; const c=v>=0?"pos":"neg"; return `<span class="${c}">${f(v)}</span>`; }
 
 let DATA=null, SUM={}, ROWS={}, LIVE={}, POS=[], ACCOUNT=20000, RISKPCT=1.0, q="", secFilter="";
@@ -62,7 +69,7 @@ async function loadPositions(){
 function markDirty(){ const b=document.getElementById("syncBtn"); if(b){ b.classList.toggle("dirty",DIRTY); b.textContent=DIRTY?"同步 ●":"同步"; } }
 
 function renderMeta(){
-  document.getElementById("updated").textContent=DATA.generated_at?("更新 "+DATA.generated_at.replace("T"," ").slice(0,16)):"—";
+  document.getElementById("updated").textContent=DATA.generated_at?("更新 "+fmtUKTime(DATA.generated_at)):"—";
   document.getElementById("source").textContent=DATA.source?("源 "+DATA.source):"";
   const mk=DATA.market; const ok=(typeof mk==="object"&&mk)?(mk.ok??mk.bull??true):!!mk;
   const f=document.getElementById("freshness"); f.className="freshness "+(ok?"ok":"stale");
