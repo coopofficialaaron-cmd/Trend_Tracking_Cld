@@ -948,8 +948,14 @@
         "shares": 0.2
       }
     ],
-    "status": "open",
-    "createdAt": 1787667347626
+    "status": "closed",
+    "createdAt": 1787667347626,
+    "exit": {
+      "date": "2026-11-05",
+      "price": 322.91,
+      "stop": 327.2703,
+      "triggerDate": "2026-11-04"
+    }
   },
   {
     "ticker": "WEN",
@@ -1550,8 +1556,14 @@
     "r0": 2.3599999999999994,
     "shares": 20,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789393433422
+    "status": "closed",
+    "createdAt": 1789393433422,
+    "exit": {
+      "date": "2026-11-05",
+      "price": 18.31,
+      "stop": 18.5708,
+      "triggerDate": "2026-11-04"
+    }
   },
   {
     "ticker": "META",
@@ -1657,7 +1669,13 @@
     "initialStop": 76.73,
     "r0": 17.47999999999999,
     "shares": 2,
-    "adds": [],
+    "adds": [
+      {
+        "date": "2026-11-05",
+        "price": 121,
+        "shares": 0.6
+      }
+    ],
     "status": "open",
     "createdAt": 1789480115272
   },
@@ -1678,8 +1696,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1789509673151
+    "status": "closed",
+    "createdAt": 1789509673151,
+    "exit": {
+      "date": "2026-11-06",
+      "price": 208,
+      "stop": 219.8089,
+      "triggerDate": "2026-11-05"
+    }
   },
   {
     "ticker": "OKTA",
@@ -1832,8 +1856,14 @@
     "r0": 8.000000000000004,
     "shares": 5,
     "adds": [],
-    "status": "open",
-    "createdAt": 1790246073410
+    "status": "closed",
+    "createdAt": 1790246073410,
+    "exit": {
+      "date": "2026-11-09",
+      "price": 27.43,
+      "stop": 31.2604,
+      "triggerDate": "2026-11-06"
+    }
   },
   {
     "ticker": "TEM",
@@ -2008,8 +2038,14 @@
     "r0": 19.470000000000006,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1791294348076
+    "status": "closed",
+    "createdAt": 1791294348076,
+    "exit": {
+      "date": "2026-11-06",
+      "price": 68.37,
+      "stop": 72.571,
+      "triggerDate": "2026-11-05"
+    }
   },
   {
     "ticker": "VIAV",
@@ -2068,8 +2104,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1791981100431
+    "status": "closed",
+    "createdAt": 1791981100431,
+    "exit": {
+      "date": "2026-11-09",
+      "price": 21,
+      "stop": 21.6632,
+      "triggerDate": "2026-11-06"
+    }
   },
   {
     "ticker": "AMPL",
@@ -2152,8 +2194,14 @@
     "r0": 24.460000000000008,
     "shares": 2,
     "adds": [],
-    "status": "open",
-    "createdAt": 1793198326802
+    "status": "closed",
+    "createdAt": 1793198326802,
+    "exit": {
+      "date": "2026-11-06",
+      "price": 110,
+      "stop": 113.3747,
+      "triggerDate": "2026-11-05"
+    }
   },
   {
     "ticker": "MANE",
@@ -2222,7 +2270,13 @@
     "r0": 38.77000000000001,
     "shares": 1,
     "adds": [],
-    "status": "open",
-    "createdAt": 1793367691184
+    "status": "closed",
+    "createdAt": 1793367691184,
+    "exit": {
+      "date": "2026-11-09",
+      "price": 190,
+      "stop": 191.1255,
+      "triggerDate": "2026-11-06"
+    }
   }
 ]
