@@ -2326,5 +2326,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1794317707721
+  },
+  {
+    "ticker": "RGR",
+    "file": "RGR",
+    "name": "Sturm, Ruger & Company, Inc.",
+    "major": "消费",
+    "entryDate": "2026-11-10",
+    "entryPrice": 50.97,
+    "initialStop": 42.62,
+    "r0": 8.350000000000001,
+    "shares": 6,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794323398887
   }
 ]
