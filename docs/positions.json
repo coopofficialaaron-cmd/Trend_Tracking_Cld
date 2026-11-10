@@ -2278,5 +2278,47 @@
       "stop": 191.1255,
       "triggerDate": "2026-11-06"
     }
+  },
+  {
+    "ticker": "PLSE",
+    "file": "PLSE",
+    "name": "Pulse Biosciences, Inc",
+    "major": "医疗健康",
+    "entryDate": "2026-11-10",
+    "entryPrice": 58.25,
+    "initialStop": 41.24,
+    "r0": 17.009999999999998,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794312177797
+  },
+  {
+    "ticker": "KNSA",
+    "file": "KNSA",
+    "name": "Kiniksa Pharmaceuticals Interna",
+    "major": "医疗健康",
+    "entryDate": "2026-11-10",
+    "entryPrice": 98.65,
+    "initialStop": 77.22,
+    "r0": 21.430000000000007,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794317689895
+  },
+  {
+    "ticker": "TRAX",
+    "file": "TRAX",
+    "name": "First Tracks Biotherapeutics, I",
+    "major": "医疗健康",
+    "entryDate": "2026-11-10",
+    "entryPrice": 50.28,
+    "initialStop": 36.48,
+    "r0": 13.800000000000004,
+    "shares": 3,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794317707721
   }
 ]
