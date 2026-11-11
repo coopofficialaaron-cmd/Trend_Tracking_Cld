@@ -2340,5 +2340,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1794323398887
+  },
+  {
+    "ticker": "CYRX",
+    "file": "CYRX",
+    "name": "CryoPort, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-11-11",
+    "entryPrice": 21.23,
+    "initialStop": 16,
+    "r0": 5.23,
+    "shares": 10,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794407570255
   }
 ]
