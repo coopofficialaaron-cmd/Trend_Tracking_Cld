@@ -313,7 +313,6 @@ LYB,NYSE,XLB,基础材料,化工
 MEOH,NASDAQ,XLB,基础材料,甲醇
 MLI,NYSE,XLI,工业,工业金属
 MOS,NYSE,MOO,基础材料,化肥
-MSGS,NYSE,XLC,通讯服务,体育娱乐
 MTRN,NYSE,XLI,工业,工业金属
 MTZ,NYSE,XLI,工业,建筑
 NTR,NYSE,MOO,基础材料,化肥
@@ -482,7 +481,6 @@ AMGN,NASDAQ,XLV,医疗健康,制药
 SWK,NYSE,XLI,工业,工业机械
 MT,NYSE,XLB,基础材料,钢铁
 WTTR,NYSE,XLE,油气,油气设备服务
-ROKU,NASDAQ,XLC,通讯服务,流媒体娱乐
 FOXA,NASDAQ,XLC,通讯服务,影视娱乐
 SHOP,NYSE,IGV,软件,电商软件
 APP,NASDAQ,IGV,软件,广告技术
@@ -1012,3 +1010,4 @@ SONO,NASDAQ,XLY,消费,消费电子
 REAL,NASDAQ,XLY,消费,互联网零售
 SIG,NYSE,XLY,消费,专业零售
 BOBS,NYSE,XLY,消费,家居零售
+MSGK,NYSE,XLC,通讯服务,体育娱乐
