@@ -2354,5 +2354,19 @@
     "adds": [],
     "status": "open",
     "createdAt": 1794407570255
+  },
+  {
+    "ticker": "ETON",
+    "file": "ETON",
+    "name": "Eton Pharmaceuticals, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-11-12",
+    "entryPrice": 68.49,
+    "initialStop": 51.64,
+    "r0": 16.849999999999994,
+    "shares": 2,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1794499281150
   }
 ]
