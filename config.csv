@@ -1011,3 +1011,15 @@ REAL,NASDAQ,XLY,消费,互联网零售
 SIG,NYSE,XLY,消费,专业零售
 BOBS,NYSE,XLY,消费,家居零售
 MSGK,NYSE,XLC,通讯服务,体育娱乐
+LFTO,NASDAQ,IGV,软件,广告技术
+OSPN,NASDAQ,IGV,软件,网络安全
+DFIN,NYSE,XLF,金融地产,资本市场
+AAMI,NYSE,XLF,金融地产,资管
+RLI,NYSE,XLF,金融地产,保险
+CUBE,NYSE,XLRE,金融地产,仓储地产
+NIQ,NYSE,XLI,工业,商业服务
+FTV,NYSE,XLI,工业,工业机械
+ATR,NYSE,XLB,基础材料,包装容器纸制品
+SIBN,NASDAQ,IHI,医疗健康,医疗器械
+LEN,NYSE,XLY,消费,住宅建筑
+BSP,NASDAQ,IGV,软件,软件
