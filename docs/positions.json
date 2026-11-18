@@ -2260,8 +2260,14 @@
     "r0": 3.920000000000001,
     "shares": 12,
     "adds": [],
-    "status": "open",
-    "createdAt": 1793285685590
+    "status": "closed",
+    "createdAt": 1793285685590,
+    "exit": {
+      "date": "2026-11-17",
+      "price": 7.56,
+      "stop": 8.3054,
+      "triggerDate": "2026-11-16"
+    }
   },
   {
     "ticker": "SG",
