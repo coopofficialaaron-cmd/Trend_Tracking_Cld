@@ -2096,8 +2096,14 @@
         "shares": 0.6
       }
     ],
-    "status": "open",
-    "createdAt": 1791376849543
+    "status": "closed",
+    "createdAt": 1791376849543,
+    "exit": {
+      "date": "2026-11-18",
+      "price": 38.63,
+      "stop": 40.6756,
+      "triggerDate": "2026-11-17"
+    }
   },
   {
     "ticker": "NTSK",
