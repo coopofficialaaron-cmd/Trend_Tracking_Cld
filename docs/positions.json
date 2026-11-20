@@ -1656,8 +1656,14 @@
     "r0": 7.52,
     "shares": 6,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789479721294
+    "status": "closed",
+    "createdAt": 1789479721294,
+    "exit": {
+      "date": "2026-11-19",
+      "price": 27.92,
+      "stop": 29.097,
+      "triggerDate": "2026-11-18"
+    }
   },
   {
     "ticker": "HNGE",
