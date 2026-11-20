@@ -318,8 +318,14 @@
         "shares": 2
       }
     ],
-    "status": "open",
-    "createdAt": 1786046792931
+    "status": "closed",
+    "createdAt": 1786046792931,
+    "exit": {
+      "date": "2026-11-20",
+      "price": 57.57,
+      "stop": 59.0076,
+      "triggerDate": "2026-11-19"
+    }
   },
   {
     "ticker": "CRWD",
@@ -1184,8 +1190,14 @@
     "r0": 11.009999999999998,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1788339689132
+    "status": "closed",
+    "createdAt": 1788339689132,
+    "exit": {
+      "date": "2026-11-20",
+      "price": 66,
+      "stop": 71.179,
+      "triggerDate": "2026-11-19"
+    }
   },
   {
     "ticker": "MOS",
@@ -1622,8 +1634,14 @@
     "r0": 10.490000000000002,
     "shares": 4,
     "adds": [],
-    "status": "open",
-    "createdAt": 1789464091741
+    "status": "closed",
+    "createdAt": 1789464091741,
+    "exit": {
+      "date": "2026-11-20",
+      "price": 37.83,
+      "stop": 38.6288,
+      "triggerDate": "2026-11-19"
+    }
   },
   {
     "ticker": "DOCU",
@@ -1642,8 +1660,14 @@
         "shares": 1
       }
     ],
-    "status": "open",
-    "createdAt": 1789479665683
+    "status": "closed",
+    "createdAt": 1789479665683,
+    "exit": {
+      "date": "2026-11-20",
+      "price": 74.49,
+      "stop": 75.7232,
+      "triggerDate": "2026-11-19"
+    }
   },
   {
     "ticker": "OSCR",
