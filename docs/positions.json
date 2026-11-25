@@ -2462,5 +2462,47 @@
     "adds": [],
     "status": "open",
     "createdAt": 1795533912234
+  },
+  {
+    "ticker": "ROIV",
+    "file": "ROIV",
+    "name": "Roivant Sciences Ltd.",
+    "major": "医疗健康",
+    "entryDate": "2026-11-25",
+    "entryPrice": 42.12,
+    "initialStop": 36.36,
+    "r0": 5.759999999999998,
+    "shares": 8,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1795624419288
+  },
+  {
+    "ticker": "AXGN",
+    "file": "AXGN",
+    "name": "AxoGen, Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-11-25",
+    "entryPrice": 59.5,
+    "initialStop": 49.35,
+    "r0": 10.149999999999999,
+    "shares": 4,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1795624434088
+  },
+  {
+    "ticker": "BAX",
+    "file": "BAX",
+    "name": "Baxter International Inc.",
+    "major": "医疗健康",
+    "entryDate": "2026-11-25",
+    "entryPrice": 26.88,
+    "initialStop": 23.09,
+    "r0": 3.789999999999999,
+    "shares": 12,
+    "adds": [],
+    "status": "open",
+    "createdAt": 1795624452917
   }
 ]
